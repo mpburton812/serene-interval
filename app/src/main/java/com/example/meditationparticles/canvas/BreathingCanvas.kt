@@ -235,7 +235,7 @@ private fun DrawScope.drawBreathSphere(
             translate(center.x - radius, center.y - radius)
         }) {
             with(glassPainter) {
-                draw(size = Size(diameter, diameter), alpha = 0.92f)
+                draw(size = Size(diameter, diameter), alpha = 0.75f)
             }
         }
 
@@ -264,8 +264,8 @@ private fun DrawScope.drawBreathSphere(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         roleColor.copy(alpha = 0.95f),
-                        roleColor.copy(alpha = 0.75f),
-                        roleColor.copy(alpha = 0.6f),
+                        roleColor.copy(alpha = 0.8f),
+                        roleColor.copy(alpha = 0.65f),
                     ),
                     startY = fillRect.top,
                     endY = fillRect.bottom,

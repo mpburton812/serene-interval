@@ -32,12 +32,44 @@ data class BreathStructureSpec(
     val hasBottomHold: Boolean get() = bottomHoldSeconds != null
 
     val ladderRows: Int
-        get() = maxOf(
-            (inhaleSphereCount + 1) / 2,
-            (exhaleSphereCount + 1) / 2,
-            1,
-        )
+        get() = requiredLadderRows(inhaleSphereCount, exhaleSphereCount)
 }
+
+/** Minimum ladder rows so every inhale/exhale sphere maps to a unique, non-overlapping grid slot. */
+fun requiredLadderRows(inhaleCount: Int, exhaleCount: Int): Int {
+    if (inhaleCount == 0 && exhaleCount == 0) return 1
+    var rows = maxOf(inhaleCount, exhaleCount, 1)
+    while (rows <= maxOf(inhaleCount, exhaleCount) + 6) {
+        val inhale = (0 until inhaleCount).map { inhaleSlotAt(it, rows) }
+        val exhale = (0 until exhaleCount).map { exhaleSlotAt(it, rows) }
+        if (inhale.toSet().size == inhaleCount &&
+            exhale.toSet().size == exhaleCount &&
+            inhale.toSet().intersect(exhale.toSet()).isEmpty()
+        ) {
+            return rows
+        }
+        rows++
+    }
+    return maxOf(inhaleCount, exhaleCount, 1)
+}
+
+private fun inhaleSlotAt(index: Int, rowCount: Int): Pair<Int, Int> {
+    val row = (rowCount - 1 - index).coerceAtLeast(0)
+    val col = if (index % 2 == 0) 1 else 0
+    return row to col
+}
+
+private fun exhaleSlotAt(index: Int, rowCount: Int): Pair<Int, Int> {
+    val row = index.coerceAtMost(rowCount - 1)
+    val col = if (index % 2 == 0) 1 else 0
+    return row to col
+}
+
+internal fun inhaleGridSlots(count: Int, rowCount: Int): Set<Pair<Int, Int>> =
+    (0 until count).map { inhaleSlotAt(it, rowCount) }.toSet()
+
+internal fun exhaleGridSlots(count: Int, rowCount: Int): Set<Pair<Int, Int>> =
+    (0 until count).map { exhaleSlotAt(it, rowCount) }.toSet()
 
 fun computeStructureSpec(pattern: BreathingPattern): BreathStructureSpec {
     val inhaleSegments = segmentsForPhase(pattern.inhaleSeconds, SphereRoleKind.InhaleBlue)

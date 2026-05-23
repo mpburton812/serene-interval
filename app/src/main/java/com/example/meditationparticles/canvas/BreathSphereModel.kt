@@ -8,7 +8,6 @@ import com.example.meditationparticles.domain.breathing.BreathingSessionState
 import com.example.meditationparticles.domain.breathing.FillDirection
 import com.example.meditationparticles.domain.breathing.SphereRoleKind
 import com.example.meditationparticles.domain.breathing.computeStructureSpec
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -107,15 +106,23 @@ private fun tryBuildLadder(
     }
     smallR = min(smallR, smallRFromWidth).coerceAtLeast(MIN_SPHERE_RADIUS)
 
-    val holdR = smallR * HOLD_TO_SMALL_RATIO
-    val contentHeight = holdSlots * holdR * 2f + rowCount * 2f * smallR + (rowCount + holdSlots + 1) * gap
-    if (contentHeight > zoneHeight * 1.08f && rows > 2) return null
+    var holdR = smallR * HOLD_TO_SMALL_RATIO
+    var contentHeightFinal = holdSlots * holdR * 2f + rowCount * 2f * smallR + (rowCount + holdSlots + 1) * gap
+
+    if (contentHeightFinal > zoneHeight) {
+        val maxSmallR = ((zoneHeight - (rowCount + holdSlots + 1) * gap) /
+            (rowCount * 2f + holdSlots * HOLD_TO_SMALL_RATIO)).coerceAtLeast(MIN_SPHERE_RADIUS)
+        if (maxSmallR < MIN_SPHERE_RADIUS && rows > 2) return null
+        smallR = min(smallR, maxSmallR).coerceAtLeast(MIN_SPHERE_RADIUS)
+        holdR = smallR * HOLD_TO_SMALL_RATIO
+        contentHeightFinal = holdSlots * holdR * 2f + rowCount * 2f * smallR + (rowCount + holdSlots + 1) * gap
+    }
 
     val leftX = centerX - columnOffset
     val rightX = centerX + columnOffset
 
     val rowYs = buildList {
-        var y = zoneTop + (zoneHeight - contentHeight) / 2f
+        var y = zoneTop + (zoneHeight - contentHeightFinal) / 2f
         if (spec.hasTopHold) {
             y += holdR
             add(y)
@@ -277,53 +284,19 @@ private fun buildCompactLayout(
     )
 }
 
-private fun inhaleSlotOrder(count: Int, rowCount: Int): List<Pair<Int, Int>> {
-    if (count == 0) return emptyList()
-    val order = mutableListOf<Pair<Int, Int>>()
-    var placed = 0
-    var row = rowCount - 1
-    while (placed < count && row >= 0) {
-        order.add(row to 1)
-        placed++
-        if (placed >= count) break
-        if (row > 0) {
-            order.add(row - 1 to 0)
-            placed++
-            row--
-        } else {
-            break
-        }
+private fun inhaleSlotOrder(count: Int, rowCount: Int): List<Pair<Int, Int>> =
+    (0 until count).map { index ->
+        val row = (rowCount - 1 - index).coerceAtLeast(0)
+        val col = if (index % 2 == 0) 1 else 0
+        row to col
     }
-    while (placed < count) {
-        order.add(0 to 0)
-        placed++
-    }
-    return order.take(count)
-}
 
-private fun exhaleSlotOrder(count: Int, rowCount: Int): List<Pair<Int, Int>> {
-    if (count == 0) return emptyList()
-    val order = mutableListOf<Pair<Int, Int>>()
-    var placed = 0
-    var row = 0
-    while (placed < count && row < rowCount) {
-        order.add(row to 1)
-        placed++
-        if (placed >= count) break
-        if (row < rowCount - 1) {
-            order.add(row + 1 to 0)
-            placed++
-            row++
-        } else {
-            break
-        }
+private fun exhaleSlotOrder(count: Int, rowCount: Int): List<Pair<Int, Int>> =
+    (0 until count).map { index ->
+        val row = index.coerceAtMost(rowCount - 1)
+        val col = if (index % 2 == 0) 1 else 0
+        row to col
     }
-    while (placed < count) {
-        order.add(rowCount - 1 to 0)
-        placed++
-    }
-    return order.take(count)
-}
 
 private fun buildInhalePathIds(count: Int, rowCount: Int, gridSlots: Map<Pair<Int, Int>, Int>): List<Int> {
     return inhaleSlotOrder(count, rowCount).mapNotNull { gridSlots[it] }

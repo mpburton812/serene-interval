@@ -21,6 +21,18 @@ class BreathStructureSpecTest {
     }
 
     @Test
+    fun boxBreathing_usesFourLadderRows() {
+        val spec = computeStructureSpec(BreathingPattern.BoxBreathing)
+        assertEquals(4, spec.ladderRows)
+    }
+
+    @Test
+    fun fourSevenEight_usesEightLadderRows() {
+        val spec = computeStructureSpec(BreathingPattern.FourSevenEight)
+        assertEquals(8, spec.ladderRows)
+    }
+
+    @Test
     fun fourSevenEight_hasSevenSecondTopHoldOnly() {
         val spec = computeStructureSpec(BreathingPattern.FourSevenEight)
 
@@ -43,6 +55,12 @@ class BreathStructureSpecTest {
     }
 
     @Test
+    fun resonant_usesSixLadderRows() {
+        val spec = computeStructureSpec(BreathingPattern.Resonant)
+        assertEquals(6, spec.ladderRows)
+    }
+
+    @Test
     fun physiologicalSigh_splitsInhaleSegments() {
         val spec = computeStructureSpec(BreathingPattern.PhysiologicalSigh)
 
@@ -58,5 +76,14 @@ class BreathStructureSpecTest {
         val spec = computeStructureSpec(BreathingPattern.PhysiologicalSigh)
         val inhaleTotal = spec.inhaleSegments.sumOf { it.durationSeconds.toDouble() }.toFloat()
         assertEquals(2f, inhaleTotal, 0.01f)
+    }
+
+    @Test
+    fun requiredLadderRows_assignsUniqueSlotsForBoxBreathing() {
+        val inhale = inhaleGridSlots(4, requiredLadderRows(4, 4))
+        val exhale = exhaleGridSlots(4, requiredLadderRows(4, 4))
+        assertEquals(4, inhale.size)
+        assertEquals(4, exhale.size)
+        assertTrue(inhale.intersect(exhale).isEmpty())
     }
 }
