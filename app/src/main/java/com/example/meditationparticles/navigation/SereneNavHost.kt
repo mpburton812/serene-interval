@@ -15,8 +15,11 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -53,6 +56,13 @@ fun SereneNavHost(modifier: Modifier = Modifier) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val settings = LocalExperienceSettings.current
+    var breathingSessionActive by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != SereneDestination.Breathe.route) {
+            breathingSessionActive = false
+        }
+    }
 
     val bottomNavItems = remember(
         settings.enableBreathing,
@@ -74,7 +84,8 @@ fun SereneNavHost(modifier: Modifier = Modifier) {
 
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
-        currentRoute?.startsWith("visualizations/player") != true
+        currentRoute?.startsWith("visualizations/player") != true &&
+        !breathingSessionActive
 
     val defaultToolkitTab = when {
         settings.enableAffirmations -> ToolkitTab.AFFIRMATIONS
@@ -155,7 +166,11 @@ fun SereneNavHost(modifier: Modifier = Modifier) {
                 )
             }
             composable(SereneDestination.Breathe.route) {
-                BreathingScreen()
+                BreathingScreen(
+                    onSessionActiveChange = { active ->
+                        breathingSessionActive = active
+                    },
+                )
             }
             composable(SereneDestination.Timer.route) {
                 TimerScreen()
