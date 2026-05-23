@@ -27,6 +27,40 @@ class BreathStructureSpecTest {
     }
 
     @Test
+    fun boxBreathing_usesInterleavedLadderStrategy() {
+        val spec = computeStructureSpec(BreathingPattern.BoxBreathing)
+        assertEquals(LayoutStrategy.InterleavedLadder, spec.layoutStrategy)
+    }
+
+    @Test
+    fun fourSevenEight_usesFlowChainStrategy() {
+        val spec = computeStructureSpec(BreathingPattern.FourSevenEight)
+        assertEquals(LayoutStrategy.FlowChain, spec.layoutStrategy)
+    }
+
+    @Test
+    fun resonant_usesInterleavedLadderStrategy() {
+        val spec = computeStructureSpec(BreathingPattern.Resonant)
+        assertEquals(LayoutStrategy.InterleavedLadder, spec.layoutStrategy)
+    }
+
+    @Test
+    fun tactical_usesFlowChainStrategy() {
+        val spec = computeStructureSpec(BreathingPattern.Tactical)
+        assertEquals(LayoutStrategy.FlowChain, spec.layoutStrategy)
+    }
+
+    @Test
+    fun allPatterns_haveClosingBreathLoopWhenBothPathsExist() {
+        BreathingPattern.All.forEach { pattern ->
+            val spec = computeStructureSpec(pattern)
+            if (spec.inhaleSphereCount > 0 && spec.exhaleSphereCount > 0) {
+                assertTrue("${pattern.name} closes loop", spec.closesBreathLoop)
+            }
+        }
+    }
+
+    @Test
     fun fourSevenEight_usesEightLadderRows() {
         val spec = computeStructureSpec(BreathingPattern.FourSevenEight)
         assertEquals(8, spec.ladderRows)

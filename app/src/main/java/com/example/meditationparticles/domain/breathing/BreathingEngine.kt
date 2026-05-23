@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-class BreathingEngine {
+class BreathingEngine(
+    private val currentTimeMs: () -> Long = System::currentTimeMillis,
+) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _state = MutableStateFlow(BreathingSessionState.initial())
     val state: StateFlow<BreathingSessionState> = _state.asStateFlow()
@@ -59,7 +61,7 @@ class BreathingEngine {
     }
 
     fun start() {
-        val now = System.currentTimeMillis()
+        val now = currentTimeMs()
         if (_state.value.phase == BreathPhase.Complete) {
             _state.update {
                 it.copy(
@@ -98,10 +100,15 @@ class BreathingEngine {
         tickJob?.cancel()
         tickJob = scope.launch {
             while (isActive && _state.value.isRunning) {
-                tick(System.currentTimeMillis())
+                tick(currentTimeMs())
                 delay(TICK_MS)
             }
         }
+    }
+
+    /** Test hook: advance engine state as if a tick occurred at [nowMs]. */
+    internal fun runTickAt(nowMs: Long) {
+        tick(nowMs)
     }
 
     private fun tick(now: Long) {

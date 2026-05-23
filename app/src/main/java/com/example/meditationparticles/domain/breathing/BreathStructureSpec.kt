@@ -20,6 +20,13 @@ enum class SphereRoleKind {
     HoldPurple,
 }
 
+enum class LayoutStrategy {
+    /** Box-style criss-cross: equal inhale/exhale counts on a shared ladder. */
+    InterleavedLadder,
+    /** Sequential chain: inhale stack → hold → exhale stack with no empty pipe. */
+    FlowChain,
+}
+
 data class BreathStructureSpec(
     val inhaleSegments: List<PhaseSegment>,
     val exhaleSegments: List<PhaseSegment>,
@@ -33,6 +40,17 @@ data class BreathStructureSpec(
 
     val ladderRows: Int
         get() = requiredLadderRows(inhaleSphereCount, exhaleSphereCount)
+
+    val layoutStrategy: LayoutStrategy
+        get() = when {
+            inhaleSphereCount == exhaleSphereCount && hasTopHold && hasBottomHold -> LayoutStrategy.InterleavedLadder
+            inhaleSphereCount == exhaleSphereCount && !hasTopHold && !hasBottomHold -> LayoutStrategy.InterleavedLadder
+            else -> LayoutStrategy.FlowChain
+        }
+
+    /** Whether the pattern loops continuously (exhale returns to inhale). */
+    val closesBreathLoop: Boolean
+        get() = inhaleSphereCount > 0 && exhaleSphereCount > 0
 }
 
 /** Minimum ladder rows so every inhale/exhale sphere maps to a unique, non-overlapping grid slot. */
