@@ -1,8 +1,9 @@
 package com.example.meditationparticles.ui.breathing
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -36,19 +37,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.canvas.BreathingAtmosphereBackground
 import com.example.meditationparticles.canvas.BreathingCanvas
+import com.example.meditationparticles.canvas.BreathingCanvasDisplayMode
 import com.example.meditationparticles.domain.breathing.BreathPhase
 import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.breathing.BreathingSessionState
@@ -58,6 +66,7 @@ import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private val PhaseTextFadeMs = 650
 private val CountdownFadeMs = 350
+private val ExerciseDissolveMs = 600
 private val FabSize = 56.dp
 private val FabClearance = 72.dp
 
@@ -65,18 +74,35 @@ private val FabClearance = 72.dp
 fun BreathingScreen(
     modifier: Modifier = Modifier,
     viewModel: BreathingViewModel = viewModel(),
+    onSessionActiveChange: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.sessionState.collectAsState()
     var controlsVisible by remember { mutableStateOf(true) }
-    val immersive = state.isRunning && state.phase != BreathPhase.Complete
+    val sessionActive = state.isRunning && state.phase != BreathPhase.Complete
+    val exerciseBlend by animateFloatAsState(
+        targetValue = if (sessionActive) 1f else 0f,
+        animationSpec = tween(ExerciseDissolveMs),
+        label = "exercise_dissolve",
+    )
+    val density = LocalDensity.current
+    var headerHeightPx by remember { mutableFloatStateOf(0f) }
+    var fabClearancePx by remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(state.isRunning) {
-        if (state.isRunning) {
-            kotlinx.coroutines.delay(2_500)
+    val bottomInset = with(density) { (fabClearancePx + 8.dp.toPx()).toDp().coerceAtLeast(FabClearance) }
+
+    var wasRunning by remember { mutableStateOf(false) }
+    SideEffect {
+        if (state.isRunning && !wasRunning) {
             controlsVisible = false
-        } else {
+        } else if (!state.isRunning && wasRunning) {
             controlsVisible = true
         }
+        wasRunning = state.isRunning
+        onSessionActiveChange(sessionActive)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { onSessionActiveChange(false) }
     }
 
     Column(
@@ -87,31 +113,76 @@ fun BreathingScreen(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                enabled = immersive,
+                enabled = sessionActive,
             ) {
                 controlsVisible = !controlsVisible
             },
     ) {
-        BreathingPhaseHeader(state = state)
-
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
         ) {
-            BreathingCanvas(
-                sessionState = state,
-                modifier = Modifier.fillMaxSize(),
-                topInset = 0.dp,
-                bottomInset = FabClearance,
+            BreathingAtmosphereBackground(modifier = Modifier.fillMaxSize())
+
+            if (exerciseBlend < 1f) {
+                AnimatedContent(
+                    targetState = state.pattern.id,
+                    transitionSpec = {
+                        fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
+                    },
+                    label = "pattern_preview",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(1f - exerciseBlend),
+                ) { _ ->
+                    BreathingCanvas(
+                        sessionState = state,
+                        displayMode = BreathingCanvasDisplayMode.Preview,
+                        modifier = Modifier.fillMaxSize(),
+                        topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },
+                        bottomInset = bottomInset,
+                    )
+                }
+            }
+
+            if (exerciseBlend > 0f) {
+                BreathingCanvas(
+                    sessionState = state,
+                    displayMode = BreathingCanvasDisplayMode.Exercise,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(exerciseBlend),
+                    topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },
+                    bottomInset = bottomInset,
+                )
+            }
+
+            BreathingPhaseHeader(
+                state = state,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .onGloballyPositioned { coords ->
+                        headerHeightPx = coords.size.height.toFloat()
+                    },
             )
 
             FloatingActionButton(
-                onClick = { viewModel.toggleRunning() },
+                onClick = {
+                    if (!state.isRunning) {
+                        onSessionActiveChange(true)
+                    }
+                    viewModel.toggleRunning()
+                },
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp)
-                    .size(FabSize),
+                    .align(Alignment.BottomEnd)
+                    .padding(end = SereneSpacing.containerMargin, bottom = 16.dp)
+                    .size(FabSize)
+                    .onGloballyPositioned {
+                        with(density) {
+                            fabClearancePx = FabSize.toPx() + 16.dp.toPx()
+                        }
+                    },
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -131,7 +202,11 @@ fun BreathingScreen(
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(tween(400)) + slideInVertically { it / 2 },
-            exit = fadeOut(tween(400)) + slideOutVertically { it / 2 },
+            exit = if (sessionActive) {
+                fadeOut(tween(0))
+            } else {
+                fadeOut(tween(400)) + slideOutVertically { it / 2 }
+            },
         ) {
             Column(
                 modifier = Modifier
@@ -211,7 +286,7 @@ fun BreathingScreen(
                     )
                 }
 
-                if (immersive) {
+                if (sessionActive) {
                     Text(
                         text = "Tap anywhere to hide controls",
                         style = MaterialTheme.typography.labelSmall,
@@ -226,11 +301,14 @@ fun BreathingScreen(
 }
 
 @Composable
-private fun BreathingPhaseHeader(state: BreathingSessionState) {
+private fun BreathingPhaseHeader(
+    state: BreathingSessionState,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.88f))
             .padding(horizontal = SereneSpacing.containerMargin)
             .padding(top = 4.dp, bottom = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -266,22 +344,6 @@ private fun BreathingPhaseHeader(state: BreathingSessionState) {
                     textAlign = TextAlign.Center,
                 )
             }
-        }
-
-        AnimatedContent(
-            targetState = state.phase,
-            transitionSpec = {
-                fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
-            },
-            label = "phase_description",
-            modifier = Modifier.padding(top = 4.dp),
-        ) { phase ->
-            Text(
-                text = state.copy(phase = phase).phaseDescription,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                textAlign = TextAlign.Center,
-            )
         }
 
         if (!state.isRunning) {

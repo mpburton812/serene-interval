@@ -26,6 +26,7 @@ val SereneOutlineVariant = Color(0xFFC2C8C0)
 val BreathSandInhale = Color(0xFF6EC4FF)
 val BreathSandExhale = Color(0xFFE86B6B)
 val BreathSandHold = Color(0xFFBF6BFF)
+val BreathStartStar = Color(0xFFFFC107)
 
 val PipeMetal = Color(0xFF4A4038)
 
