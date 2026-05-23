@@ -12,36 +12,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import com.example.meditationparticles.R
 import com.example.meditationparticles.domain.breathing.BreathingSessionState
+import com.example.meditationparticles.domain.breathing.FillDirection
 import com.example.meditationparticles.ui.theme.BreathSandExhale
 import com.example.meditationparticles.ui.theme.BreathSandHold
 import com.example.meditationparticles.ui.theme.BreathSandInhale
 import com.example.meditationparticles.ui.theme.GlassBorder
-import com.example.meditationparticles.ui.theme.GlassFill
 import com.example.meditationparticles.ui.theme.PipeMetal
 import com.example.meditationparticles.ui.theme.SerenePrimaryContainer
 import com.example.meditationparticles.ui.theme.SereneSecondaryContainer
 import kotlinx.coroutines.isActive
+import kotlin.math.atan2
 
 @Composable
 fun BreathingCanvas(
     sessionState: BreathingSessionState,
     modifier: Modifier = Modifier,
-    topInset: Dp = 120.dp,
-    bottomInset: Dp = 280.dp,
+    topInset: Dp = Dp(0f),
+    bottomInset: Dp = Dp(72f),
 ) {
     var canvasWidth by remember { mutableFloatStateOf(0f) }
     var canvasHeight by remember { mutableFloatStateOf(0f) }
     var timeMs by remember { mutableLongStateOf(0L) }
-    val moteSystem = remember { SandMoteSystem() }
+    val smokeSystem = remember { DirectionalSmokeSystem() }
+    val glassPainter = painterResource(R.drawable.breath_glass_sphere_empty)
+    val pipePainter = painterResource(R.drawable.breath_pipe_straight)
 
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -67,34 +77,54 @@ fun BreathingCanvas(
         drawAtmosphericBackground()
         drawCenterGlow(canvasWidth / 2f, topInsetPx + (canvasHeight - topInsetPx - bottomInsetPx) * 0.45f)
 
-        val layout = computeStructureLayout(canvasWidth, canvasHeight, topInsetPx, bottomInsetPx)
+        val layout = computeStructureLayout(
+            pattern = sessionState.pattern,
+            width = canvasWidth,
+            height = canvasHeight,
+            topInset = topInsetPx,
+            bottomInset = bottomInsetPx,
+        )
         val visuals = computeSphereVisuals(sessionState, layout)
 
-        drawPipes(layout)
+        layout.pipes.forEach { (a, b) ->
+            drawPipeSegment(a, b, layout.scale, pipePainter)
+        }
+
         layout.allSpheres.forEach { sphere ->
             val visual = visuals[sphere.id] ?: SphereVisualState(0f, false)
-            drawBreathSphere(sphere, visual.fillLevel, layout.scale)
+            drawBreathSphere(
+                sphere = sphere,
+                visual = visual,
+                scale = layout.scale,
+                glassPainter = glassPainter,
+            )
         }
 
         val activeSphere = activeMoteSphere(sessionState, layout, visuals)
-        val activeFill = activeSphere?.let { visuals[it.id]?.fillLevel } ?: 0f
-        moteSystem.update(activeSphere, activeFill, timeMs, layout.scale)
+        val activeVisual = activeSphere?.let { visuals[it.id] }
+        val activeFill = activeVisual?.fillLevel ?: 0f
+        val fillDirection = activeVisual?.fillDirection ?: FillDirection.BottomToTop
+
+        smokeSystem.update(activeSphere, activeFill, fillDirection, timeMs, layout.scale)
 
         if (activeSphere != null && activeFill > 0f) {
-            val moteColor = roleColor(activeSphere.role)
-            val visible = moteSystem.visibleMoteCount(activeFill)
-            moteSystem.motes.take(visible).forEach { mote ->
-                val r = mote.size * layout.scale
-                val center = Offset(mote.x, mote.y)
+            val smokeColor = roleColor(activeSphere.role)
+            smokeSystem.activeParticles().forEach { particle ->
+                val r = particle.baseSize * layout.scale
                 drawCircle(
-                    color = moteColor.copy(alpha = 0.35f),
-                    radius = r * 2f,
-                    center = center,
+                    color = smokeColor.copy(alpha = particle.alpha * 0.25f),
+                    radius = r * 2.2f,
+                    center = Offset(particle.x, particle.y),
                 )
                 drawCircle(
-                    color = moteColor.copy(alpha = 0.9f),
-                    radius = r,
-                    center = center,
+                    color = smokeColor.copy(alpha = particle.alpha * 0.55f),
+                    radius = r * 1.2f,
+                    center = Offset(particle.x, particle.y),
+                )
+                drawCircle(
+                    color = smokeColor.copy(alpha = particle.alpha),
+                    radius = r * 0.65f,
+                    center = Offset(particle.x, particle.y),
                 )
             }
         }
@@ -144,109 +174,122 @@ private fun DrawScope.drawCenterGlow(cx: Float, cy: Float) {
     )
 }
 
-private fun DrawScope.drawPipes(layout: BreathStructureLayout) {
-    val w = 11f * layout.scale.coerceIn(0.85f, 1.25f)
-    val top = layout.topHold
-    val bottom = layout.bottomHold
-    val p0 = layout.pairs[0]
-    val p1 = layout.pairs[1]
-    val p2 = layout.pairs[2]
-    val p3 = layout.pairs[3]
+private fun DrawScope.drawPipeSegment(
+    from: Offset,
+    to: Offset,
+    scale: Float,
+    pipePainter: androidx.compose.ui.graphics.painter.Painter,
+) {
+    val dx = to.x - from.x
+    val dy = to.y - from.y
+    val length = kotlin.math.sqrt(dx * dx + dy * dy)
+    if (length < 4f) return
 
-    fun pipe(a: Offset, b: Offset) {
-        drawLine(PipeMetal, a, b, w, StrokeCap.Round)
-        drawLine(PipeMetal.copy(alpha = 0.35f), a, b, w * 1.35f, StrokeCap.Round)
+    val angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
+    val w = 11f * scale.coerceIn(0.85f, 1.25f)
+
+    drawLine(PipeMetal.copy(alpha = 0.35f), from, to, w * 1.35f, StrokeCap.Round)
+    drawLine(PipeMetal, from, to, w, StrokeCap.Round)
+
+    val midX = (from.x + to.x) / 2f
+    val midY = (from.y + to.y) / 2f
+    withTransform({
+        translate(midX, midY)
+        rotate(angle + 90f)
+    }) {
+        with(pipePainter) {
+            draw(
+                size = Size(w * 1.6f, length.coerceAtMost(size.height)),
+                alpha = 0.35f,
+            )
+        }
     }
-
-    // Top hold → first pair
-    pipe(sphereEdge(top.center, top.radius, p0.first.center), p0.first.center)
-    pipe(sphereEdge(top.center, top.radius, p0.second.center), p0.second.center)
-
-    // X-ladder between pairs
-    pipe(p0.first.center, p1.second.center)
-    pipe(p0.second.center, p1.first.center)
-    pipe(p1.first.center, p2.second.center)
-    pipe(p1.second.center, p2.first.center)
-    pipe(p2.first.center, p3.second.center)
-    pipe(p2.second.center, p3.first.center)
-
-    // Last pair → bottom hold
-    pipe(p3.first.center, sphereEdge(bottom.center, bottom.radius, p3.first.center))
-    pipe(p3.second.center, sphereEdge(bottom.center, bottom.radius, p3.second.center))
-}
-
-private fun sphereEdge(from: Offset, radius: Float, toward: Offset): Offset {
-    val dx = toward.x - from.x
-    val dy = toward.y - from.y
-    val len = kotlin.math.sqrt(dx * dx + dy * dy).coerceAtLeast(0.001f)
-    return Offset(from.x + dx / len * radius * 0.92f, from.y + dy / len * radius * 0.92f)
 }
 
 private fun DrawScope.drawBreathSphere(
     sphere: BreathSphere,
-    fillLevel: Float,
+    visual: SphereVisualState,
     scale: Float,
+    glassPainter: androidx.compose.ui.graphics.painter.Painter,
 ) {
     val roleColor = roleColor(sphere.role)
-    val fill = fillLevel.coerceIn(0f, 1f)
+    val fill = visual.fillLevel.coerceIn(0f, 1f)
     val center = sphere.center
     val radius = sphere.radius
+    val diameter = radius * 2f
 
-    // Soft glow when filling
     if (fill in 0.05f..0.99f) {
         drawCircle(
-            color = roleColor.copy(alpha = 0.18f * fill),
-            radius = radius * 1.45f,
+            color = roleColor.copy(alpha = 0.16f * fill),
+            radius = radius * 1.4f,
             center = center,
         )
     }
 
-    // Translucent glass base
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.5f),
-                GlassFill.copy(alpha = 0.45f),
-                GlassFill.copy(alpha = 0.15f),
-            ),
-            center = center + Offset(-radius * 0.3f, -radius * 0.35f),
-            radius = radius * 1.3f,
-        ),
-        radius = radius,
-        center = center,
-    )
+    val circlePath = Path().apply {
+        addOval(Rect(center.x - radius, center.y - radius, center.x + radius, center.y + radius))
+    }
 
-    // Color fill — sphere transitions from glass to solid role color
-    if (fill > 0f) {
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    roleColor.copy(alpha = 0.95f * fill),
-                    roleColor.copy(alpha = 0.75f * fill),
-                    roleColor.copy(alpha = 0.55f * fill),
+    clipPath(circlePath) {
+        withTransform({
+            translate(center.x - radius, center.y - radius)
+        }) {
+            with(glassPainter) {
+                draw(size = Size(diameter, diameter), alpha = 0.92f)
+            }
+        }
+
+        if (fill > 0f) {
+            val fillRect = when (visual.fillDirection) {
+                FillDirection.BottomToTop, FillDirection.BottomToTopHold -> {
+                    val fillHeight = diameter * fill
+                    Rect(
+                        left = center.x - radius,
+                        top = center.y + radius - fillHeight,
+                        right = center.x + radius,
+                        bottom = center.y + radius,
+                    )
+                }
+                FillDirection.TopToBottom -> {
+                    val fillHeight = diameter * fill
+                    Rect(
+                        left = center.x - radius,
+                        top = center.y - radius,
+                        right = center.x + radius,
+                        bottom = center.y - radius + fillHeight,
+                    )
+                }
+            }
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        roleColor.copy(alpha = 0.95f),
+                        roleColor.copy(alpha = 0.75f),
+                        roleColor.copy(alpha = 0.6f),
+                    ),
+                    startY = fillRect.top,
+                    endY = fillRect.bottom,
                 ),
-                center = center + Offset(-radius * 0.15f, -radius * 0.2f),
-                radius = radius * 1.05f,
-            ),
-            radius = radius * 0.96f,
-            center = center,
-        )
+                topLeft = Offset(fillRect.left, fillRect.top),
+                size = Size(fillRect.width, fillRect.height),
+            )
+        }
     }
 
     drawCircle(
-        color = GlassBorder.copy(alpha = 0.65f + 0.25f * fill),
+        color = GlassBorder.copy(alpha = 0.55f + 0.3f * fill),
         radius = radius,
         center = center,
         style = Stroke(width = (1.8f * scale).coerceAtLeast(1f)),
     )
 
     drawArc(
-        color = Color.White.copy(alpha = 0.4f + 0.2f * fill),
+        color = Color.White.copy(alpha = 0.35f + 0.25f * fill),
         startAngle = 205f,
         sweepAngle = 75f,
         useCenter = false,
         topLeft = Offset(center.x - radius * 0.78f, center.y - radius * 0.88f),
-        size = androidx.compose.ui.geometry.Size(radius * 1.55f, radius * 1.15f),
-        style = Stroke(width = (2.2f * scale).coerceAtLeast(1f), cap = StrokeCap.Round),
+        size = Size(radius * 1.55f, radius * 1.15f),
+        style = Stroke(width = (2f * scale).coerceAtLeast(1f), cap = StrokeCap.Round),
     )
 }

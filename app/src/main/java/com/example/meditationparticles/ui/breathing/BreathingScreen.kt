@@ -40,12 +40,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.canvas.BreathingCanvas
@@ -69,6 +72,11 @@ fun BreathingScreen(
     val state by viewModel.sessionState.collectAsState()
     var controlsVisible by remember { mutableStateOf(true) }
     val immersive = state.isRunning && state.phase != BreathPhase.Complete
+    val density = LocalDensity.current
+    var headerHeightPx by remember { mutableFloatStateOf(0f) }
+    var fabClearancePx by remember { mutableFloatStateOf(0f) }
+
+    val bottomInset = with(density) { (fabClearancePx + 8.dp.toPx()).toDp().coerceAtLeast(FabClearance) }
 
     LaunchedEffect(state.isRunning) {
         if (state.isRunning) {
@@ -92,8 +100,6 @@ fun BreathingScreen(
                 controlsVisible = !controlsVisible
             },
     ) {
-        BreathingPhaseHeader(state = state)
-
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -102,8 +108,18 @@ fun BreathingScreen(
             BreathingCanvas(
                 sessionState = state,
                 modifier = Modifier.fillMaxSize(),
-                topInset = 0.dp,
-                bottomInset = FabClearance,
+                topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },
+                bottomInset = bottomInset,
+            )
+
+            BreathingPhaseHeader(
+                state = state,
+                compact = immersive && !controlsVisible,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .onGloballyPositioned { coords ->
+                        headerHeightPx = coords.size.height.toFloat()
+                    },
             )
 
             FloatingActionButton(
@@ -111,7 +127,12 @@ fun BreathingScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 8.dp)
-                    .size(FabSize),
+                    .size(FabSize)
+                    .onGloballyPositioned {
+                        with(density) {
+                            fabClearancePx = FabSize.toPx() + 16.dp.toPx()
+                        }
+                    },
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -226,13 +247,17 @@ fun BreathingScreen(
 }
 
 @Composable
-private fun BreathingPhaseHeader(state: BreathingSessionState) {
+private fun BreathingPhaseHeader(
+    state: BreathingSessionState,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background.copy(alpha = if (compact) 0.72f else 0.88f))
             .padding(horizontal = SereneSpacing.containerMargin)
-            .padding(top = 4.dp, bottom = 8.dp),
+            .padding(top = 4.dp, bottom = if (compact) 4.dp else 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AnimatedContent(
@@ -268,37 +293,39 @@ private fun BreathingPhaseHeader(state: BreathingSessionState) {
             }
         }
 
-        AnimatedContent(
-            targetState = state.phase,
-            transitionSpec = {
-                fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
-            },
-            label = "phase_description",
-            modifier = Modifier.padding(top = 4.dp),
-        ) { phase ->
-            Text(
-                text = state.copy(phase = phase).phaseDescription,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                textAlign = TextAlign.Center,
-            )
-        }
-
-        if (!state.isRunning) {
+        if (!compact) {
             AnimatedContent(
-                targetState = state.pattern.purpose,
+                targetState = state.phase,
                 transitionSpec = {
                     fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
                 },
-                label = "pattern_purpose",
-                modifier = Modifier.padding(top = SereneSpacing.stackSm),
-            ) { purpose ->
+                label = "phase_description",
+                modifier = Modifier.padding(top = 4.dp),
+            ) { phase ->
                 Text(
-                    text = purpose,
+                    text = state.copy(phase = phase).phaseDescription,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center,
                 )
+            }
+
+            if (!state.isRunning) {
+                AnimatedContent(
+                    targetState = state.pattern.purpose,
+                    transitionSpec = {
+                        fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
+                    },
+                    label = "pattern_purpose",
+                    modifier = Modifier.padding(top = SereneSpacing.stackSm),
+                ) { purpose ->
+                    Text(
+                        text = purpose,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }
