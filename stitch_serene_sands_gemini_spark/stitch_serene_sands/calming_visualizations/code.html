@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Serene Interval | Calming Visualizations</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "tertiary-container": "#da8d78",
+                  "on-secondary": "#ffffff",
+                  "on-secondary-container": "#4d6677",
+                  "secondary-fixed": "#cce6fa",
+                  "on-secondary-fixed": "#021e2c",
+                  "on-tertiary-container": "#5d2718",
+                  "outline-variant": "#c2c8c0",
+                  "secondary-container": "#c9e3f7",
+                  "error-container": "#ffdad6",
+                  "tertiary-fixed": "#ffdbd1",
+                  "on-surface-variant": "#424842",
+                  "on-primary": "#ffffff",
+                  "primary-container": "#8ba88e",
+                  "surface-tint": "#4a654e",
+                  "on-primary-fixed": "#07200f",
+                  "on-tertiary-fixed-variant": "#703626",
+                  "surface-container-high": "#eae8e3",
+                  "surface-bright": "#fbf9f4",
+                  "surface-container-highest": "#e4e2dd",
+                  "on-error": "#ffffff",
+                  "primary-fixed-dim": "#b0ceb2",
+                  "on-primary-fixed-variant": "#334d38",
+                  "on-background": "#1b1c19",
+                  "surface-dim": "#dbdad5",
+                  "surface-variant": "#e4e2dd",
+                  "tertiary-fixed-dim": "#ffb5a1",
+                  "background": "#fbf9f4",
+                  "inverse-on-surface": "#f2f1ec",
+                  "on-error-container": "#93000a",
+                  "error": "#ba1a1a",
+                  "primary-fixed": "#cceace",
+                  "on-tertiary-fixed": "#380c02",
+                  "on-surface": "#1b1c19",
+                  "inverse-surface": "#30312e",
+                  "tertiary": "#8d4d3b",
+                  "outline": "#737972",
+                  "surface-container-low": "#f5f3ee",
+                  "surface": "#fbf9f4",
+                  "primary": "#4a654e",
+                  "on-tertiary": "#ffffff",
+                  "secondary": "#496172",
+                  "inverse-primary": "#b0ceb2",
+                  "surface-container": "#f0eee9",
+                  "on-secondary-fixed-variant": "#314a5a",
+                  "surface-container-lowest": "#ffffff",
+                  "secondary-fixed-dim": "#b0cadd",
+                  "on-primary-container": "#233d29"
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.25rem",
+                  "lg": "0.5rem",
+                  "xl": "0.75rem",
+                  "full": "9999px"
+          },
+          "spacing": {
+                  "stack-md": "16px",
+                  "unit": "8px",
+                  "stack-lg": "32px",
+                  "gutter": "16px",
+                  "container-margin": "24px",
+                  "stack-sm": "8px",
+                  "stack-xl": "64px"
+          },
+          "fontFamily": {
+                  "body-lg": ["Inter"],
+                  "headline-xl": ["Plus Jakarta Sans"],
+                  "headline-md": ["Plus Jakarta Sans"],
+                  "label-sm": ["Inter"],
+                  "headline-lg": ["Plus Jakarta Sans"],
+                  "label-md": ["Inter"],
+                  "headline-lg-mobile": ["Plus Jakarta Sans"],
+                  "body-md": ["Inter"]
+          },
+          "fontSize": {
+                  "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                  "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                  "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
+                  "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                  "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                  "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                  "headline-lg-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "500"}],
+                  "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .player-overlay {
+      background: linear-gradient(to top, rgba(0,0,0,0.5), transparent, rgba(0,0,0,0.5));
+    }
+    @keyframes slow-zoom {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.1); }
+    }
+    .animate-slow-zoom {
+      animation: slow-zoom 20s infinite alternate ease-in-out;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md hide-scrollbar">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-container-margin py-4 bg-surface/60 dark:bg-surface-dim/60 backdrop-blur-xl border-b border-white/20 dark:border-white/10 shadow-sm shadow-primary/5">
+<div class="flex items-center gap-4">
+<button class="text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity active:scale-95 duration-300">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed-dim tracking-tight">Serene Interval</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container/30">
+<img alt="Profile Avatar" class="w-full h-full object-cover" data-alt="A professional studio portrait of a calm individual with soft natural lighting. The person has a peaceful expression, reflecting a mindful lifestyle. The background is a soft, out-of-focus warm neutral tone, consistent with the minimalist and tranquil brand identity of Serene Interval. High quality, sharp detail, serene mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDE6urECXW_tqrTyJQIuuaCQ7JE_wQHGuB4MaEwkX7PdomIGRxTeFXDsZn-ftwvJYpZwBO-UC_Y-Jpu1ORfSuuL7TEsJHln7X4vcJJndA4DcU5X6wBcJ1cCALnDZ3hOSkEoIHzgMjI7z9vZRFCaFS-TzWqUY-tSba3hqRfHhIL7K8VJMzJJ8SK3qyv0ZnPiYFK1yiWDcxMHKek1c9ZR3H-HFrpdcH336yVmBaP5a6RL4zkPZQaSyHs_OdfQN2CsioftIWrZIZFtrjI"/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="pt-24 pb-32 px-container-margin max-w-[1200px] mx-auto min-h-screen">
+<div class="mb-stack-xl">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">Visual Sanctuary</h2>
+<p class="text-on-surface-variant font-body-lg">Choose a landscape to ground your focus.</p>
+</div>
+<!-- Bento Grid Gallery -->
+<div class="grid grid-cols-1 md:grid-cols-6 gap-6">
+<!-- Snowfall Card -->
+<div class="md:col-span-3 h-[400px] relative rounded-3xl overflow-hidden glass-card cursor-pointer group transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10" onclick="openPlayer('Snowfall')">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A breathtaking view of soft snowflakes falling gently over a vast, silent pine forest at twilight. The scene is bathed in cool, ethereal blues and crisp whites, creating a sense of profound stillness and peace. The lighting is low-key and natural, capturing the soft glitter of snow in the air. Minimalist and meditative visual style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVHQ6YsnO1iKXDPEGq__vRTYrQrq1T5Amb_6uSPTAGbd_whtcYtgl_xck-ih552W3sGInhwC6h_q0M2FFByVRJqVbofFHotJktq9BFiS3wTSy5CfK07SJpqdzHDMiTlNEIK4jzGPESpJz7Qqxp_zhZUZybWfpXmBHUZp6by1wuhjYTLdugB1Sg-SCg350Vz_A95HhqgG9oaw5JbFyZ_mLg9IxooH6f5mXk3Kfyy0eMr6kry-_e54-oc7dySWezf5-RvN1Qkt6bBw4"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6 text-white">
+<h3 class="font-headline-md text-headline-md mb-1">Snowfall</h3>
+<p class="text-label-md opacity-80">Winter Stillness</p>
+</div>
+<div class="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<span class="material-symbols-outlined text-white">play_arrow</span>
+</div>
+</div>
+<!-- Rainfall Card -->
+<div class="md:col-span-3 h-[400px] relative rounded-3xl overflow-hidden glass-card cursor-pointer group transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10" onclick="openPlayer('Rainfall')">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Raindrops hitting a glass window overlooking a lush, misty green garden. The focus is on the intricate water patterns on the glass, with the soft-focus greenery behind providing a soothing natural palette of emerald and sage. The atmosphere is cozy and reflective, illuminated by soft, diffused daylight. High-end minimalist photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuApMfLqCiva2oLgAoEkQEnK42sMYK9MjgVFzZn-_NwQBy-X1lDYwB1JWVsdMeoV-luxCRzDWxKADHLQw41GCZrN8sGX0lunO7LEBDp-AWYXoQZJuIxEPGtLw6R1X4r-mo0D56gGhblbGclv8ayutrqhP3_LDr9g6Sg04dR6rSq6PXdYVs5acHABgKIcbIe5gXtM3UsDjiwP-_XCfnMIAAaK9m2oeHarGDaLCkxaJlJLDZQBwSxX6IqK08yVwWUNCJ37wZkTmuOmj6o"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6 text-white">
+<h3 class="font-headline-md text-headline-md mb-1">Rainfall</h3>
+<p class="text-label-md opacity-80">Rhythmic Patter</p>
+</div>
+<div class="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<span class="material-symbols-outlined text-white">play_arrow</span>
+</div>
+</div>
+<!-- Firepit Card -->
+<div class="md:col-span-2 h-[300px] relative rounded-3xl overflow-hidden glass-card cursor-pointer group transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10" onclick="openPlayer('Firepit')">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A close-up shot of embers glowing in a stone firepit under a starry night sky. The warm orange and deep red tones of the fire contrast beautifully with the dark blue surroundings. Soft smoke curls upward in the crisp air. The mood is intimate, cozy, and primitive, focusing on the hypnotic dance of small flames." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAllq2HIEY6mqlX6EbGdlYnoq3h1ymkPO44-bVB24oGPm8uazFL1xznxh5PcCcxvhKOo-faYl6b9u9-6z51MAvX4PXtE2LU8yZbic0QaW3bXWOj43y8YmvUAnTZQGCTIWo14Nk4H5P41Vd6S-vPJPLxf1OAQhWMbVBcUiVXa2nwkSgFVa7AgA4gxl9SnsbF2cW5LJvomWXxkW26xKxoEqOrybAvACygtBB9Ofu-FUi_hD2Owo5w2edrIL3GCrCXIhb41cweCR1__vw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 text-white">
+<h3 class="font-headline-md text-headline-md mb-1">Firepit</h3>
+<p class="text-label-md opacity-80">Warm Ember</p>
+</div>
+</div>
+<!-- Sandblow Card -->
+<div class="md:col-span-2 h-[300px] relative rounded-3xl overflow-hidden glass-card cursor-pointer group transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10" onclick="openPlayer('Sandblow')">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Fine desert sand blowing across the crest of a golden dune at sunset. The wind creates elegant, fluid ripples in the sand, illuminated by long, horizontal rays of warm light. The color palette consists of soft golds, ochres, and deep shadows, emphasizing the vastness and organic geometry of the landscape. Minimalist desert aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDklu-HZWeRGB6l1SXwz3n5W18itq8Ihk6kKMNEVlfcvxpScmwy0NQy7JhTZ5VItpRmsdR_Ur3u8ccP54MRIXAwP4FeFa10ht1pwHUpXiRchAgPA7Z9Pg_4oUVBwiaga1jWQkNYhKMBk7OA4D36GRUZSDkpzQaGnZ6qotXPTE3Q5trhmV7roBVWyyrQVmf3MIUY83sAE1z2otcuGAW1B__2_W8v0KjfXMrh4oJXOa1-S8dsrKD4oiqfSRIz48SfFU-6DJmrOHNEbJ0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 text-white">
+<h3 class="font-headline-md text-headline-md mb-1">Sandblow</h3>
+<p class="text-label-md opacity-80">Fluid Dunes</p>
+</div>
+</div>
+<!-- Leaffall Card -->
+<div class="md:col-span-2 h-[300px] relative rounded-3xl overflow-hidden glass-card cursor-pointer group transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10" onclick="openPlayer('Leaffall')">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Autumn leaves in shades of amber, gold, and crimson falling slowly into a mirror-like forest lake. The water surface ripples gently, reflecting the vibrant canopy above. The lighting is golden-hour soft, creating a glowing, nostalgic atmosphere. The scene captures the fleeting beauty of seasonal change in a tranquil woodland setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWE0O7CnbE0Ii50u_0kRAscyuhISCYm46XGIQJu0AF2D1Wjw5td61tB--xumTvRmVc3XA-x8DW82ELXJ8spyEJZzXSJ8nYFuNcZNQqMJgvbPymSeKmowoh3-p5tanKl8nrAoWpEo5F4meBuHZtWbLaVOfBWaxYNY1CvdVSO9LQukUWOQOkDY73YJvHZpTjW0SK66o4eS3snqkVeHh9V4RFHrKWGbWkizs1ZCdsndVnTbu10QyK3oAehv1kjLRJaAW7ejtuacpHOak"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute bottom-4 left-4 text-white">
+<h3 class="font-headline-md text-headline-md mb-1">Leaffall</h3>
+<p class="text-label-md opacity-80">Forest Descent</p>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter pb-safe pt-2 bg-surface/40 dark:bg-surface-dim/40 backdrop-blur-2xl border-t border-white/20 dark:border-white/10 shadow-[0_-4px_20px_rgba(74,101,78,0.08)] rounded-t-xl">
+<div class="flex flex-col items-center justify-center text-on-surface-variant/70 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-primary-container/30 dark:bg-primary-container/20 text-primary dark:text-primary-fixed rounded-full px-5 py-1 transition-transform active:scale-90 duration-200 cursor-pointer">
+<span class="material-symbols-outlined">air</span>
+<span class="font-label-md text-label-md">Breathe</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant/70 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">timer</span>
+<span class="font-label-md text-label-md">Timer</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant/70 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">self_care</span>
+<span class="font-label-md text-label-md">Toolkit</span>
+</div>
+</nav>
+<!-- Full-Screen Player UI -->
+<div class="fixed inset-0 z-[100] bg-black hidden opacity-0 transition-opacity duration-700 flex flex-col items-center justify-center overflow-hidden" id="immersivePlayer">
+<!-- Immersive Content Area -->
+<div class="absolute inset-0 pointer-events-none">
+<img class="w-full h-full object-cover animate-slow-zoom" data-alt="A high-definition, immersive cinematic visual of a natural landscape, designed for deep meditation. The lighting is ambient and low-contrast, focusing on smooth textures and soft tonal transitions. The aesthetic is clean and modern, evoking a sense of being present in a high-end digital sanctuary. The image is optimized for a full-screen mobile and desktop experience." id="playerImage" src=""/>
+<div class="absolute inset-0 bg-black/20"></div>
+</div>
+<!-- UI Layer -->
+<div class="absolute inset-0 player-overlay opacity-0 transition-opacity duration-500 flex flex-col justify-between p-container-margin" id="playerControls">
+<!-- Top Row -->
+<div class="flex justify-between items-center w-full">
+<button class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition-transform" onclick="closePlayer()">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-white font-headline-md text-headline-md opacity-90" id="playerTitle">Snowfall</h2>
+<button class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition-transform" id="audioToggle" onclick="toggleAudio()">
+<span class="material-symbols-outlined" id="audioIcon">volume_up</span>
+</button>
+</div>
+<!-- Center Play/Pause -->
+<div class="flex items-center justify-center">
+<button class="w-24 h-24 rounded-full bg-white/10 backdrop-blur-lg flex items-center justify-center text-white border border-white/20 shadow-[0_0_50px_rgba(255,255,255,0.1)] active:scale-90 transition-all duration-300" onclick="togglePlay()">
+<span class="material-symbols-outlined text-5xl" id="playPauseIcon">pause</span>
+</button>
+</div>
+<!-- Bottom Hint -->
+<div class="text-center w-full pb-8">
+<p class="text-white/60 text-label-md uppercase tracking-widest">Breathing in rhythm with the visual</p>
+</div>
+</div>
+</div>
+<script>
+    const player = document.getElementById('immersivePlayer');
+    const controls = document.getElementById('playerControls');
+    const playerImg = document.getElementById('playerImage');
+    const playerTitle = document.getElementById('playerTitle');
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    const audioIcon = document.getElementById('audioIcon');
+
+    let controlsTimeout;
+    let isPlaying = true;
+    let isMuted = false;
+
+    const visuals = {
+      'Snowfall': 'https://images.unsplash.com/photo-1418985991508-e47386d96a71?auto=format&fit=crop&q=80&w=1600',
+      'Rainfall': 'https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?auto=format&fit=crop&q=80&w=1600',
+      'Firepit': 'https://images.unsplash.com/photo-1537204696486-9630fd54c605?auto=format&fit=crop&q=80&w=1600',
+      'Sandblow': 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?auto=format&fit=crop&q=80&w=1600',
+      'Leaffall': 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=1600'
+    };
+
+    function openPlayer(type) {
+      playerTitle.textContent = type;
+      playerImg.src = visuals[type];
+      player.classList.remove('hidden');
+      setTimeout(() => {
+        player.classList.remove('opacity-0');
+        showControls();
+      }, 10);
+    }
+
+    function closePlayer() {
+      player.classList.add('opacity-0');
+      setTimeout(() => {
+        player.classList.add('hidden');
+      }, 700);
+    }
+
+    function showControls() {
+      controls.classList.remove('opacity-0');
+      clearTimeout(controlsTimeout);
+      controlsTimeout = setTimeout(() => {
+        if (isPlaying) {
+          controls.classList.add('opacity-0');
+        }
+      }, 3000);
+    }
+
+    player.addEventListener('click', showControls);
+    player.addEventListener('touchstart', showControls);
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      playPauseIcon.textContent = isPlaying ? 'pause' : 'play_arrow';
+      if (!isPlaying) {
+        playerImg.style.animationPlayState = 'paused';
+        clearTimeout(controlsTimeout);
+        controls.classList.remove('opacity-0');
+      } else {
+        playerImg.style.animationPlayState = 'running';
+        showControls();
+      }
+    }
+
+    function toggleAudio() {
+      isMuted = !isMuted;
+      audioIcon.textContent = isMuted ? 'volume_off' : 'volume_up';
+      event.stopPropagation();
+    }
+  </script>
+</body></html>

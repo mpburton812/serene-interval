@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Serene Interval - Breathing Visualization</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#da8d78",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-container": "#4d6677",
+                        "secondary-fixed": "#cce6fa",
+                        "on-secondary-fixed": "#021e2c",
+                        "on-tertiary-container": "#5d2718",
+                        "outline-variant": "#c2c8c0",
+                        "secondary-container": "#c9e3f7",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#ffdbd1",
+                        "on-surface-variant": "#424842",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#8ba88e",
+                        "surface-tint": "#4a654e",
+                        "on-primary-fixed": "#07200f",
+                        "on-tertiary-fixed-variant": "#703626",
+                        "surface-container-high": "#eae8e3",
+                        "surface-bright": "#fbf9f4",
+                        "surface-container-highest": "#e4e2dd",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#b0ceb2",
+                        "on-primary-fixed-variant": "#334d38",
+                        "on-background": "#1b1c19",
+                        "surface-dim": "#dbdad5",
+                        "surface-variant": "#e4e2dd",
+                        "tertiary-fixed-dim": "#ffb5a1",
+                        "background": "#fbf9f4",
+                        "inverse-on-surface": "#f2f1ec",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#cceace",
+                        "on-tertiary-fixed": "#380c02",
+                        "on-surface": "#1b1c19",
+                        "inverse-surface": "#30312e",
+                        "tertiary": "#8d4d3b",
+                        "outline": "#737972",
+                        "surface-container-low": "#f5f3ee",
+                        "surface": "#fbf9f4",
+                        "primary": "#4a654e",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#496172",
+                        "inverse-primary": "#b0ceb2",
+                        "surface-container": "#f0eee9",
+                        "on-secondary-fixed-variant": "#314a5a",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#b0cadd",
+                        "on-primary-container": "#233d29"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "unit": "8px",
+                        "stack-lg": "32px",
+                        "gutter": "16px",
+                        "container-margin": "24px",
+                        "stack-sm": "8px",
+                        "stack-xl": "64px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "headline-xl": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "500"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(251, 249, 244, 0.4);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .sphere {
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent);
+            box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.1), 0 10px 30px rgba(74, 101, 78, 0.05);
+            transition: all 0.5s ease;
+        }
+        .tube {
+            background: rgba(228, 226, 221, 0.8);
+            border-left: 1px solid rgba(194, 200, 192, 0.5);
+            border-right: 1px solid rgba(194, 200, 192, 0.5);
+        }
+        .mote {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            transition: background-color 0.5s ease, box-shadow 0.5s ease;
+        }
+        .mote.blue {
+            background-color: rgba(74, 161, 255, 0.7);
+            box-shadow: 0 0 4px rgba(74, 161, 255, 0.5);
+        }
+        .mote.red {
+            background-color: rgba(218, 141, 120, 0.7);
+            box-shadow: 0 0 4px rgba(218, 141, 120, 0.5);
+        }
+        .mote.purple {
+            background-color: rgba(160, 90, 220, 0.7);
+            box-shadow: 0 0 8px rgba(160, 90, 220, 0.5);
+        }
+        .fill-layer {
+            transition: height 0.1s linear, opacity 0.5s ease;
+        }
+        .active-sphere {
+            box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.3), 0 0 20px rgba(218, 141, 120, 0.4);
+            border-color: rgba(218, 141, 120, 0.6);
+        }
+        .active-sphere-right {
+            box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.3), 0 0 20px rgba(74, 161, 255, 0.4);
+            border-color: rgba(74, 161, 255, 0.6);
+        }
+        .active-sphere-top {
+            box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.4), 0 0 30px rgba(160, 90, 220, 0.4);
+            border-color: rgba(160, 90, 220, 0.6);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-container-margin py-4 bg-surface/60 dark:bg-surface-dim/60 backdrop-blur-xl border-b border-white/20 shadow-sm shadow-primary/5">
+<div class="flex items-center gap-4">
+<button class="hover:opacity-80 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary tracking-tight">Serene Interval</h1>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary-container overflow-hidden border border-white/20">
+<img alt="Profile" data-alt="A soft, high-key portrait of a modern user avatar profile icon, rendered in a minimalist 3D style with gentle lighting. The aesthetic matches a clean, mindfulness application with pastel tones and soft shadows. The background is a very light cream, consistent with a serene and premium user interface design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9xx4KHBlclraK7Utuu7NnXyya-E4KmN7o2yje6SimqkQRA1MW47sQeEOyVVMtFxE0QEAYaJHhAVxoRVEIO37_TQkmOufV8cQNBEHbV1ZgiEMpskJ-7Yyp-D3IzK9OMLfCEQtrJjp94mSwH0QQQ7ymBRs6tdo7zMw_i5h-4ieZ2jZdqPsFfJrt_ocwqxnjJIxLjeyxpUPnR-zy_CTSp4nx-6ZmM0XwaM9B8vS4SXvHml_P7ekE16R92-oOismKRadKPkqrl1g3Vts"/>
+</div>
+</header>
+<main class="min-h-screen pt-24 pb-32 px-container-margin flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Background Atmospheric Element -->
+<div class="absolute inset-0 z-0 pointer-events-none opacity-20">
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-container rounded-full blur-[120px]"></div>
+<div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-secondary-container rounded-full blur-[100px]"></div>
+</div>
+<!-- Main Visualization Container -->
+<div class="relative z-10 w-full max-w-md flex flex-col items-center space-y-stack-xl">
+<!-- Breathing Status -->
+<div class="text-center z-20">
+<h2 class="font-headline-lg text-headline-lg text-primary transition-all duration-700" id="breathing-state">Prepare</h2>
+<p class="font-body-md text-on-surface-variant/80 mt-2" id="pattern-desc">Find a comfortable position and focus on the flow.</p>
+</div>
+<!-- Box Breathing Visualization -->
+<div class="relative w-full h-[400px] flex justify-center items-center mt-8" id="viz-container">
+<!-- Top Central Hold Sphere -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-28 rounded-full glass-panel sphere z-20 border border-white/40 flex items-center justify-center overflow-hidden" id="top-sphere">
+<div class="absolute inset-0 bg-purple-500/0 transition-opacity duration-1000" id="top-mist"></div>
+</div>
+<!-- Left Side: Inhale Spheres (Bottom to Top) -->
+<div class="absolute left-8 bottom-4 flex flex-col-reverse items-center gap-4 z-10">
+<div class="w-12 h-12 rounded-full glass-panel sphere border border-white/40 inhale-sphere" id="inhale-1"></div>
+<div class="w-3 h-4 tube z-0 -my-5"></div>
+<div class="w-12 h-12 rounded-full glass-panel sphere border border-white/40 inhale-sphere" id="inhale-2"></div>
+<div class="w-3 h-4 tube z-0 -my-5"></div>
+<div class="w-12 h-12 rounded-full glass-panel sphere border border-white/40 inhale-sphere" id="inhale-3"></div>
+<div class="w-3 h-4 tube z-0 -my-5"></div>
+<div class="w-12 h-12 rounded-full glass-panel sphere border border-white/40 inhale-sphere" id="inhale-4"></div>
+</div>
+<!-- Connecting Tubes to Top Sphere -->
+<svg class="absolute top-16 left-0 w-full h-32 pointer-events-none z-0" style="opacity: 0.6;">
+<path d="M 60 70 Q 100 20 180 20" fill="none" stroke="rgba(228, 226, 221, 0.8)" stroke-linecap="round" stroke-width="12"></path>
+<path d="M 60 70 Q 100 20 180 20" fill="none" stroke="rgba(194, 200, 192, 0.5)" stroke-linecap="round" stroke-width="14" style="mix-blend-mode: multiply; opacity: 0.3;"></path>
+<path d="M 330 70 Q 290 20 210 20" fill="none" stroke="rgba(228, 226, 221, 0.8)" stroke-linecap="round" stroke-width="12"></path>
+<path d="M 330 70 Q 290 20 210 20" fill="none" stroke="rgba(194, 200, 192, 0.5)" stroke-linecap="round" stroke-width="14" style="mix-blend-mode: multiply; opacity: 0.3;"></path>
+</svg>
+<!-- Right Side: Exhale Spheres (Top to Bottom) -->
+<div class="absolute right-8 bottom-4 flex flex-col items-center gap-4 z-10">
+<div class="w-12 h-12 rounded-full glass-panel sphere border border-white/40 exhale-sphere" id="exhale-1"></div>
+<div class="w-3 h-4 tube z-0 -my-5"></div>
+<div class="w-12 h-12 rounded-full glass-panel sphere border border-white/40 exhale-sphere" id="exhale-2"></div>
+<div class="w-3 h-4 tube z-0 -my-5"></div>
+<div class="w-12 h-12 rounded-full glass-panel sphere border border-white/40 exhale-sphere" id="exhale-3"></div>
+<div class="w-3 h-4 tube z-0 -my-5"></div>
+<div class="w-12 h-12 rounded-full glass-panel sphere border border-white/40 exhale-sphere" id="exhale-4"></div>
+</div>
+<!-- Particle Container -->
+<div class="absolute inset-0 z-30 pointer-events-none" id="particle-container"></div>
+</div>
+<!-- Controls Section -->
+<div class="w-full flex flex-col gap-stack-lg items-center mt-4 z-20">
+<!-- Pattern Selector -->
+<div class="w-full">
+<label class="block font-label-md text-label-md text-on-surface-variant/60 uppercase mb-2 ml-2">Breathing Pattern</label>
+<div class="glass-panel rounded-xl p-2 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+<button class="pattern-btn whitespace-nowrap px-4 py-2 rounded-lg font-label-md text-label-md transition-all bg-primary-container/30 text-primary" data-pattern="box" onclick="setPattern('box')">Box Breathing</button>
+<button class="pattern-btn whitespace-nowrap px-4 py-2 rounded-lg font-label-md text-label-md transition-all text-on-surface-variant hover:bg-surface-container" data-pattern="478" onclick="setPattern('478')">4-7-8 Technique</button>
+<button class="pattern-btn whitespace-nowrap px-4 py-2 rounded-lg font-label-md text-label-md transition-all text-on-surface-variant hover:bg-surface-container" data-pattern="resonant" onclick="setPattern('resonant')">Resonant</button>
+</div>
+</div>
+<!-- Timer & Reps -->
+<div class="flex gap-4 w-full">
+<div class="flex-1 glass-panel rounded-xl p-4 flex flex-col items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant/60">DURATION</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-on-surface">5</span>
+<span class="font-label-md text-label-md text-on-surface-variant">MIN</span>
+</div>
+</div>
+<div class="flex-1 glass-panel rounded-xl p-4 flex flex-col items-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant/60">PACE</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-headline-md text-headline-md text-on-surface" id="cycle-count">0</span>
+<span class="font-label-md text-label-md text-on-surface-variant">REP</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB: Start/Stop -->
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+<button class="w-16 h-16 rounded-full bg-primary text-on-primary shadow-xl flex items-center justify-center transition-all active:scale-90 hover:shadow-primary/20" id="start-btn" onclick="toggleBreathing()">
+<span class="material-symbols-outlined text-4xl" id="btn-icon">play_arrow</span>
+</button>
+</div>
+<!-- Bottom Navigation Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter pb-6 pt-2 bg-surface/40 backdrop-blur-2xl border-t border-white/20 shadow-[0_-4px_20px_rgba(74,101,78,0.08)] rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant/70 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container/30 text-primary rounded-full px-5 py-1 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">air</span>
+<span class="font-label-md text-label-md">Breathe</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/70 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">timer</span>
+<span class="font-label-md text-label-md">Timer</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/70 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">self_care</span>
+<span class="font-label-md text-label-md">Toolkit</span>
+</a>
+</nav>
+<script>
+        let isRunning = false;
+        let currentPattern = 'box';
+        let state = 'inhale';
+        let cycle = 0;
+        let timer = null;
+        let animationFrameId = null;
+        let phaseStartTime = 0;
+        let phaseDuration = 0;
+
+        const patterns = {
+            box: { inhale: 4, hold1: 4, exhale: 4, hold2: 4, label: "Box Breathing", desc: "Equal parts for calm and focus." },
+            '478': { inhale: 4, hold1: 7, exhale: 8, hold2: 0, label: "4-7-8 Technique", desc: "Powerful for relaxation and sleep." },
+            resonant: { inhale: 5, hold1: 0, exhale: 5, hold2: 0, label: "Resonant", desc: "Optimizes heart rate variability." }
+        };
+
+        const particleContainer = document.getElementById('particle-container');
+        const inhaleSpheres = [
+            document.getElementById('inhale-1'),
+            document.getElementById('inhale-2'),
+            document.getElementById('inhale-3'),
+            document.getElementById('inhale-4')
+        ];
+        const exhaleSpheres = [
+            document.getElementById('exhale-1'),
+            document.getElementById('exhale-2'),
+            document.getElementById('exhale-3'),
+            document.getElementById('exhale-4')
+        ];
+        const topSphere = document.getElementById('top-sphere');
+        const topMist = document.getElementById('top-mist');
+        
+        const motes = [];
+        const NUM_MOTES = 120;
+
+        function initMotes() {
+            particleContainer.innerHTML = '';
+            motes.length = 0;
+            for(let i=0; i<NUM_MOTES; i++) {
+                const mote = document.createElement('div');
+                mote.className = 'mote red';
+                const size = Math.random() * 3 + 2;
+                mote.style.width = size + 'px';
+                mote.style.height = size + 'px';
+                
+                // Start hidden or at initial pos
+                mote.style.opacity = '0';
+                
+                particleContainer.appendChild(mote);
+                motes.push({
+                    el: mote,
+                    x: 0,
+                    y: 0,
+                    baseOffsetX: (Math.random() - 0.5) * 30, // For swirling inside spheres
+                    baseOffsetY: (Math.random() - 0.5) * 30,
+                    speed: Math.random() * 0.5 + 0.5,
+                    angle: Math.random() * Math.PI * 2,
+                    visible: false
+                });
+            }
+        }
+
+        function getSphereCenter(element) {
+            if (!element) return { x: 50, y: 50 };
+            const containerRect = document.getElementById('viz-container').getBoundingClientRect();
+            const rect = element.getBoundingClientRect();
+            
+            return {
+                x: ((rect.left + rect.width / 2) - containerRect.left) / containerRect.width * 100,
+                y: ((rect.top + rect.height / 2) - containerRect.top) / containerRect.height * 100
+            };
+        }
+
+        function updateAnimation() {
+            if (!isRunning) return;
+            
+            const now = Date.now();
+            const elapsed = (now - phaseStartTime) / 1000;
+            let progress = Math.min(elapsed / phaseDuration, 1);
+            if (phaseDuration === 0) progress = 1;
+
+            // Reset sphere highlights
+            inhaleSpheres.forEach(s => s.classList.remove('active-sphere'));
+            exhaleSpheres.forEach(s => s.classList.remove('active-sphere-right'));
+            topSphere.classList.remove('active-sphere-top');
+            topMist.style.opacity = '0';
+
+            let targetPath = [];
+            let particleState = 'hidden';
+            let particleColor = 'red';
+
+            if (state === 'inhale') {
+                particleColor = 'red';
+                // Activate spheres based on progress
+                const activeIndex = Math.floor(progress * 4);
+                if (activeIndex < 4) {
+                    inhaleSpheres[activeIndex].classList.add('active-sphere');
+                }
+                
+                // Particles move up left side
+                targetPath = [
+                    { x: 15, y: 90 }, // bottom
+                    getSphereCenter(inhaleSpheres[0]),
+                    getSphereCenter(inhaleSpheres[1]),
+                    getSphereCenter(inhaleSpheres[2]),
+                    getSphereCenter(inhaleSpheres[3]),
+                    { x: 25, y: 25 }, // curve start
+                    getSphereCenter(topSphere)
+                ];
+                particleState = 'flowing';
+
+            } else if (state === 'hold1') {
+                particleColor = 'purple';
+                topSphere.classList.add('active-sphere-top');
+                topMist.style.opacity = '0.4';
+                topMist.classList.add('bg-purple-500/20');
+                particleState = 'swirling_top';
+
+            } else if (state === 'exhale') {
+                particleColor = 'blue';
+                // Activate spheres based on progress
+                const activeIndex = Math.floor(progress * 4);
+                if (activeIndex < 4) {
+                    exhaleSpheres[activeIndex].classList.add('active-sphere-right');
+                }
+                
+                // Particles move down right side
+                targetPath = [
+                    getSphereCenter(topSphere),
+                    { x: 75, y: 25 }, // curve end
+                    getSphereCenter(exhaleSpheres[0]),
+                    getSphereCenter(exhaleSpheres[1]),
+                    getSphereCenter(exhaleSpheres[2]),
+                    getSphereCenter(exhaleSpheres[3]),
+                    { x: 85, y: 90 } // bottom
+                ];
+                particleState = 'flowing';
+
+            } else if (state === 'hold2') {
+                // Hidden/resting at bottom
+                particleState = 'hidden';
+            }
+
+            motes.forEach((m, i) => {
+                // Stagger particles slightly
+                const mProgress = Math.max(0, Math.min(1, progress + (i / NUM_MOTES) * 0.2 - 0.1));
+                
+                m.el.classList.remove('red', 'blue', 'purple');
+                m.el.classList.add(particleColor);
+
+                if (particleState === 'flowing' && targetPath.length > 0) {
+                    m.el.style.opacity = mProgress > 0 && mProgress < 1 ? '1' : '0';
+                    
+                    // Simple path interpolation
+                    const pathLen = targetPath.length - 1;
+                    const pathIdx = Math.floor(mProgress * pathLen);
+                    const pathPct = (mProgress * pathLen) - pathIdx;
+                    
+                    if (pathIdx < pathLen) {
+                        const p1 = targetPath[pathIdx];
+                        const p2 = targetPath[pathIdx + 1];
+                        
+                        // Add some noise to the path
+                        const noiseX = Math.sin(now/200 + i) * 2;
+                        const noiseY = Math.cos(now/200 + i) * 2;
+
+                        const currX = p1.x + (p2.x - p1.x) * pathPct + noiseX;
+                        const currY = p1.y + (p2.y - p1.y) * pathPct + noiseY;
+
+                        m.el.style.left = currX + '%';
+                        m.el.style.top = currY + '%';
+                    }
+                } else if (particleState === 'swirling_top') {
+                    m.el.style.opacity = '1';
+                    const center = getSphereCenter(topSphere);
+                    
+                    // Swirl logic
+                    m.angle += 0.05 * m.speed;
+                    const radius = 15 + Math.sin(now/500 + i) * 5; // dynamic radius
+                    
+                    const currX = center.x + Math.cos(m.angle) * radius * (100 / window.innerWidth); // rough aspect ratio adj
+                    const currY = center.y + Math.sin(m.angle) * radius * (100 / 400);
+
+                    m.el.style.left = currX + '%';
+                    m.el.style.top = currY + '%';
+                } else {
+                    m.el.style.opacity = '0';
+                }
+            });
+
+            animationFrameId = requestAnimationFrame(updateAnimation);
+        }
+
+        function setPattern(id) {
+            currentPattern = id;
+            document.querySelectorAll('.pattern-btn').forEach(btn => {
+                if(btn.dataset.pattern === id) {
+                    btn.classList.add('bg-primary-container/30', 'text-primary');
+                    btn.classList.remove('text-on-surface-variant');
+                } else {
+                    btn.classList.remove('bg-primary-container/30', 'text-primary');
+                    btn.classList.add('text-on-surface-variant');
+                }
+            });
+            document.getElementById('pattern-desc').innerText = patterns[id].desc;
+            resetSession();
+        }
+
+        function toggleBreathing() {
+            isRunning = !isRunning;
+            const btn = document.getElementById('start-btn');
+            const icon = document.getElementById('btn-icon');
+            
+            if (isRunning) {
+                btn.classList.replace('bg-primary', 'bg-tertiary');
+                icon.innerText = 'pause';
+                startCycle();
+                updateAnimation();
+            } else {
+                btn.classList.replace('bg-tertiary', 'bg-primary');
+                icon.innerText = 'play_arrow';
+                clearTimeout(timer);
+                cancelAnimationFrame(animationFrameId);
+                document.getElementById('breathing-state').innerText = "Paused";
+                
+                // Cleanup visuals
+                inhaleSpheres.forEach(s => s.classList.remove('active-sphere'));
+                exhaleSpheres.forEach(s => s.classList.remove('active-sphere-right'));
+                topSphere.classList.remove('active-sphere-top');
+                topMist.style.opacity = '0';
+                motes.forEach(m => m.el.style.opacity = '0');
+            }
+        }
+
+        function resetSession() {
+            isRunning = false;
+            state = 'inhale';
+            cycle = 0;
+            document.getElementById('cycle-count').innerText = "0";
+            document.getElementById('breathing-state').innerText = "Ready";
+            const btn = document.getElementById('start-btn');
+            btn.classList.replace('bg-tertiary', 'bg-primary');
+            document.getElementById('btn-icon').innerText = 'play_arrow';
+            clearTimeout(timer);
+            cancelAnimationFrame(animationFrameId);
+            
+            inhaleSpheres.forEach(s => s.classList.remove('active-sphere'));
+            exhaleSpheres.forEach(s => s.classList.remove('active-sphere-right'));
+            topSphere.classList.remove('active-sphere-top');
+            topMist.style.opacity = '0';
+            motes.forEach(m => m.el.style.opacity = '0');
+        }
+
+        function startCycle() {
+            const p = patterns[currentPattern];
+            
+            const runStep = (step) => {
+                if (!isRunning) return;
+                
+                state = step;
+                phaseStartTime = Date.now();
+                const display = document.getElementById('breathing-state');
+
+                if (step === 'inhale') {
+                    display.innerText = "Inhale";
+                    display.className = "font-headline-lg text-headline-lg text-error scale-110 transition-all duration-700"; // Red-ish for inhale mapping
+                    phaseDuration = p.inhale;
+                } else if (step === 'hold1') {
+                    display.innerText = "Hold";
+                    display.className = "font-headline-lg text-headline-lg text-purple-600 scale-100 transition-all duration-700";
+                    phaseDuration = p.hold1;
+                } else if (step === 'exhale') {
+                    display.innerText = "Exhale";
+                    display.className = "font-headline-lg text-headline-lg text-blue-500 scale-95 transition-all duration-700";
+                    phaseDuration = p.exhale;
+                } else if (step === 'hold2') {
+                    display.innerText = "Hold";
+                    display.className = "font-headline-lg text-headline-lg text-primary scale-100 transition-all duration-700";
+                    phaseDuration = p.hold2;
+                }
+
+                if (phaseDuration === 0) {
+                    nextStep(step);
+                    return;
+                }
+
+                timer = setTimeout(() => nextStep(step), phaseDuration * 1000);
+            };
+
+            const nextStep = (current) => {
+                if (current === 'inhale') runStep('hold1');
+                else if (current === 'hold1') runStep('exhale');
+                else if (current === 'exhale') runStep('hold2');
+                else {
+                    cycle++;
+                    document.getElementById('cycle-count').innerText = cycle;
+                    runStep('inhale');
+                }
+            };
+
+            runStep('inhale');
+        }
+
+        // Initialize after slight delay to ensure layout is done for coordinates
+        setTimeout(initMotes, 100);
+        window.addEventListener('resize', initMotes); // Recalculate if resized
+    </script>
+</body></html>

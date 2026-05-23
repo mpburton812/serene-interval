@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Serene Interval - Setup</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#f2f1ec",
+                        "surface-tint": "#4a654e",
+                        "primary-fixed": "#cceace",
+                        "on-surface-variant": "#424842",
+                        "surface": "#fbf9f4",
+                        "on-tertiary-fixed": "#380c02",
+                        "primary-container": "#8ba88e",
+                        "on-primary-container": "#233d29",
+                        "on-primary": "#ffffff",
+                        "background": "#fbf9f4",
+                        "outline-variant": "#c2c8c0",
+                        "on-secondary-fixed-variant": "#314a5a",
+                        "secondary-fixed-dim": "#b0cadd",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#30312e",
+                        "tertiary-fixed-dim": "#ffb5a1",
+                        "surface-container-high": "#eae8e3",
+                        "inverse-primary": "#b0ceb2",
+                        "on-secondary-fixed": "#021e2c",
+                        "tertiary": "#8d4d3b",
+                        "surface-container-highest": "#e4e2dd",
+                        "surface-bright": "#fbf9f4",
+                        "surface-variant": "#e4e2dd",
+                        "on-surface": "#1b1c19",
+                        "error-container": "#ffdad6",
+                        "primary": "#4a654e",
+                        "on-primary-fixed": "#07200f",
+                        "secondary": "#496172",
+                        "surface-container": "#f0eee9",
+                        "on-tertiary-fixed-variant": "#703626",
+                        "outline": "#737972",
+                        "surface-container-low": "#f5f3ee",
+                        "on-primary-fixed-variant": "#334d38",
+                        "tertiary-container": "#da8d78",
+                        "tertiary-fixed": "#ffdbd1",
+                        "secondary-fixed": "#cce6fa",
+                        "secondary-container": "#c9e3f7",
+                        "on-background": "#1b1c19",
+                        "primary-fixed-dim": "#b0ceb2",
+                        "on-tertiary-container": "#5d2718",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#dbdad5",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#4d6677"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-xl": "64px",
+                        "stack-sm": "8px",
+                        "container-margin": "24px",
+                        "unit": "8px",
+                        "stack-lg": "32px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-xl": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            /* Soft ambient background */
+            background-image: radial-gradient(circle at 50% 0%, theme('colors.primary-fixed/20') 0%, transparent 70%),
+                              radial-gradient(circle at 100% 100%, theme('colors.secondary-fixed/20') 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(74, 101, 78, 0.05);
+        }
+        
+        /* Custom Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: theme('colors.primary');
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: theme('colors.primary');
+        }
+        .toggle-checkbox:checked + .toggle-label:after {
+            transform: translateX(100%);
+            border-color: white;
+        }
+        .toggle-label {
+            width: 44px;
+            height: 24px;
+            background-color: theme('colors.surface-variant');
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .toggle-label:after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Custom Checkbox for scenes */
+        .scene-checkbox:checked + div {
+            border-color: theme('colors.primary');
+            background-color: theme('colors.primary-container/20');
+        }
+        .scene-checkbox:checked + div .check-icon {
+            opacity: 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col items-center justify-center py-stack-xl px-container-margin md:px-0">
+<div class="w-full max-w-[540px] space-y-stack-lg">
+<!-- Header Section -->
+<header class="text-center space-y-stack-sm">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary tracking-tight">Create Your Sanctuary</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Let's shape a space that feels uniquely yours.</p>
+</header>
+<!-- Main Form Container -->
+<main class="glass-panel rounded-[24px] p-container-margin md:p-stack-lg space-y-stack-xl">
+<!-- Personal Details Section -->
+<section class="space-y-stack-md">
+<div class="space-y-stack-sm">
+<label class="font-label-md text-label-md text-on-surface" for="username">Username</label>
+<input class="w-full bg-surface-container-lowest/50 border border-outline-variant/50 rounded-xl px-4 py-3 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50" id="username" placeholder="johndoe" type="text"/>
+</div>
+<div class="space-y-stack-sm">
+<label class="font-label-md text-label-md text-on-surface" for="preferred-name">What should we call you?</label>
+<input class="w-full bg-surface-container-lowest/50 border border-outline-variant/50 rounded-xl px-4 py-3 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50" id="preferred-name" placeholder="John" type="text"/>
+</div>
+<div class="space-y-stack-sm">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-label-md text-on-surface" for="password">Password <span class="text-on-surface-variant/70 font-normal">(Optional)</span></label>
+<div class="flex items-center space-x-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Make it private</span>
+<div class="relative inline-block w-[44px] mr-2 align-middle select-none">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 opacity-0" id="private-toggle" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer" for="private-toggle"></label>
+</div>
+</div>
+</div>
+<input class="w-full bg-surface-container-lowest/50 border border-outline-variant/50 rounded-xl px-4 py-3 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50 opacity-50 cursor-not-allowed" disabled="" id="password" placeholder="••••••••" type="password"/>
+</div>
+</section>
+<!-- Experience Customization Section -->
+<section class="space-y-stack-md pt-stack-md border-t border-outline-variant/30">
+<h2 class="font-headline-md text-headline-md text-primary mb-stack-md">Your Experience</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-stack-md">Select the tools you want to keep close.</p>
+<!-- Toggles -->
+<div class="space-y-4">
+<div class="flex justify-between items-center glass-panel rounded-xl px-4 py-3">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined text-primary/70" data-icon="air">air</span>
+<span class="font-body-md text-body-md text-on-surface">Breathing</span>
+</div>
+<div class="relative inline-block w-[44px] align-middle select-none">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white appearance-none cursor-pointer z-10 opacity-0" id="toggle-breathing" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer" for="toggle-breathing"></label>
+</div>
+</div>
+<div class="flex justify-between items-center glass-panel rounded-xl px-4 py-3">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined text-primary/70" data-icon="timer">timer</span>
+<span class="font-body-md text-body-md text-on-surface">Timer</span>
+</div>
+<div class="relative inline-block w-[44px] align-middle select-none">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white appearance-none cursor-pointer z-10 opacity-0" id="toggle-timer" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer" for="toggle-timer"></label>
+</div>
+</div>
+<div class="flex justify-between items-center glass-panel rounded-xl px-4 py-3">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined text-primary/70" data-icon="favorite">favorite</span>
+<span class="font-body-md text-body-md text-on-surface">Affirmations</span>
+</div>
+<div class="relative inline-block w-[44px] align-middle select-none">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white appearance-none cursor-pointer z-10 opacity-0" id="toggle-affirmations" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer" for="toggle-affirmations"></label>
+</div>
+</div>
+<div class="flex justify-between items-center glass-panel rounded-xl px-4 py-3">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined text-primary/70" data-icon="self_care">self_care</span>
+<span class="font-body-md text-body-md text-on-surface">Toolkit</span>
+</div>
+<div class="relative inline-block w-[44px] align-middle select-none">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white appearance-none cursor-pointer z-10 opacity-0" id="toggle-toolkit" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full cursor-pointer" for="toggle-toolkit"></label>
+</div>
+</div>
+</div>
+<!-- Visual Sanctuary Sub-selection -->
+<div class="mt-stack-lg pt-stack-sm">
+<div class="flex items-center space-x-3 mb-stack-sm">
+<span class="material-symbols-outlined text-primary/70" data-icon="landscape">landscape</span>
+<h3 class="font-body-md text-body-md text-on-surface font-medium">Visual Sanctuary Scenes</h3>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-stack-md ml-9">Pick your preferred ambient backgrounds.</p>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-3 ml-9">
+<label class="relative cursor-pointer group">
+<input checked="" class="scene-checkbox sr-only" type="checkbox"/>
+<div class="border border-outline-variant/40 rounded-lg p-3 flex flex-col items-center justify-center space-y-2 transition-all bg-surface-container-lowest/50 group-hover:bg-surface-container-low/80">
+<span class="material-symbols-outlined text-secondary/70" data-icon="ac_unit">ac_unit</span>
+<span class="font-label-sm text-label-sm text-on-surface">Snowfall</span>
+<span class="check-icon material-symbols-outlined absolute top-1 right-1 text-[16px] text-primary opacity-0 transition-opacity" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+</label>
+<label class="relative cursor-pointer group">
+<input checked="" class="scene-checkbox sr-only" type="checkbox"/>
+<div class="border border-outline-variant/40 rounded-lg p-3 flex flex-col items-center justify-center space-y-2 transition-all bg-surface-container-lowest/50 group-hover:bg-surface-container-low/80">
+<span class="material-symbols-outlined text-secondary/70" data-icon="water_drop">water_drop</span>
+<span class="font-label-sm text-label-sm text-on-surface">Rainfall</span>
+<span class="check-icon material-symbols-outlined absolute top-1 right-1 text-[16px] text-primary opacity-0 transition-opacity" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+</label>
+<label class="relative cursor-pointer group">
+<input class="scene-checkbox sr-only" type="checkbox"/>
+<div class="border border-outline-variant/40 rounded-lg p-3 flex flex-col items-center justify-center space-y-2 transition-all bg-surface-container-lowest/50 group-hover:bg-surface-container-low/80">
+<span class="material-symbols-outlined text-tertiary/70" data-icon="local_fire_department">local_fire_department</span>
+<span class="font-label-sm text-label-sm text-on-surface">Firepit</span>
+<span class="check-icon material-symbols-outlined absolute top-1 right-1 text-[16px] text-primary opacity-0 transition-opacity" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+</label>
+<label class="relative cursor-pointer group">
+<input class="scene-checkbox sr-only" type="checkbox"/>
+<div class="border border-outline-variant/40 rounded-lg p-3 flex flex-col items-center justify-center space-y-2 transition-all bg-surface-container-lowest/50 group-hover:bg-surface-container-low/80">
+<span class="material-symbols-outlined text-secondary-fixed-dim/90" data-icon="waves">waves</span>
+<span class="font-label-sm text-label-sm text-on-surface">Sandblow</span>
+<span class="check-icon material-symbols-outlined absolute top-1 right-1 text-[16px] text-primary opacity-0 transition-opacity" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+</label>
+<label class="relative cursor-pointer group">
+<input checked="" class="scene-checkbox sr-only" type="checkbox"/>
+<div class="border border-outline-variant/40 rounded-lg p-3 flex flex-col items-center justify-center space-y-2 transition-all bg-surface-container-lowest/50 group-hover:bg-surface-container-low/80">
+<span class="material-symbols-outlined text-primary/70" data-icon="eco">eco</span>
+<span class="font-label-sm text-label-sm text-on-surface">Leaffall</span>
+<span class="check-icon material-symbols-outlined absolute top-1 right-1 text-[16px] text-primary opacity-0 transition-opacity" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+</label>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Action -->
+<div class="flex justify-center pt-stack-sm pb-stack-xl">
+<button class="bg-primary hover:bg-primary/90 text-on-primary font-label-md text-label-md py-4 px-8 rounded-full shadow-[0_8px_24px_rgba(74,101,78,0.2)] transition-transform hover:scale-105 active:scale-95 w-full md:w-auto">
+                Enter Your Sanctuary
+            </button>
+</div>
+</div>
+<script>
+        // Simple script to toggle password field state
+        document.getElementById('private-toggle').addEventListener('change', function(e) {
+            const passwordInput = document.getElementById('password');
+            if(e.target.checked) {
+                passwordInput.disabled = false;
+                passwordInput.classList.remove('opacity-50', 'cursor-not-allowed');
+                passwordInput.focus();
+            } else {
+                passwordInput.disabled = true;
+                passwordInput.classList.add('opacity-50', 'cursor-not-allowed');
+                passwordInput.value = '';
+            }
+        });
+    </script>
+</body></html>
