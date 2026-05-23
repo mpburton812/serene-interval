@@ -1,0 +1,26 @@
+---
+description: Commit and push successful builds to the dev branch on GitHub
+alwaysApply: true
+---
+
+# Git Workflow — dev Branch
+
+After a **successful build** of a new app version in this project (`assembleDebug`, `installDebug`, or release build):
+
+1. Ensure the current branch is **`dev`**. If not, checkout `dev` and merge/cherry-pick work as needed.
+2. **`git status`** — if there are no changes, skip commit.
+3. Stage only relevant project files (never `local.properties`, build artifacts, or secrets).
+4. Commit with a concise message describing what changed and why.
+5. **`git push origin dev`**
+
+## Do NOT
+
+- Automatically push or merge `dev` → `test` or `dev` → `main`
+- Commit unless a build succeeded or the user explicitly asked for a commit
+- Force-push to any branch
+
+## Branch roles
+
+- **dev** — active development; direct commits and pushes allowed
+- **test** — promote only via manual pull request from `dev`
+- **main** — promote only via manual pull request from `test`
