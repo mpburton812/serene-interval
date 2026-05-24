@@ -1,5 +1,8 @@
 package com.example.meditationparticles.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
@@ -20,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -32,6 +36,7 @@ import com.example.meditationparticles.domain.visualizations.CalmingVisualizatio
 import com.example.meditationparticles.navigation.SereneDestination.ToolkitTab
 import com.example.meditationparticles.ui.breathing.BreathingScreen
 import com.example.meditationparticles.ui.components.BottomNavItem
+import com.example.meditationparticles.ui.components.BuildInfoFooter
 import com.example.meditationparticles.ui.components.SereneBottomBar
 import com.example.meditationparticles.ui.home.HomeScreen
 import com.example.meditationparticles.ui.onboarding.OnboardingScreen
@@ -91,6 +96,9 @@ fun SereneNavHost(
         currentRoute?.startsWith("visualizations/player") != true &&
         !breathingSessionActive
 
+    val showBuildFooter = currentRoute?.startsWith("visualizations/player") != true &&
+        !breathingSessionActive
+
     val defaultToolkitTab = when {
         settings.enableAffirmations -> ToolkitTab.AFFIRMATIONS
         settings.enableToolkit -> ToolkitTab.TOOLKIT
@@ -107,32 +115,42 @@ fun SereneNavHost(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (showBottomBar && bottomNavItems.isNotEmpty()) {
-                SereneBottomBar(
-                    items = bottomNavItems,
-                    currentRoute = currentRoute,
-                    onNavigate = { destination ->
-                        val route = when (destination) {
-                            SereneDestination.Toolkit -> destination.navigationRoute(defaultToolkitTab)
-                            else -> destination.route
-                        }
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
+            if (showBuildFooter) {
+                Column {
+                    if (showBottomBar && bottomNavItems.isNotEmpty()) {
+                        SereneBottomBar(
+                            items = bottomNavItems,
+                            currentRoute = currentRoute,
+                            onNavigate = { destination ->
+                                val route = when (destination) {
+                                    SereneDestination.Toolkit -> destination.navigationRoute(defaultToolkitTab)
+                                    else -> destination.route
+                                }
+                                navController.navigate(route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                        )
+                    }
+                    BuildInfoFooter()
+                }
             }
         },
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding),
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
         ) {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.fillMaxSize(),
+            ) {
             composable(SereneDestination.Onboarding.route) {
                 OnboardingScreen(
                     onComplete = {
@@ -229,6 +247,7 @@ fun SereneNavHost(
                     )
                 }
             }
+        }
         }
     }
 }

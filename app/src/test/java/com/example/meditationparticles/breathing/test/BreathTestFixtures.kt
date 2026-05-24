@@ -5,7 +5,6 @@ import com.example.meditationparticles.canvas.computeStructureLayout
 import com.example.meditationparticles.domain.breathing.BreathPhase
 import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.breathing.BreathingSessionState
-import kotlin.math.sqrt
 
 object BreathTestFixtures {
     const val PHONE_WIDTH = 1080f
@@ -46,24 +45,9 @@ object BreathTestFixtures {
     )
 
     fun pipesConnect(layout: BreathStructureLayout, fromId: Int, toId: Int): Boolean {
-        val from = layout.sphere(fromId) ?: return false
-        val to = layout.sphere(toId) ?: return false
-        val fromEdge = pipeEdge(from, to)
-        val toEdge = pipeEdge(to, from)
-
-        fun involvesSphere(
-            point: androidx.compose.ui.geometry.Offset,
-            sphere: com.example.meditationparticles.canvas.BreathSphere,
-            toward: com.example.meditationparticles.canvas.BreathSphere,
-        ): Boolean {
-            return offsetsNear(point, sphere.center) || offsetsNear(point, pipeEdge(sphere, toward))
-        }
-
-        return layout.pipes.any { (a, b) ->
-            involvesSphere(a, from, to) && involvesSphere(b, to, from) ||
-                involvesSphere(b, from, to) && involvesSphere(a, to, from) ||
-                (offsetsNear(a, fromEdge) && offsetsNear(b, toEdge)) ||
-                (offsetsNear(b, fromEdge) && offsetsNear(a, toEdge))
+        return layout.pipes.any { pipe ->
+            (pipe.fromSphereId == fromId && pipe.toSphereId == toId) ||
+                (pipe.fromSphereId == toId && pipe.toSphereId == fromId)
         }
     }
 
@@ -91,28 +75,5 @@ object BreathTestFixtures {
         }
 
         return bottomClosed && topClosed
-    }
-
-    private fun pipeEdge(
-        from: com.example.meditationparticles.canvas.BreathSphere,
-        toward: com.example.meditationparticles.canvas.BreathSphere,
-    ): androidx.compose.ui.geometry.Offset {
-        val dx = toward.center.x - from.center.x
-        val dy = toward.center.y - from.center.y
-        val len = sqrt(dx * dx + dy * dy).coerceAtLeast(0.001f)
-        return androidx.compose.ui.geometry.Offset(
-            from.center.x + dx / len * from.radius,
-            from.center.y + dy / len * from.radius,
-        )
-    }
-
-    private fun offsetsNear(
-        a: androidx.compose.ui.geometry.Offset,
-        b: androidx.compose.ui.geometry.Offset,
-        tolerance: Float = 3f,
-    ): Boolean {
-        val dx = a.x - b.x
-        val dy = a.y - b.y
-        return dx * dx + dy * dy <= tolerance * tolerance
     }
 }

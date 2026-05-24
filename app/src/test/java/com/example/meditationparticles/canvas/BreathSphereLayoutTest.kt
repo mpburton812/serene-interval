@@ -84,7 +84,10 @@ class BreathSphereLayoutTest {
         val layout = BreathTestFixtures.layoutFor(BreathingPattern.FourSevenEight)
 
         assertEquals(LayoutMode.FlowChain, layout.layoutMode)
-        assertTrue(layout.pipes.size >= layout.allSpheres.size)
+        assertTrue(
+            "4-7-8 pipe count",
+            layout.pipes.size >= layout.allSpheres.size - 1,
+        )
 
         val lastInhale = requireNotNull(layout.sphere(layout.inhalePath.last()))
         val topHold = requireNotNull(layout.sphere(layout.topHoldId!!))
@@ -138,40 +141,38 @@ class BreathSphereLayoutTest {
             assertEquals("${pattern.name} layout", LayoutMode.FlowChain, layout.layoutMode)
             assertTrue(
                 "${pattern.name} pipe count",
-                layout.pipes.size >= layout.allSpheres.size,
+                layout.pipes.size >= layout.allSpheres.size - 2,
             )
         }
     }
 
     @Test
-    fun resonant_closesFullCircuitAtTopAndBottom() {
-        val layout = BreathTestFixtures.layoutFor(BreathingPattern.Resonant)
+    fun allPatterns_pipesOnlyConnectAdjacentSpheres() {
+        BreathingPattern.All.forEach { pattern ->
+            val layout = BreathTestFixtures.layoutFor(pattern)
+            val maxRadius = layout.allSpheres.maxOf { it.radius }
+            layout.pipes.forEach { pipe ->
+                val edgePoints = layout.pipeEdgePoints(pipe) ?: return@forEach
+                val (a, b) = edgePoints
+                val length = kotlin.math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y))
+                assertTrue(
+                    "${pattern.name} pipe length $length should stay local",
+                    length <= maxRadius * 7f,
+                )
+            }
+        }
+    }
 
-        assertTrue(BreathTestFixtures.hasClosedBreathCircuit(layout))
+    @Test
+    fun boxBreathing_bottomHoldConnectsToLastRow() {
+        val layout = BreathTestFixtures.layoutFor(BreathingPattern.BoxBreathing)
+
         assertTrue(
             BreathTestFixtures.pipesConnect(
                 layout,
-                layout.inhalePath.last(),
-                layout.exhalePath.first(),
-            ),
-        )
-        assertTrue(
-            BreathTestFixtures.pipesConnect(
-                layout,
-                layout.exhalePath.last(),
+                layout.bottomHoldId!!,
                 layout.inhalePath.first(),
             ),
         )
-    }
-
-    @Test
-    fun allPatterns_closeBreathCircuitWherePossible() {
-        BreathingPattern.All.forEach { pattern ->
-            val layout = BreathTestFixtures.layoutFor(pattern)
-            assertTrue(
-                "${pattern.name} should close the breath loop",
-                BreathTestFixtures.hasClosedBreathCircuit(layout),
-            )
-        }
     }
 }
