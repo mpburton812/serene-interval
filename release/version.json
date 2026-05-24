@@ -1,7 +1,7 @@
 {
-  "versionCode": 1,
-  "versionName": "1.0",
+  "versionCode": 3,
+  "versionName": "1.0.2",
   "apkUrl": "https://github.com/mpburton812/serene-interval/releases/latest/download/app-debug.apk",
-  "releaseNotes": "Initial sideload release. Bump versionCode here and on GitHub when publishing a new APK from main.",
+  "releaseNotes": "Timer: 10-second Start Meditating In countdown, Begin transition, cleaner header (no Ready/Meditating/Stay present), and no duplicate countdown under controls.",
   "minVersionCode": 1
 }
