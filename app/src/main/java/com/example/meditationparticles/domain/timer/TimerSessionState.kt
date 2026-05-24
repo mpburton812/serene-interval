@@ -5,6 +5,7 @@ data class TimerSessionState(
     val phase: TimerPhase = TimerPhase.Idle,
     val targetMinutes: Int = TimerPresets.DEFAULT_MINUTES,
     val elapsedMs: Long = 0L,
+    val prepareElapsedMs: Long = 0L,
     val isRunning: Boolean = false,
     val sound: TimerSoundOption = TimerSoundOption.None,
     val customSoundUri: String? = null,
@@ -28,19 +29,28 @@ data class TimerSessionState(
 
     val statusLabel: String
         get() = when (phase) {
-            TimerPhase.Idle -> "Ready"
-            TimerPhase.Prepare -> "Prepare"
-            TimerPhase.Running -> "Meditating"
             TimerPhase.Complete -> "Complete"
+            else -> ""
         }
 
     val statusDescription: String
         get() = when (phase) {
             TimerPhase.Idle -> "Choose a duration and display mode, then begin."
-            TimerPhase.Prepare -> "Settle in. Your session begins shortly."
-            TimerPhase.Running -> "Stay present. Let thoughts pass like clouds."
             TimerPhase.Complete -> "Session complete. Take a moment before returning."
+            else -> ""
         }
+
+    val prepareCountdownSeconds: Int
+        get() {
+            if (phase != TimerPhase.Prepare) return 0
+            val remainingMs = (TimerPrepareTiming.COUNTDOWN_MS - prepareElapsedMs).coerceAtLeast(0L)
+            return ((remainingMs + 999) / 1_000).toInt().coerceIn(1, 10)
+        }
+
+    val isPrepareBeginVisible: Boolean
+        get() = phase == TimerPhase.Prepare &&
+            prepareElapsedMs >= TimerPrepareTiming.COUNTDOWN_MS &&
+            prepareElapsedMs < TimerPrepareTiming.totalMs
 
     companion object {
         fun initial() = TimerSessionState()
