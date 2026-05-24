@@ -2,13 +2,25 @@ package com.example.meditationparticles.canvas
 
 import androidx.compose.ui.geometry.Offset
 import com.example.meditationparticles.domain.breathing.BreathPhase
+import com.example.meditationparticles.domain.breathing.BreathStructureSpec
+import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.breathing.BreathingSessionState
+import com.example.meditationparticles.domain.breathing.FillDirection
+import com.example.meditationparticles.domain.breathing.SphereRoleKind
+import com.example.meditationparticles.domain.breathing.computeStructureSpec
 import kotlin.math.min
+import kotlin.math.sqrt
 
 enum class SphereRole {
     HoldPurple,
     InhaleBlue,
     ExhaleRed,
+}
+
+fun SphereRoleKind.toSphereRole(): SphereRole = when (this) {
+    SphereRoleKind.InhaleBlue -> SphereRole.InhaleBlue
+    SphereRoleKind.ExhaleRed -> SphereRole.ExhaleRed
+    SphereRoleKind.HoldPurple -> SphereRole.HoldPurple
 }
 
 data class BreathSphere(
@@ -19,106 +31,585 @@ data class BreathSphere(
 )
 
 data class BreathStructureLayout(
-    val topHold: BreathSphere,
-    val bottomHold: BreathSphere,
-    val pairs: List<Pair<BreathSphere, BreathSphere>>,
+    val spec: BreathStructureSpec,
+    val spheres: Map<Int, BreathSphere>,
+    val inhalePath: List<Int>,
+    val exhalePath: List<Int>,
+    val topHoldId: Int?,
+    val bottomHoldId: Int?,
+    val pipes: List<Pair<Offset, Offset>>,
     val scale: Float,
+    val layoutMode: LayoutMode,
 ) {
-    val allSpheres: List<BreathSphere> =
-        listOf(topHold, bottomHold) + pairs.flatMap { listOf(it.first, it.second) }
+    val allSpheres: List<BreathSphere> get() = spheres.values.toList()
 
-    val inhalePath: List<BreathSphere> = listOf(
-        pairs[3].second,
-        pairs[2].first,
-        pairs[1].second,
-        pairs[0].first,
-    )
+    fun sphere(id: Int): BreathSphere? = spheres[id]
+}
 
-    val exhalePath: List<BreathSphere> = listOf(
-        pairs[0].second,
-        pairs[1].first,
-        pairs[2].second,
-        pairs[3].first,
-    )
+enum class LayoutMode {
+    InterleavedLadder,
+    FlowChain,
 }
 
 data class SphereVisualState(
     val fillLevel: Float,
     val isActive: Boolean,
+    val fillDirection: FillDirection = FillDirection.BottomToTop,
 )
 
-private const val FILL_SECONDS = 1f
 private const val HOLD_TO_SMALL_RATIO = 1.1f
-private const val MIN_SPHERE_GAP = 10f
-private const val ZONE_PADDING = 12f
+private const val MIN_SPHERE_GAP = 8f
+private const val ZONE_PADDING = 10f
+private const val MIN_SPHERE_RADIUS = 8f
 
 fun computeStructureLayout(
+    pattern: BreathingPattern,
     width: Float,
     height: Float,
     topInset: Float = 0f,
     bottomInset: Float = 0f,
+    zoneFillRatio: Float = FLOW_CHAIN_FILL_RATIO,
 ): BreathStructureLayout {
+    val spec = computeStructureSpec(pattern)
     val zoneTop = topInset + ZONE_PADDING
     val zoneBottom = height - bottomInset - ZONE_PADDING
     val zoneHeight = (zoneBottom - zoneTop).coerceAtLeast(80f)
+    val zoneWidth = width - ZONE_PADDING * 2f
     val scale = min(width, height) / 900f
-    val gap = MIN_SPHERE_GAP
 
-    // Total vertical span: 2×hold + 8×small + 5×gap  (holdR = ratio × smallR)
-    val heightDenom = 8f + 2f * HOLD_TO_SMALL_RATIO
-    val smallRFromHeight = ((zoneHeight - 5f * gap) / heightDenom).coerceAtLeast(8f)
+    val ladder = when (spec.layoutStrategy) {
+        com.example.meditationparticles.domain.breathing.LayoutStrategy.InterleavedLadder ->
+            tryBuildInterleavedLadder(spec, zoneWidth, zoneHeight, zoneTop, width / 2f, scale, zoneFillRatio)
+        com.example.meditationparticles.domain.breathing.LayoutStrategy.FlowChain ->
+            buildFlowChainLayout(spec, zoneWidth, zoneHeight, zoneTop, width / 2f, scale, zoneFillRatio)
+    }
+    if (ladder != null) return ladder
 
-    // Pick column spread, then clamp radius to what fits horizontally.
-    var columnOffset = (width * 0.27f).coerceIn(48f, width * 0.36f)
-    var smallRFromWidth = width / 2f - ZONE_PADDING - columnOffset
-    if (smallRFromWidth < smallRFromHeight) {
-        columnOffset = (width / 2f - ZONE_PADDING - smallRFromHeight).coerceAtLeast(48f)
-        smallRFromWidth = width / 2f - ZONE_PADDING - columnOffset
+    return buildFlowChainLayout(spec, zoneWidth, zoneHeight, zoneTop, width / 2f, scale, zoneFillRatio)
+}
+
+private enum class ChainKind {
+    BottomHold,
+    Inhale,
+    TopHold,
+    Exhale,
+}
+
+private data class ChainEntry(
+    val kind: ChainKind,
+    val segmentIndex: Int = 0,
+)
+
+private fun buildFlowChainEntries(spec: BreathStructureSpec): List<ChainEntry> = buildList {
+    if (spec.hasBottomHold) add(ChainEntry(ChainKind.BottomHold))
+    repeat(spec.inhaleSphereCount) { add(ChainEntry(ChainKind.Inhale, it)) }
+    if (spec.hasTopHold) add(ChainEntry(ChainKind.TopHold))
+    repeat(spec.exhaleSphereCount) { add(ChainEntry(ChainKind.Exhale, it)) }
+}
+
+internal const val FLOW_CHAIN_FILL_RATIO = 0.94f
+const val PREVIEW_ZONE_FILL_RATIO = 0.99f
+
+private fun adaptiveFlowGap(nodeCount: Int): Float = when {
+    nodeCount >= 12 -> 5f
+    nodeCount >= 9 -> 6f
+    else -> MIN_SPHERE_GAP
+}
+
+private data class FlowChainPlacement(
+    val spheres: Map<Int, BreathSphere>,
+    val chainIds: List<Int>,
+    val inhalePath: List<Int>,
+    val exhalePath: List<Int>,
+    val topHoldId: Int?,
+    val bottomHoldId: Int?,
+    val topExtent: Float,
+    val bottomExtent: Float,
+)
+
+private fun buildFlowChainLayout(
+    spec: BreathStructureSpec,
+    zoneWidth: Float,
+    zoneHeight: Float,
+    zoneTop: Float,
+    centerX: Float,
+    scale: Float,
+    zoneFillRatio: Float = FLOW_CHAIN_FILL_RATIO,
+): BreathStructureLayout {
+    val chain = buildFlowChainEntries(spec)
+    val gap = if (zoneFillRatio >= PREVIEW_ZONE_FILL_RATIO - 0.01f) {
+        adaptiveFlowGap(chain.size).coerceAtMost(5f)
+    } else {
+        adaptiveFlowGap(chain.size)
     }
 
-    val smallR = min(smallRFromHeight, smallRFromWidth).coerceAtLeast(8f)
-    val holdR = (smallR * HOLD_TO_SMALL_RATIO).coerceAtMost(width / 2f - ZONE_PADDING)
+    val upwardEnd = chain.indexOfLast {
+        it.kind == ChainKind.BottomHold || it.kind == ChainKind.Inhale || it.kind == ChainKind.TopHold
+    } + 1
+    val upwardChain = chain.subList(0, upwardEnd)
+    val downwardChain = chain.subList(upwardEnd, chain.size)
+    val zoneBottom = zoneTop + zoneHeight
+    val targetSpan = zoneHeight * zoneFillRatio.coerceIn(0.5f, 1f)
 
-    // Place six row centers so content is vertically centered in the zone.
-    val contentSpan = 2f * holdR + 8f * smallR + 5f * gap
-    var y = zoneTop + (zoneHeight - contentSpan) / 2f + holdR
+    var columnOffset = (zoneWidth * 0.24f).coerceIn(36f, zoneWidth * 0.32f)
+    var maxSmallR = min(
+        min(zoneHeight / 3.5f, zoneWidth * 0.24f),
+        zoneWidth / 2f - columnOffset,
+    ).coerceAtLeast(MIN_SPHERE_RADIUS)
 
-    val rowYs = buildList {
-        add(y) // top hold
-        y += holdR + gap + smallR
-        repeat(3) {
-            add(y)
-            y += 2f * smallR + gap
+    fun holdRadius(small: Float) = small * HOLD_TO_SMALL_RATIO
+
+    fun nodeRadius(kind: ChainKind, small: Float) =
+        if (kind == ChainKind.BottomHold || kind == ChainKind.TopHold) holdRadius(small) else small
+
+    fun placeAtRadius(small: Float): FlowChainPlacement {
+        val holdR = holdRadius(small)
+        var nextId = 0
+        val spheres = mutableMapOf<Int, BreathSphere>()
+        val chainIds = mutableListOf<Int>()
+        val inhalePath = mutableListOf<Int>()
+        val exhalePath = mutableListOf<Int>()
+        var topHoldId: Int? = null
+        var bottomHoldId: Int? = null
+        var pathSideIndex = 0
+
+        fun placeNode(entry: ChainEntry, centerY: Float) {
+            val radius = nodeRadius(entry.kind, small)
+            val x = if (entry.kind == ChainKind.BottomHold || entry.kind == ChainKind.TopHold) {
+                centerX
+            } else {
+                val side = pathSideIndex % 2
+                pathSideIndex++
+                if (side == 0) centerX - columnOffset else centerX + columnOffset
+            }
+            val id = nextId++
+            val role = when (entry.kind) {
+                ChainKind.BottomHold, ChainKind.TopHold -> SphereRole.HoldPurple
+                ChainKind.Inhale -> SphereRole.InhaleBlue
+                ChainKind.Exhale -> SphereRole.ExhaleRed
+            }
+            spheres[id] = BreathSphere(id, Offset(x, centerY), radius, role)
+            chainIds.add(id)
+            when (entry.kind) {
+                ChainKind.BottomHold -> bottomHoldId = id
+                ChainKind.TopHold -> topHoldId = id
+                ChainKind.Inhale -> inhalePath.add(id)
+                ChainKind.Exhale -> exhalePath.add(id)
+            }
         }
-        add(y) // 4th pair row
-        y += smallR + gap + holdR
-        add(y) // bottom hold
+
+        var y = 0f
+        upwardChain.forEach { entry ->
+            val radius = nodeRadius(entry.kind, small)
+            y -= radius
+            placeNode(entry, y)
+            y -= radius + gap
+        }
+
+        if (downwardChain.isNotEmpty()) {
+            val peak = spheres.getValue(chainIds.last())
+            y = peak.center.y + peak.radius + gap
+        }
+
+        downwardChain.forEach { entry ->
+            val radius = nodeRadius(entry.kind, small)
+            y += radius
+            placeNode(entry, y)
+            y += radius + gap
+        }
+
+        val topExtent = spheres.values.minOf { it.center.y - it.radius }
+        val bottomExtent = spheres.values.maxOf { it.center.y + it.radius }
+        return FlowChainPlacement(
+            spheres = spheres,
+            chainIds = chainIds,
+            inhalePath = inhalePath,
+            exhalePath = exhalePath,
+            topHoldId = topHoldId,
+            bottomHoldId = bottomHoldId,
+            topExtent = topExtent,
+            bottomExtent = bottomExtent,
+        )
     }
 
-    val centerX = width / 2f
-    val leftX = centerX - columnOffset
-    val rightX = centerX + columnOffset
+    var low = MIN_SPHERE_RADIUS
+    var high = maxSmallR
+    var bestPlacement = placeAtRadius(MIN_SPHERE_RADIUS)
 
-    fun pair(level: Int, leftRole: SphereRole, rightRole: SphereRole): Pair<BreathSphere, BreathSphere> {
-        val y = rowYs[level + 1]
-        val baseId = 2 + level * 2
-        return BreathSphere(baseId, Offset(leftX, y), smallR, leftRole) to
-            BreathSphere(baseId + 1, Offset(rightX, y), smallR, rightRole)
+    repeat(14) {
+        val mid = (low + high) / 2f
+        val widthLimited = min(mid, zoneWidth / 2f - columnOffset).coerceAtLeast(MIN_SPHERE_RADIUS)
+        if (widthLimited < mid) {
+            columnOffset = (zoneWidth / 2f - widthLimited).coerceAtLeast(36f)
+        }
+        val trial = placeAtRadius(widthLimited)
+        val span = trial.bottomExtent - trial.topExtent
+        if (span <= targetSpan) {
+            bestPlacement = trial
+            low = mid
+        } else {
+            high = mid
+        }
     }
 
-    val pairs = listOf(
-        pair(0, SphereRole.InhaleBlue, SphereRole.ExhaleRed),
-        pair(1, SphereRole.ExhaleRed, SphereRole.InhaleBlue),
-        pair(2, SphereRole.InhaleBlue, SphereRole.ExhaleRed),
-        pair(3, SphereRole.ExhaleRed, SphereRole.InhaleBlue),
+    val zoneCenterY = zoneTop + zoneHeight / 2f
+    val placementCenterY = (bestPlacement.topExtent + bestPlacement.bottomExtent) / 2f
+    val yShift = zoneCenterY - placementCenterY
+
+    var finalSpheres = bestPlacement.spheres.mapValues { (_, sphere) ->
+        sphere.copy(center = Offset(sphere.center.x, sphere.center.y + yShift))
+    }
+
+    var topExtent = bestPlacement.topExtent + yShift
+    var bottomExtent = bestPlacement.bottomExtent + yShift
+    if (topExtent < zoneTop || bottomExtent > zoneBottom) {
+        val clampShift = when {
+            topExtent < zoneTop -> zoneTop - topExtent
+            bottomExtent > zoneBottom -> zoneBottom - bottomExtent
+            else -> 0f
+        }
+        finalSpheres = finalSpheres.mapValues { (_, sphere) ->
+            sphere.copy(center = Offset(sphere.center.x, sphere.center.y + clampShift))
+        }
+    }
+
+    val spheres = finalSpheres
+    val inhalePath = bestPlacement.inhalePath
+    val exhalePath = bestPlacement.exhalePath
+    val topHoldId = bestPlacement.topHoldId
+    val bottomHoldId = bestPlacement.bottomHoldId
+    val chainIds = bestPlacement.chainIds
+
+    val pipes = buildChainPipesFromIds(chainIds, spheres).toMutableList()
+    appendBreathCircuitPipes(
+        pipes = pipes,
+        spheres = spheres,
+        spec = spec,
+        inhalePath = inhalePath,
+        exhalePath = exhalePath,
+        topHoldId = topHoldId,
+        bottomHoldId = bottomHoldId,
     )
 
     return BreathStructureLayout(
-        topHold = BreathSphere(0, Offset(centerX, rowYs[0]), holdR, SphereRole.HoldPurple),
-        bottomHold = BreathSphere(1, Offset(centerX, rowYs[5]), holdR, SphereRole.HoldPurple),
-        pairs = pairs,
+        spec = spec,
+        spheres = spheres,
+        inhalePath = inhalePath,
+        exhalePath = exhalePath,
+        topHoldId = topHoldId,
+        bottomHoldId = bottomHoldId,
+        pipes = pipes,
         scale = scale,
+        layoutMode = LayoutMode.FlowChain,
     )
+}
+
+private fun buildChainPipesFromIds(
+    chainIds: List<Int>,
+    spheres: Map<Int, BreathSphere>,
+): List<Pair<Offset, Offset>> {
+    if (chainIds.size < 2) return emptyList()
+    return chainIds.zip(chainIds.drop(1)).mapNotNull { (fromId, toId) ->
+        val from = spheres[fromId] ?: return@mapNotNull null
+        val to = spheres[toId] ?: return@mapNotNull null
+        pipeEdge(from, to) to pipeEdge(to, from)
+    }
+}
+
+private fun pipeEdge(from: BreathSphere, toward: BreathSphere): Offset {
+    val dx = toward.center.x - from.center.x
+    val dy = toward.center.y - from.center.y
+    val len = sqrt(dx * dx + dy * dy).coerceAtLeast(0.001f)
+    return Offset(
+        from.center.x + dx / len * from.radius,
+        from.center.y + dy / len * from.radius,
+    )
+}
+
+private fun appendBreathCircuitPipes(
+    pipes: MutableList<Pair<Offset, Offset>>,
+    spheres: Map<Int, BreathSphere>,
+    spec: BreathStructureSpec,
+    inhalePath: List<Int>,
+    exhalePath: List<Int>,
+    topHoldId: Int?,
+    bottomHoldId: Int?,
+) {
+    if (!spec.closesBreathLoop || inhalePath.isEmpty() || exhalePath.isEmpty()) return
+
+    val firstInhaleId = inhalePath.first()
+    val lastInhaleId = inhalePath.last()
+    val firstExhaleId = exhalePath.first()
+    val lastExhaleId = exhalePath.last()
+
+    fun addPipeIfMissing(fromId: Int, toId: Int) {
+        if (fromId == toId) return
+        val from = spheres[fromId] ?: return
+        val to = spheres[toId] ?: return
+        if (pipesConnectSpheres(pipes, from, to)) return
+        pipes.add(pipeEdge(from, to) to pipeEdge(to, from))
+    }
+
+    if (bottomHoldId != null) {
+        addPipeIfMissing(lastExhaleId, bottomHoldId)
+        addPipeIfMissing(bottomHoldId, firstInhaleId)
+    } else {
+        addPipeIfMissing(lastExhaleId, firstInhaleId)
+    }
+
+    if (topHoldId != null) {
+        addPipeIfMissing(lastInhaleId, topHoldId)
+        addPipeIfMissing(topHoldId, firstExhaleId)
+    } else {
+        addPipeIfMissing(lastInhaleId, firstExhaleId)
+    }
+}
+
+private fun pipesConnectSpheres(
+    pipes: List<Pair<Offset, Offset>>,
+    from: BreathSphere,
+    to: BreathSphere,
+): Boolean {
+    val fromEdge = pipeEdge(from, to)
+    val toEdge = pipeEdge(to, from)
+
+    fun involvesSphere(point: Offset, sphere: BreathSphere, toward: BreathSphere): Boolean {
+        return offsetsNear(point, sphere.center) || offsetsNear(point, pipeEdge(sphere, toward))
+    }
+
+    return pipes.any { (a, b) ->
+        involvesSphere(a, from, to) && involvesSphere(b, to, from) ||
+            involvesSphere(b, from, to) && involvesSphere(a, to, from)
+    }
+}
+
+private fun offsetsNear(a: Offset, b: Offset, tolerance: Float = 3f): Boolean {
+    val dx = a.x - b.x
+    val dy = a.y - b.y
+    return dx * dx + dy * dy <= tolerance * tolerance
+}
+
+private fun tryBuildInterleavedLadder(
+    spec: BreathStructureSpec,
+    zoneWidth: Float,
+    zoneHeight: Float,
+    zoneTop: Float,
+    centerX: Float,
+    scale: Float,
+    zoneFillRatio: Float = FLOW_CHAIN_FILL_RATIO,
+): BreathStructureLayout? {
+    val rows = spec.ladderRows
+    val gap = if (zoneFillRatio >= PREVIEW_ZONE_FILL_RATIO - 0.01f) {
+        MIN_SPHERE_GAP.coerceAtMost(6f)
+    } else {
+        MIN_SPHERE_GAP
+    }
+    val holdSlots = (if (spec.hasTopHold) 1 else 0) + (if (spec.hasBottomHold) 1 else 0)
+    val rowCount = rows
+
+    val heightDenom = rowCount * 2f + holdSlots * HOLD_TO_SMALL_RATIO + (rowCount + holdSlots - 1).coerceAtLeast(0) * (gap / 16f)
+    var smallR = ((zoneHeight - (rowCount + holdSlots + 1) * gap) / (rowCount * 2f + holdSlots * HOLD_TO_SMALL_RATIO)).coerceAtLeast(MIN_SPHERE_RADIUS)
+
+    var columnOffset = (zoneWidth * 0.27f).coerceIn(40f, zoneWidth * 0.36f)
+    var smallRFromWidth = zoneWidth / 2f - columnOffset
+    if (smallRFromWidth < smallR) {
+        columnOffset = (zoneWidth / 2f - smallR).coerceAtLeast(36f)
+        smallRFromWidth = zoneWidth / 2f - columnOffset
+    }
+    smallR = min(smallR, smallRFromWidth).coerceAtLeast(MIN_SPHERE_RADIUS)
+
+    var holdR = smallR * HOLD_TO_SMALL_RATIO
+    var contentHeightFinal = holdSlots * holdR * 2f + rowCount * 2f * smallR + (rowCount + holdSlots + 1) * gap
+
+    if (contentHeightFinal > zoneHeight) {
+        val maxSmallR = ((zoneHeight - (rowCount + holdSlots + 1) * gap) /
+            (rowCount * 2f + holdSlots * HOLD_TO_SMALL_RATIO)).coerceAtLeast(MIN_SPHERE_RADIUS)
+        if (maxSmallR < MIN_SPHERE_RADIUS && rows > 2) return null
+        smallR = min(smallR, maxSmallR).coerceAtLeast(MIN_SPHERE_RADIUS)
+        holdR = smallR * HOLD_TO_SMALL_RATIO
+        contentHeightFinal = holdSlots * holdR * 2f + rowCount * 2f * smallR + (rowCount + holdSlots + 1) * gap
+    }
+
+    val targetHeight = zoneHeight * zoneFillRatio.coerceIn(0.5f, 1f)
+    val maxSmallR = min(
+        min(zoneHeight / 3.5f, zoneWidth * 0.24f),
+        zoneWidth / 2f - columnOffset,
+    ).coerceAtLeast(MIN_SPHERE_RADIUS)
+    if (contentHeightFinal < targetHeight) {
+        var low = smallR
+        var high = maxSmallR
+        repeat(12) {
+            val mid = (low + high) / 2f
+            val trialHold = mid * HOLD_TO_SMALL_RATIO
+            val trialHeight = holdSlots * trialHold * 2f + rowCount * 2f * mid + (rowCount + holdSlots + 1) * gap
+            if (trialHeight <= targetHeight) {
+                smallR = mid
+                low = mid
+            } else {
+                high = mid
+            }
+        }
+        holdR = smallR * HOLD_TO_SMALL_RATIO
+        contentHeightFinal = holdSlots * holdR * 2f + rowCount * 2f * smallR + (rowCount + holdSlots + 1) * gap
+    }
+
+    val leftX = centerX - columnOffset
+    val rightX = centerX + columnOffset
+
+    val rowYs = buildList {
+        var y = zoneTop + (zoneHeight - contentHeightFinal) / 2f
+        if (spec.hasTopHold) {
+            y += holdR
+            add(y)
+            y += holdR + gap + smallR
+        } else {
+            y += smallR
+        }
+        repeat(rowCount) {
+            add(y)
+            y += 2f * smallR + gap
+        }
+        if (spec.hasBottomHold) {
+            y -= smallR
+            y += gap + holdR
+            add(y)
+        }
+    }
+
+    val inhaleSlots = inhaleSlotOrder(spec.inhaleSphereCount, rowCount).toSet()
+    val exhaleSlots = exhaleSlotOrder(spec.exhaleSphereCount, rowCount).toSet()
+
+    var nextId = 0
+    val spheres = mutableMapOf<Int, BreathSphere>()
+    val gridSlots = mutableMapOf<Pair<Int, Int>, Int>()
+
+    fun slot(row: Int, col: Int, role: SphereRole, y: Float, x: Float, radius: Float) {
+        val id = nextId++
+        spheres[id] = BreathSphere(id, Offset(x, y), radius, role)
+        gridSlots[row to col] = id
+    }
+
+    var topHoldId: Int? = null
+    var bottomHoldId: Int? = null
+
+    if (spec.hasTopHold) {
+        topHoldId = nextId
+        slot(-1, 0, SphereRole.HoldPurple, rowYs[0], centerX, holdR)
+    }
+
+    val firstRowIdx = if (spec.hasTopHold) 1 else 0
+    for (r in 0 until rowCount) {
+        val y = rowYs[firstRowIdx + r]
+        if (r to 0 in inhaleSlots) {
+            slot(r, 0, SphereRole.InhaleBlue, y, leftX, smallR)
+        } else if (r to 0 in exhaleSlots) {
+            slot(r, 0, SphereRole.ExhaleRed, y, leftX, smallR)
+        }
+        if (r to 1 in inhaleSlots) {
+            slot(r, 1, SphereRole.InhaleBlue, y, rightX, smallR)
+        } else if (r to 1 in exhaleSlots) {
+            slot(r, 1, SphereRole.ExhaleRed, y, rightX, smallR)
+        }
+    }
+
+    if (spec.hasBottomHold) {
+        bottomHoldId = nextId
+        slot(rowCount, 0, SphereRole.HoldPurple, rowYs.last(), centerX, holdR)
+    }
+
+    val inhalePath = buildInhalePathIds(spec.inhaleSphereCount, rowCount, gridSlots)
+    val exhalePath = buildExhalePathIds(spec.exhaleSphereCount, rowCount, gridSlots)
+
+    val pipes = buildLadderPipes(
+        spheres = spheres,
+        topHoldId = topHoldId,
+        bottomHoldId = bottomHoldId,
+        rowCount = rowCount,
+        gridSlots = gridSlots,
+        centerX = centerX,
+    ).toMutableList()
+    appendBreathCircuitPipes(
+        pipes = pipes,
+        spheres = spheres,
+        spec = spec,
+        inhalePath = inhalePath,
+        exhalePath = exhalePath,
+        topHoldId = topHoldId,
+        bottomHoldId = bottomHoldId,
+    )
+
+    return BreathStructureLayout(
+        spec = spec,
+        spheres = spheres,
+        inhalePath = inhalePath,
+        exhalePath = exhalePath,
+        topHoldId = topHoldId,
+        bottomHoldId = bottomHoldId,
+        pipes = pipes,
+        scale = scale,
+        layoutMode = LayoutMode.InterleavedLadder,
+    )
+}
+
+private fun inhaleSlotOrder(count: Int, rowCount: Int): List<Pair<Int, Int>> =
+    (0 until count).map { index ->
+        val row = (rowCount - 1 - index).coerceAtLeast(0)
+        val col = if (index % 2 == 0) 1 else 0
+        row to col
+    }
+
+private fun exhaleSlotOrder(count: Int, rowCount: Int): List<Pair<Int, Int>> =
+    (0 until count).map { index ->
+        val row = index.coerceAtMost(rowCount - 1)
+        val col = if (index % 2 == 0) 1 else 0
+        row to col
+    }
+
+private fun buildInhalePathIds(count: Int, rowCount: Int, gridSlots: Map<Pair<Int, Int>, Int>): List<Int> {
+    return inhaleSlotOrder(count, rowCount).mapNotNull { gridSlots[it] }
+}
+
+private fun buildExhalePathIds(count: Int, rowCount: Int, gridSlots: Map<Pair<Int, Int>, Int>): List<Int> {
+    return exhaleSlotOrder(count, rowCount).mapNotNull { gridSlots[it] }
+}
+
+private fun buildLadderPipes(
+    spheres: Map<Int, BreathSphere>,
+    topHoldId: Int?,
+    bottomHoldId: Int?,
+    rowCount: Int,
+    gridSlots: Map<Pair<Int, Int>, Int>,
+    centerX: Float,
+): List<Pair<Offset, Offset>> {
+    val pipes = mutableListOf<Pair<Offset, Offset>>()
+
+    fun connect(fromId: Int, toId: Int) {
+        val from = spheres[fromId] ?: return
+        val to = spheres[toId] ?: return
+        pipes.add(pipeEdge(from, to) to pipeEdge(to, from))
+    }
+
+    topHoldId?.let { topId ->
+        gridSlots[0 to 0]?.let { connect(topId, it) }
+        gridSlots[0 to 1]?.let { connect(topId, it) }
+    }
+
+    for (r in 0 until rowCount - 1) {
+        gridSlots[r to 0]?.let { aId ->
+            gridSlots[r + 1 to 1]?.let { bId -> connect(aId, bId) }
+        }
+        gridSlots[r to 1]?.let { aId ->
+            gridSlots[r + 1 to 0]?.let { bId -> connect(aId, bId) }
+        }
+    }
+
+    bottomHoldId?.let { bottomId ->
+        val lastRow = rowCount - 1
+        gridSlots[lastRow to 0]?.let { connect(it, bottomId) }
+        gridSlots[lastRow to 1]?.let { connect(it, bottomId) }
+    }
+
+    return pipes
 }
 
 fun computeSphereVisuals(
@@ -126,72 +617,261 @@ fun computeSphereVisuals(
     layout: BreathStructureLayout,
 ): Map<Int, SphereVisualState> {
     val fills = layout.allSpheres.associate { it.id to SphereVisualState(0f, false) }.toMutableMap()
+    val spec = layout.spec
+    val pattern = sessionState.pattern
 
     when (sessionState.phase) {
-        BreathPhase.Inhale, BreathPhase.SecondInhale -> {
+        BreathPhase.Inhale -> {
+            val elapsed = sessionState.phaseElapsedSeconds()
+            val firstSegDur = spec.inhaleSegments.firstOrNull()?.durationSeconds ?: 1f
+            val bridgedBottom = sessionState.cycleCount > 0 && elapsed < firstSegDur
+
+            if (bridgedBottom && layout.bottomHoldId != null) {
+                applyBridgeTransfer(
+                    fills = fills,
+                    sourceId = layout.bottomHoldId,
+                    targetId = layout.inhalePath.first(),
+                    localProgress = (elapsed / firstSegDur).coerceIn(0f, 1f),
+                    sourceDirection = FillDirection.BottomToTopHold,
+                    targetDirection = FillDirection.BottomToTop,
+                )
+                if (elapsed >= firstSegDur) {
+                    applyPathFill(
+                        fills = fills,
+                        path = layout.inhalePath,
+                        segments = spec.inhaleSegments,
+                        elapsedSec = elapsed,
+                        direction = FillDirection.BottomToTop,
+                        elapsedOffsetSec = firstSegDur,
+                        leadingCompleteCount = 1,
+                    )
+                }
+            } else if (bridgedBottom && layout.bottomHoldId == null && layout.exhalePath.isNotEmpty()) {
+                applyBridgeTransfer(
+                    fills = fills,
+                    sourceId = layout.exhalePath.last(),
+                    targetId = layout.inhalePath.first(),
+                    localProgress = (elapsed / firstSegDur).coerceIn(0f, 1f),
+                    sourceDirection = FillDirection.TopToBottom,
+                    targetDirection = FillDirection.BottomToTop,
+                )
+                if (elapsed >= firstSegDur) {
+                    applyPathFill(
+                        fills = fills,
+                        path = layout.inhalePath,
+                        segments = spec.inhaleSegments,
+                        elapsedSec = elapsed,
+                        direction = FillDirection.BottomToTop,
+                        elapsedOffsetSec = firstSegDur,
+                        leadingCompleteCount = 1,
+                    )
+                }
+            } else {
+                applyPathFill(
+                    fills = fills,
+                    path = layout.inhalePath,
+                    segments = spec.inhaleSegments,
+                    elapsedSec = elapsed,
+                    direction = FillDirection.BottomToTop,
+                )
+            }
+        }
+        BreathPhase.SecondInhale -> {
+            val firstCount = kotlin.math.ceil(pattern.inhaleSeconds.toDouble()).toInt()
+            val priorElapsed = spec.inhaleSegments.take(firstCount).sumOf { it.durationSeconds.toDouble() }.toFloat()
             applyPathFill(
                 fills = fills,
                 path = layout.inhalePath,
-                phaseProgress = sessionState.phaseProgress,
-                phaseDurationSec = sessionState.phaseDurationSeconds,
+                segments = spec.inhaleSegments,
+                elapsedSec = priorElapsed + sessionState.phaseElapsedSeconds(),
+                direction = FillDirection.BottomToTop,
             )
         }
         BreathPhase.HoldIn -> {
-            layout.inhalePath.forEach { fills[it.id] = SphereVisualState(1f, false) }
-            fills[layout.topHold.id] = holdFill(sessionState.phaseProgress, sessionState.phaseDurationSeconds, true)
+            val progress = sessionState.phaseProgress.coerceIn(0f, 1f)
+            layout.inhalePath.dropLast(1).forEach { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTop) }
+            layout.inhalePath.lastOrNull()?.let { lastInhale ->
+                applyBridgeTransfer(
+                    fills = fills,
+                    sourceId = lastInhale,
+                    targetId = requireNotNull(layout.topHoldId),
+                    localProgress = progress,
+                    sourceDirection = FillDirection.BottomToTop,
+                    targetDirection = FillDirection.BottomToTopHold,
+                )
+            }
         }
         BreathPhase.Exhale -> {
-            layout.inhalePath.forEach { fills[it.id] = SphereVisualState(1f, false) }
-            fills[layout.topHold.id] = SphereVisualState(1f, false)
-            applyPathFill(
-                fills = fills,
-                path = layout.exhalePath,
-                phaseProgress = sessionState.phaseProgress,
-                phaseDurationSec = sessionState.phaseDurationSeconds,
-            )
+            val elapsed = sessionState.phaseElapsedSeconds()
+            val firstSegDur = spec.exhaleSegments.firstOrNull()?.durationSeconds ?: 1f
+            layout.inhalePath.dropLast(1).forEach { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTop) }
+
+            val bridgedTop = elapsed < firstSegDur
+            if (bridgedTop) {
+                val local = (elapsed / firstSegDur).coerceIn(0f, 1f)
+                if (layout.topHoldId != null) {
+                    applyBridgeTransfer(
+                        fills = fills,
+                        sourceId = layout.topHoldId,
+                        targetId = layout.exhalePath.first(),
+                        localProgress = local,
+                        sourceDirection = FillDirection.BottomToTopHold,
+                        targetDirection = FillDirection.TopToBottom,
+                    )
+                } else {
+                    layout.inhalePath.lastOrNull()?.let { lastInhale ->
+                        applyBridgeTransfer(
+                            fills = fills,
+                            sourceId = lastInhale,
+                            targetId = layout.exhalePath.first(),
+                            localProgress = local,
+                            sourceDirection = FillDirection.BottomToTop,
+                            targetDirection = FillDirection.TopToBottom,
+                        )
+                    }
+                }
+                if (elapsed >= firstSegDur) {
+                    applyPathFill(
+                        fills = fills,
+                        path = layout.exhalePath,
+                        segments = spec.exhaleSegments,
+                        elapsedSec = elapsed,
+                        direction = FillDirection.TopToBottom,
+                        elapsedOffsetSec = firstSegDur,
+                        leadingCompleteCount = 1,
+                    )
+                }
+            } else {
+                layout.topHoldId?.let { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTopHold) }
+                layout.inhalePath.lastOrNull()?.let { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTop) }
+                applyPathFill(
+                    fills = fills,
+                    path = layout.exhalePath,
+                    segments = spec.exhaleSegments,
+                    elapsedSec = elapsed,
+                    direction = FillDirection.TopToBottom,
+                )
+            }
         }
         BreathPhase.HoldOut -> {
-            layout.inhalePath.forEach { fills[it.id] = SphereVisualState(1f, false) }
-            layout.exhalePath.forEach { fills[it.id] = SphereVisualState(1f, false) }
-            fills[layout.topHold.id] = SphereVisualState(1f, false)
-            fills[layout.bottomHold.id] = holdFill(sessionState.phaseProgress, sessionState.phaseDurationSeconds, true)
+            layout.inhalePath.forEach { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTop) }
+            layout.exhalePath.dropLast(1).forEach { fills[it] = SphereVisualState(0f, false, FillDirection.TopToBottom) }
+            layout.topHoldId?.let { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTopHold) }
+            val progress = sessionState.phaseProgress.coerceIn(0f, 1f)
+            layout.exhalePath.lastOrNull()?.let { lastExhale ->
+                applyBridgeTransfer(
+                    fills = fills,
+                    sourceId = lastExhale,
+                    targetId = requireNotNull(layout.bottomHoldId),
+                    localProgress = progress,
+                    sourceDirection = FillDirection.TopToBottom,
+                    targetDirection = FillDirection.BottomToTopHold,
+                )
+            }
         }
-        else -> { /* translucent */ }
+        else -> Unit
     }
 
     return fills
 }
 
+private fun BreathingSessionState.phaseElapsedSeconds(): Float =
+    phaseProgress.coerceIn(0f, 1f) * phaseDurationSeconds
+
+private fun applyBridgeTransfer(
+    fills: MutableMap<Int, SphereVisualState>,
+    sourceId: Int,
+    targetId: Int,
+    localProgress: Float,
+    sourceDirection: FillDirection,
+    targetDirection: FillDirection,
+) {
+    val transfer = localProgress.coerceIn(0f, 1f)
+    fills[sourceId] = SphereVisualState(
+        fillLevel = 1f - transfer,
+        isActive = transfer in 0.001f..0.999f,
+        fillDirection = sourceDirection,
+    )
+    fills[targetId] = SphereVisualState(
+        fillLevel = transfer,
+        isActive = transfer in 0.001f..0.999f,
+        fillDirection = targetDirection,
+    )
+}
+
 private fun applyPathFill(
     fills: MutableMap<Int, SphereVisualState>,
-    path: List<BreathSphere>,
-    phaseProgress: Float,
-    phaseDurationSec: Float,
+    path: List<Int>,
+    segments: List<com.example.meditationparticles.domain.breathing.PhaseSegment>,
+    elapsedSec: Float,
+    direction: FillDirection,
+    elapsedOffsetSec: Float = 0f,
+    leadingCompleteCount: Int = 0,
 ) {
     if (path.isEmpty()) return
-    val segmentSpan = 1f / path.size
-    val segmentDuration = (phaseDurationSec / path.size).coerceAtLeast(0.01f)
-    val overall = phaseProgress.coerceIn(0f, 1f)
-    val activeIndex = (overall / segmentSpan).toInt().coerceIn(0, path.lastIndex)
-    val localT = ((overall - activeIndex * segmentSpan) / segmentSpan).coerceIn(0f, 1f)
-    val activeFill = min(1f, (localT * segmentDuration) / FILL_SECONDS)
+    val elapsed = (elapsedSec - elapsedOffsetSec).coerceAtLeast(0f)
+    if (elapsed <= 0f) return
 
-    path.forEachIndexed { index, sphere ->
-        when {
-            index < activeIndex -> fills[sphere.id] = SphereVisualState(1f, false)
-            index == activeIndex -> fills[sphere.id] = SphereVisualState(activeFill, true)
-            else -> fills[sphere.id] = SphereVisualState(0f, false)
+    val completedCount = leadingCompleteCount.coerceIn(0, path.size)
+    path.take(completedCount).forEach { sphereId ->
+        fills[sphereId] = SphereVisualState(1f, false, direction)
+    }
+
+    var timeAcc = 0f
+    var activeIndex = -1
+    var localProgress = 0f
+
+    path.forEachIndexed { index, _ ->
+        if (index < completedCount) return@forEachIndexed
+        val segDur = segments.getOrNull(index)?.durationSeconds ?: 1f
+        if (activeIndex == -1 && elapsed < timeAcc + segDur) {
+            activeIndex = index
+            localProgress = ((elapsed - timeAcc) / segDur).coerceIn(0f, 1f)
+        }
+        timeAcc += segDur
+    }
+
+    if (activeIndex == -1) {
+        path.forEachIndexed { index, sphereId ->
+            fills[sphereId] = SphereVisualState(
+                fillLevel = if (index == path.lastIndex) 1f else 0f,
+                isActive = false,
+                fillDirection = direction,
+            )
+        }
+        return
+    }
+
+    path.forEachIndexed { index, sphereId ->
+        fills[sphereId] = when {
+            index < activeIndex - 1 -> SphereVisualState(0f, false, direction)
+            index == activeIndex - 1 -> SphereVisualState(
+                fillLevel = 1f - localProgress,
+                isActive = localProgress in 0.001f..0.999f,
+                fillDirection = direction,
+            )
+            index == activeIndex -> SphereVisualState(
+                fillLevel = localProgress,
+                isActive = localProgress in 0.001f..0.999f,
+                fillDirection = direction,
+            )
+            index < completedCount -> SphereVisualState(1f, false, direction)
+            else -> SphereVisualState(0f, false, direction)
         }
     }
 }
 
-private fun holdFill(
-    phaseProgress: Float,
-    phaseDurationSec: Float,
-    isActive: Boolean,
-): SphereVisualState {
-    val fill = min(1f, (phaseProgress * phaseDurationSec) / FILL_SECONDS)
-    return SphereVisualState(fill, isActive && fill < 1f)
+fun breathingStartSphereId(layout: BreathStructureLayout): Int? = layout.inhalePath.firstOrNull()
+
+fun computePreviewSphereVisuals(layout: BreathStructureLayout): Map<Int, SphereVisualState> {
+    return layout.allSpheres.associate { sphere ->
+        val direction = when (sphere.role) {
+            SphereRole.InhaleBlue -> FillDirection.BottomToTop
+            SphereRole.ExhaleRed -> FillDirection.TopToBottom
+            SphereRole.HoldPurple -> FillDirection.BottomToTopHold
+        }
+        sphere.id to SphereVisualState(fillLevel = 1f, isActive = false, fillDirection = direction)
+    }
 }
 
 fun activeMoteSphere(
@@ -201,16 +881,22 @@ fun activeMoteSphere(
 ): BreathSphere? {
     return when (sessionState.phase) {
         BreathPhase.Inhale, BreathPhase.SecondInhale -> {
-            layout.inhalePath.firstOrNull { visuals[it.id]?.isActive == true }
+            layout.inhalePath.firstOrNull { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
+                ?: layout.exhalePath.lastOrNull { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
+                ?: layout.bottomHoldId?.takeIf { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
         }
         BreathPhase.HoldIn -> {
-            if ((visuals[layout.topHold.id]?.fillLevel ?: 0f) < 1f) layout.topHold else null
+            layout.topHoldId?.takeIf { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
+                ?: layout.inhalePath.lastOrNull { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
         }
         BreathPhase.Exhale -> {
-            layout.exhalePath.firstOrNull { visuals[it.id]?.isActive == true }
+            layout.exhalePath.firstOrNull { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
+                ?: layout.topHoldId?.takeIf { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
+                ?: layout.inhalePath.lastOrNull { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
         }
         BreathPhase.HoldOut -> {
-            if ((visuals[layout.bottomHold.id]?.fillLevel ?: 0f) < 1f) layout.bottomHold else null
+            layout.bottomHoldId?.takeIf { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
+                ?: layout.exhalePath.lastOrNull { visuals[it]?.isActive == true }?.let { layout.sphere(it) }
         }
         else -> null
     }
