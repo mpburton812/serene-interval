@@ -1,0 +1,7 @@
+{
+  "versionCode": 1,
+  "versionName": "1.0",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/latest/download/app-debug.apk",
+  "releaseNotes": "Initial sideload release. Bump versionCode here and on GitHub when publishing a new APK from main.",
+  "minVersionCode": 1
+}
