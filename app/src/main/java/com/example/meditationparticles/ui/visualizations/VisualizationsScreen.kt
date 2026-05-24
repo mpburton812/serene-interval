@@ -54,7 +54,7 @@ import com.example.meditationparticles.domain.visualizations.CalmingVisualizatio
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SereneSpacing
-import com.example.meditationparticles.audio.TimerAudioPlayer
+import com.example.meditationparticles.audio.AmbientAudioPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -187,7 +187,7 @@ fun VisualizationPlayerScreen(
 ) {
     val context = LocalContext.current
     val sessionRepository = remember { AppGraph.sessions(context) }
-    val audioPlayer = remember { TimerAudioPlayer(context) }
+    val audioPlayer = remember { AmbientAudioPlayer(context) }
     var isPlaying by remember { mutableStateOf(true) }
     var isMuted by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(true) }
@@ -195,7 +195,6 @@ fun VisualizationPlayerScreen(
     LaunchedEffect(isPlaying, isMuted, visualization.sound) {
         audioPlayer.sync(
             sound = visualization.sound,
-            customUri = null,
             shouldPlay = isPlaying && !isMuted,
         )
     }

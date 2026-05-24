@@ -1,7 +1,6 @@
 package com.example.meditationparticles.domain.visualizations
 
 import androidx.compose.ui.graphics.Color
-import com.example.meditationparticles.domain.timer.TimerSoundOption
 
 enum class CalmingVisualizationId {
     Snowfall,
@@ -18,7 +17,7 @@ data class CalmingVisualization(
     val backgroundTop: Color,
     val backgroundBottom: Color,
     val cardAccent: Color,
-    val sound: TimerSoundOption,
+    val sound: SceneAmbientSound,
     val galleryHeightDp: Int,
     val gallerySpan: Int = 1,
 )
@@ -32,7 +31,7 @@ object CalmingVisualizationCatalog {
             backgroundTop = Color(0xFF1A2A3A),
             backgroundBottom = Color(0xFF0D1520),
             cardAccent = Color(0xFFB8D4E8),
-            sound = TimerSoundOption.Wind,
+            sound = SceneAmbientSound.Wind,
             galleryHeightDp = 220,
             gallerySpan = 2,
         ),
@@ -43,7 +42,7 @@ object CalmingVisualizationCatalog {
             backgroundTop = Color(0xFF2A3D35),
             backgroundBottom = Color(0xFF1A2822),
             cardAccent = Color(0xFF8BA88E),
-            sound = TimerSoundOption.Rain,
+            sound = SceneAmbientSound.Rain,
             galleryHeightDp = 220,
             gallerySpan = 2,
         ),
@@ -54,7 +53,7 @@ object CalmingVisualizationCatalog {
             backgroundTop = Color(0xFF2A1810),
             backgroundBottom = Color(0xFF0A0604),
             cardAccent = Color(0xFFDA8D78),
-            sound = TimerSoundOption.Ocean,
+            sound = SceneAmbientSound.Fire,
             galleryHeightDp = 180,
         ),
         CalmingVisualization(
@@ -64,7 +63,7 @@ object CalmingVisualizationCatalog {
             backgroundTop = Color(0xFF4A3A28),
             backgroundBottom = Color(0xFF2A2018),
             cardAccent = Color(0xFFD4A574),
-            sound = TimerSoundOption.Wind,
+            sound = SceneAmbientSound.Sand,
             galleryHeightDp = 180,
         ),
         CalmingVisualization(
@@ -74,7 +73,7 @@ object CalmingVisualizationCatalog {
             backgroundTop = Color(0xFF3A2A1A),
             backgroundBottom = Color(0xFF1A1208),
             cardAccent = Color(0xFFC87840),
-            sound = TimerSoundOption.Forest,
+            sound = SceneAmbientSound.Forest,
             galleryHeightDp = 180,
         ),
     )
