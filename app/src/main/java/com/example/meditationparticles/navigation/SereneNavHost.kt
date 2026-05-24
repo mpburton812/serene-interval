@@ -39,6 +39,7 @@ import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.settings.SettingsScreen
 import com.example.meditationparticles.ui.timer.TimerScreen
 import com.example.meditationparticles.ui.toolkit.ToolkitScreen
+import com.example.meditationparticles.ui.update.UpdateViewModel
 import com.example.meditationparticles.ui.visualizations.VisualizationPlayerScreen
 import com.example.meditationparticles.ui.visualizations.VisualizationsScreen
 
@@ -51,7 +52,10 @@ private val allBottomNavItems = listOf(
 )
 
 @Composable
-fun SereneNavHost(modifier: Modifier = Modifier) {
+fun SereneNavHost(
+    updateViewModel: UpdateViewModel,
+    modifier: Modifier = Modifier,
+) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -156,6 +160,7 @@ fun SereneNavHost(modifier: Modifier = Modifier) {
             }
             composable(SereneDestination.Settings.route) {
                 SettingsScreen(
+                    updateViewModel = updateViewModel,
                     onBack = { navController.popBackStack() },
                     onResetOnboarding = {
                         navController.navigate(SereneDestination.Onboarding.route) {
