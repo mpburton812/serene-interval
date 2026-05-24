@@ -5,6 +5,26 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+fun gitOutput(vararg args: String): String = try {
+    providers.exec {
+        commandLine("git", *args)
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+} catch (_: Exception) {
+    ""
+}
+
+val buildEnvOverride = providers.gradleProperty("buildEnv").orNull
+val gitBranchName = gitOutput("rev-parse", "--abbrev-ref", "HEAD")
+val buildEnvironment = buildEnvOverride ?: when {
+    gitBranchName.equals("main", ignoreCase = true) ||
+        gitBranchName.equals("master", ignoreCase = true) -> "main"
+    gitBranchName.equals("test", ignoreCase = true) -> "test"
+    gitBranchName.isNotBlank() -> "dev"
+    else -> "local"
+}
+val gitShortSha = gitOutput("rev-parse", "--short", "HEAD").ifBlank { "local" }
+
 android {
     namespace = "com.example.meditationparticles"
     compileSdk = 35
@@ -23,6 +43,9 @@ android {
             "UPDATE_MANIFEST_URL",
             "\"https://raw.githubusercontent.com/mpburton812/serene-interval/main/release/version.json\"",
         )
+        buildConfigField("String", "BUILD_ENV", "\"$buildEnvironment\"")
+        buildConfigField("String", "GIT_SHA", "\"$gitShortSha\"")
+        buildConfigField("String", "SHORT_BUILD_LABEL", "\"$gitShortSha ($buildEnvironment)\"")
     }
 
     buildTypes {

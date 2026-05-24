@@ -30,6 +30,11 @@ data class BreathSphere(
     val role: SphereRole,
 )
 
+data class BreathPipe(
+    val fromSphereId: Int,
+    val toSphereId: Int,
+)
+
 data class BreathStructureLayout(
     val spec: BreathStructureSpec,
     val spheres: Map<Int, BreathSphere>,
@@ -37,13 +42,19 @@ data class BreathStructureLayout(
     val exhalePath: List<Int>,
     val topHoldId: Int?,
     val bottomHoldId: Int?,
-    val pipes: List<Pair<Offset, Offset>>,
+    val pipes: List<BreathPipe>,
     val scale: Float,
     val layoutMode: LayoutMode,
 ) {
     val allSpheres: List<BreathSphere> get() = spheres.values.toList()
 
     fun sphere(id: Int): BreathSphere? = spheres[id]
+
+    fun pipeEdgePoints(pipe: BreathPipe): Pair<Offset, Offset>? {
+        val from = sphere(pipe.fromSphereId) ?: return null
+        val to = sphere(pipe.toSphereId) ?: return null
+        return pipeEdge(from, to) to pipeEdge(to, from)
+    }
 }
 
 enum class LayoutMode {
@@ -55,6 +66,7 @@ data class SphereVisualState(
     val fillLevel: Float,
     val isActive: Boolean,
     val fillDirection: FillDirection = FillDirection.BottomToTop,
+    val isDraining: Boolean = false,
 )
 
 private const val HOLD_TO_SMALL_RATIO = 1.1f
@@ -280,16 +292,7 @@ private fun buildFlowChainLayout(
     val bottomHoldId = bestPlacement.bottomHoldId
     val chainIds = bestPlacement.chainIds
 
-    val pipes = buildChainPipesFromIds(chainIds, spheres).toMutableList()
-    appendBreathCircuitPipes(
-        pipes = pipes,
-        spheres = spheres,
-        spec = spec,
-        inhalePath = inhalePath,
-        exhalePath = exhalePath,
-        topHoldId = topHoldId,
-        bottomHoldId = bottomHoldId,
-    )
+    val pipes = buildChainPipesFromIds(chainIds, spheres)
 
     return BreathStructureLayout(
         spec = spec,
@@ -307,13 +310,9 @@ private fun buildFlowChainLayout(
 private fun buildChainPipesFromIds(
     chainIds: List<Int>,
     spheres: Map<Int, BreathSphere>,
-): List<Pair<Offset, Offset>> {
+): List<BreathPipe> {
     if (chainIds.size < 2) return emptyList()
-    return chainIds.zip(chainIds.drop(1)).mapNotNull { (fromId, toId) ->
-        val from = spheres[fromId] ?: return@mapNotNull null
-        val to = spheres[toId] ?: return@mapNotNull null
-        pipeEdge(from, to) to pipeEdge(to, from)
-    }
+    return chainIds.zip(chainIds.drop(1)).map { (fromId, toId) -> BreathPipe(fromId, toId) }
 }
 
 private fun pipeEdge(from: BreathSphere, toward: BreathSphere): Offset {
@@ -324,69 +323,6 @@ private fun pipeEdge(from: BreathSphere, toward: BreathSphere): Offset {
         from.center.x + dx / len * from.radius,
         from.center.y + dy / len * from.radius,
     )
-}
-
-private fun appendBreathCircuitPipes(
-    pipes: MutableList<Pair<Offset, Offset>>,
-    spheres: Map<Int, BreathSphere>,
-    spec: BreathStructureSpec,
-    inhalePath: List<Int>,
-    exhalePath: List<Int>,
-    topHoldId: Int?,
-    bottomHoldId: Int?,
-) {
-    if (!spec.closesBreathLoop || inhalePath.isEmpty() || exhalePath.isEmpty()) return
-
-    val firstInhaleId = inhalePath.first()
-    val lastInhaleId = inhalePath.last()
-    val firstExhaleId = exhalePath.first()
-    val lastExhaleId = exhalePath.last()
-
-    fun addPipeIfMissing(fromId: Int, toId: Int) {
-        if (fromId == toId) return
-        val from = spheres[fromId] ?: return
-        val to = spheres[toId] ?: return
-        if (pipesConnectSpheres(pipes, from, to)) return
-        pipes.add(pipeEdge(from, to) to pipeEdge(to, from))
-    }
-
-    if (bottomHoldId != null) {
-        addPipeIfMissing(lastExhaleId, bottomHoldId)
-        addPipeIfMissing(bottomHoldId, firstInhaleId)
-    } else {
-        addPipeIfMissing(lastExhaleId, firstInhaleId)
-    }
-
-    if (topHoldId != null) {
-        addPipeIfMissing(lastInhaleId, topHoldId)
-        addPipeIfMissing(topHoldId, firstExhaleId)
-    } else {
-        addPipeIfMissing(lastInhaleId, firstExhaleId)
-    }
-}
-
-private fun pipesConnectSpheres(
-    pipes: List<Pair<Offset, Offset>>,
-    from: BreathSphere,
-    to: BreathSphere,
-): Boolean {
-    val fromEdge = pipeEdge(from, to)
-    val toEdge = pipeEdge(to, from)
-
-    fun involvesSphere(point: Offset, sphere: BreathSphere, toward: BreathSphere): Boolean {
-        return offsetsNear(point, sphere.center) || offsetsNear(point, pipeEdge(sphere, toward))
-    }
-
-    return pipes.any { (a, b) ->
-        involvesSphere(a, from, to) && involvesSphere(b, to, from) ||
-            involvesSphere(b, from, to) && involvesSphere(a, to, from)
-    }
-}
-
-private fun offsetsNear(a: Offset, b: Offset, tolerance: Float = 3f): Boolean {
-    val dx = a.x - b.x
-    val dy = a.y - b.y
-    return dx * dx + dy * dy <= tolerance * tolerance
 }
 
 private fun tryBuildInterleavedLadder(
@@ -527,15 +463,6 @@ private fun tryBuildInterleavedLadder(
         rowCount = rowCount,
         gridSlots = gridSlots,
         centerX = centerX,
-    ).toMutableList()
-    appendBreathCircuitPipes(
-        pipes = pipes,
-        spheres = spheres,
-        spec = spec,
-        inhalePath = inhalePath,
-        exhalePath = exhalePath,
-        topHoldId = topHoldId,
-        bottomHoldId = bottomHoldId,
     )
 
     return BreathStructureLayout(
@@ -580,13 +507,13 @@ private fun buildLadderPipes(
     rowCount: Int,
     gridSlots: Map<Pair<Int, Int>, Int>,
     centerX: Float,
-): List<Pair<Offset, Offset>> {
-    val pipes = mutableListOf<Pair<Offset, Offset>>()
+): List<BreathPipe> {
+    val pipes = mutableListOf<BreathPipe>()
 
     fun connect(fromId: Int, toId: Int) {
-        val from = spheres[fromId] ?: return
-        val to = spheres[toId] ?: return
-        pipes.add(pipeEdge(from, to) to pipeEdge(to, from))
+        if (spheres[fromId] != null && spheres[toId] != null) {
+            pipes.add(BreathPipe(fromId, toId))
+        }
     }
 
     topHoldId?.let { topId ->
@@ -791,11 +718,13 @@ private fun applyBridgeTransfer(
         fillLevel = 1f - transfer,
         isActive = transfer in 0.001f..0.999f,
         fillDirection = sourceDirection,
+        isDraining = transfer in 0.001f..0.999f,
     )
     fills[targetId] = SphereVisualState(
         fillLevel = transfer,
         isActive = transfer in 0.001f..0.999f,
         fillDirection = targetDirection,
+        isDraining = false,
     )
 }
 
@@ -849,11 +778,13 @@ private fun applyPathFill(
                 fillLevel = 1f - localProgress,
                 isActive = localProgress in 0.001f..0.999f,
                 fillDirection = direction,
+                isDraining = localProgress in 0.001f..0.999f,
             )
             index == activeIndex -> SphereVisualState(
                 fillLevel = localProgress,
                 isActive = localProgress in 0.001f..0.999f,
                 fillDirection = direction,
+                isDraining = false,
             )
             index < completedCount -> SphereVisualState(1f, false, direction)
             else -> SphereVisualState(0f, false, direction)
