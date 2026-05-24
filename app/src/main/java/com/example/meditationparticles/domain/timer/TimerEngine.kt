@@ -22,7 +22,6 @@ class TimerEngine {
     private var pausedElapsedMs: Long = 0L
 
     private companion object {
-        const val PREPARE_MS = 2_000L
         const val TICK_MS = 16L
     }
 
@@ -86,14 +85,19 @@ class TimerEngine {
             current.phase == TimerPhase.Complete -> {
                 pausedElapsedMs = 0L
                 _state.update {
-                    it.copy(phase = TimerPhase.Prepare, elapsedMs = 0L, isRunning = true)
+                    it.copy(
+                        phase = TimerPhase.Prepare,
+                        elapsedMs = 0L,
+                        prepareElapsedMs = 0L,
+                        isRunning = true,
+                    )
                 }
             }
             current.phase == TimerPhase.Running && current.elapsedMs > 0L -> {
                 _state.update { it.copy(isRunning = true) }
             }
             else -> {
-                _state.update { it.copy(isRunning = true, phase = TimerPhase.Prepare) }
+                _state.update { it.copy(isRunning = true, phase = TimerPhase.Prepare, prepareElapsedMs = 0L) }
             }
         }
         sessionStartMs = System.currentTimeMillis()
@@ -176,11 +180,13 @@ class TimerEngine {
         val sessionElapsed = now - sessionStartMs + pausedElapsedMs
 
         if (current.phase == TimerPhase.Prepare) {
-            if (sessionElapsed >= PREPARE_MS) {
+            val prepareElapsed = sessionElapsed.coerceAtMost(TimerPrepareTiming.totalMs)
+            _state.update { it.copy(prepareElapsedMs = prepareElapsed) }
+            if (sessionElapsed >= TimerPrepareTiming.totalMs) {
                 sessionStartMs = now
                 pausedElapsedMs = 0L
                 _state.update {
-                    it.copy(phase = TimerPhase.Running, elapsedMs = 0L)
+                    it.copy(phase = TimerPhase.Running, elapsedMs = 0L, prepareElapsedMs = 0L)
                 }
             }
             return

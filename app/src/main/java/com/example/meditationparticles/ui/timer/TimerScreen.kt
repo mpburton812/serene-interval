@@ -64,6 +64,7 @@ import com.example.meditationparticles.canvas.HourglassCanvas
 import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
 import com.example.meditationparticles.domain.timer.TimerPhase
+import com.example.meditationparticles.domain.timer.TimerPrepareTiming
 import com.example.meditationparticles.domain.timer.TimerSessionState
 import com.example.meditationparticles.domain.timer.TimerSoundOption
 import com.example.meditationparticles.reminder.MeditationReminderScheduler
@@ -85,7 +86,12 @@ fun TimerScreen(
     val audioPlayer = remember { TimerAudioPlayer(context) }
     var controlsVisible by remember { mutableStateOf(true) }
     val immersive = state.isRunning && state.phase != TimerPhase.Complete
-    val showOverlayText = state.displayMode != TimerDisplayMode.Blank || controlsVisible
+    val showStatusHeader = state.phase == TimerPhase.Idle ||
+        state.phase == TimerPhase.Complete ||
+        (controlsVisible && state.phase != TimerPhase.Prepare)
+    val showDisplayCountdown = state.phase == TimerPhase.Running &&
+        (state.displayMode == TimerDisplayMode.Digital ||
+            (state.displayMode == TimerDisplayMode.Blank && controlsVisible && !immersive))
 
     LaunchedEffect(Unit) {
         val saved = preferences.load()
@@ -177,7 +183,7 @@ fun TimerScreen(
             },
     ) {
         AnimatedVisibility(
-            visible = showOverlayText,
+            visible = showStatusHeader,
             enter = fadeIn(tween(TextFadeMs)),
             exit = fadeOut(tween(TextFadeMs)),
         ) {
@@ -191,7 +197,7 @@ fun TimerScreen(
         ) {
             TimerDisplay(
                 state = state,
-                showCountdown = showOverlayText || state.displayMode == TimerDisplayMode.Digital,
+                showCountdown = showDisplayCountdown,
                 modifier = Modifier.fillMaxSize(),
             )
 
@@ -251,14 +257,27 @@ fun TimerScreen(
                     }
                 }
 
-                TimerStatCard(
-                    label = "DURATION",
-                    value = "${state.targetMinutes}",
-                    unit = "MIN",
-                    onClick = { viewModel.cycleTargetMinutes() },
-                    enabled = !state.isRunning,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
+                ) {
+                    TimerStatCard(
+                        label = "DURATION",
+                        value = "${state.targetMinutes}",
+                        unit = "MIN",
+                        onClick = { viewModel.cycleTargetMinutes() },
+                        enabled = !state.isRunning,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TimerStatCard(
+                        label = "REMAINING",
+                        value = state.remainingFormatted,
+                        unit = "",
+                        onClick = {},
+                        enabled = false,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
 
                 ControlSection(title = "AMBIENT SOUND") {
                     Row(
@@ -385,6 +404,14 @@ private fun TimerDisplay(
     showCountdown: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    if (state.phase == TimerPhase.Prepare) {
+        PrepareSequenceOverlay(
+            state = state,
+            modifier = modifier.padding(bottom = FabClearance),
+        )
+        return
+    }
+
     when (state.displayMode) {
         TimerDisplayMode.Hourglass -> {
             HourglassCanvas(
@@ -442,6 +469,70 @@ private fun TimerDisplay(
 }
 
 @Composable
+private fun PrepareSequenceOverlay(
+    state: TimerSessionState,
+    modifier: Modifier = Modifier,
+) {
+    val inCountdown = state.prepareElapsedMs < TimerPrepareTiming.COUNTDOWN_MS
+    val beginElapsed = state.prepareElapsedMs - TimerPrepareTiming.COUNTDOWN_MS
+    val beginFadeProgress = when {
+        !state.isPrepareBeginVisible -> 0f
+        beginElapsed < 400 -> beginElapsed / 400f
+        beginElapsed < 400 + TimerPrepareTiming.BEGIN_VISIBLE_MS -> 1f
+        else -> {
+            val fadeElapsed = beginElapsed - 400 - TimerPrepareTiming.BEGIN_VISIBLE_MS
+            (1f - fadeElapsed.toFloat() / TimerPrepareTiming.BEGIN_FADE_MS).coerceIn(0f, 1f)
+        }
+    }
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (inCountdown) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "Start Meditating In...",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                AnimatedContent(
+                    targetState = state.prepareCountdownSeconds,
+                    transitionSpec = {
+                        fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
+                    },
+                    label = "prepare_countdown",
+                ) { seconds ->
+                    Text(
+                        text = seconds.toString(),
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 72.sp,
+                            letterSpacing = 2.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        } else if (beginFadeProgress > 0f) {
+            Text(
+                text = "Begin",
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = 56.sp,
+                    letterSpacing = 1.sp,
+                ),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = beginFadeProgress),
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
 private fun TimerStatusHeader(state: TimerSessionState) {
     Column(
         modifier = Modifier
@@ -451,53 +542,49 @@ private fun TimerStatusHeader(state: TimerSessionState) {
             .padding(top = 4.dp, bottom = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AnimatedContent(
-            targetState = state.statusLabel,
-            transitionSpec = {
-                fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-            },
-            label = "timer_status",
-        ) { label ->
+        if (state.phase == TimerPhase.Idle) {
             Text(
-                text = label,
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
+                text = state.statusDescription,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            return
         }
 
-        if (state.isRunning && state.phase == TimerPhase.Running) {
+        if (state.statusLabel.isNotEmpty()) {
             AnimatedContent(
-                targetState = state.remainingFormatted,
+                targetState = state.statusLabel,
                 transitionSpec = {
-                    fadeIn(tween(350)) togetherWith fadeOut(tween(350))
+                    fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
                 },
-                label = "timer_countdown_header",
-                modifier = Modifier.padding(top = 2.dp),
-            ) { time ->
+                label = "timer_status",
+            ) { label ->
                 Text(
-                    text = time,
+                    text = label,
                     style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                 )
             }
         }
 
-        AnimatedContent(
-            targetState = state.statusDescription,
-            transitionSpec = {
-                fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-            },
-            label = "timer_description",
-            modifier = Modifier.padding(top = 4.dp),
-        ) { description ->
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                textAlign = TextAlign.Center,
-            )
+        if (state.statusDescription.isNotEmpty()) {
+            AnimatedContent(
+                targetState = state.statusDescription,
+                transitionSpec = {
+                    fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
+                },
+                label = "timer_description",
+                modifier = Modifier.padding(top = 4.dp),
+            ) { description ->
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
