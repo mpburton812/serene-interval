@@ -28,7 +28,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color as AndroidColor
 import com.example.meditationparticles.R
 import com.example.meditationparticles.ui.theme.SerenePrimaryContainer
 import com.example.meditationparticles.ui.theme.SereneSecondaryContainer
@@ -39,6 +41,11 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
+private data class HourglassMaskData(
+    val sandMask: androidx.compose.ui.graphics.ImageBitmap,
+    val topSandBaseYNorm: Float,
+)
+
 private data class HourglassGeometry(
     val topBulb: Path,
     val bottomBulb: Path,
@@ -46,6 +53,7 @@ private data class HourglassGeometry(
     val neckCenter: Offset,
     val sandColor: Color,
     val bulbH: Float,
+    val topSandBaseY: Float,
 )
 
 private data class FallingGrain(
@@ -79,8 +87,13 @@ fun HourglassCanvas(
     val context = LocalContext.current
     val backPainter = painterResource(R.drawable.hourglass_back)
     val frontPainter = painterResource(R.drawable.hourglass_front)
-    val maskBitmap = remember {
-        BitmapFactory.decodeResource(context.resources, R.drawable.hourglass_mask).asImageBitmap()
+    val maskData = remember {
+        parseHourglassMask(
+            BitmapFactory.decodeResource(
+                context.resources,
+                R.drawable.hourglass_mask_and_yellow_fill_point,
+            ),
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -95,14 +108,18 @@ fun HourglassCanvas(
         if (size.width <= 0f || size.height <= 0f) return@Canvas
 
         val fitRect = computeContentScaleFitRect(
-            srcWidth = maskBitmap.width.toFloat(),
-            srcHeight = maskBitmap.height.toFloat(),
+            srcWidth = maskData.sandMask.width.toFloat(),
+            srcHeight = maskData.sandMask.height.toFloat(),
             dstWidth = size.width,
             dstHeight = size.height,
         )
         if (fitRect.width <= 0f || fitRect.height <= 0f) return@Canvas
 
-        val geometry = buildSandGeometry(fitRect.width, fitRect.height)
+        val geometry = buildSandGeometry(
+            imageWidth = fitRect.width,
+            imageHeight = fitRect.height,
+            topSandBaseYNorm = maskData.topSandBaseYNorm,
+        )
 
         drawHourglassShadow(fitRect.center.x, fitRect.bottom - fitRect.height * 0.04f, fitRect.width)
         drawAtmosphericGlow(fitRect.center.x, fitRect.center.y)
@@ -125,6 +142,7 @@ fun HourglassCanvas(
                     fillRatio = topFill,
                     pileFromBottom = true,
                     sandColor = geometry.sandColor,
+                    sandBaseY = geometry.topSandBaseY,
                 )
             }
 
@@ -151,7 +169,7 @@ fun HourglassCanvas(
             }
         }
         drawImage(
-            image = maskBitmap,
+            image = maskData.sandMask,
             dstOffset = IntOffset(fitRect.left.roundToInt(), fitRect.top.roundToInt()),
             dstSize = IntSize(fitRect.width.roundToInt(), fitRect.height.roundToInt()),
             blendMode = BlendMode.DstIn,
@@ -181,7 +199,58 @@ private fun computeContentScaleFitRect(
     return Rect(left, top, left + width, top + height)
 }
 
-private fun buildSandGeometry(imageWidth: Float, imageHeight: Float): HourglassGeometry {
+private fun isSandMaskRed(r: Int, g: Int, b: Int, a: Int): Boolean =
+    a > 128 && r > 150 && g < 80 && b < 80
+
+private fun isSandMaskYellow(r: Int, g: Int, b: Int, a: Int): Boolean =
+    a > 128 && r > 180 && g > 180 && b in 80..160
+
+private fun parseHourglassMask(source: Bitmap): HourglassMaskData {
+    val width = source.width
+    val height = source.height
+    val pixels = IntArray(width * height)
+    source.getPixels(pixels, 0, width, 0, 0, width, height)
+
+    var yellowBottomY = -1
+    val maskPixels = IntArray(width * height)
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            val pixel = pixels[y * width + x]
+            val a = AndroidColor.alpha(pixel)
+            val r = AndroidColor.red(pixel)
+            val g = AndroidColor.green(pixel)
+            val b = AndroidColor.blue(pixel)
+            val isRed = isSandMaskRed(r, g, b, a)
+            val isYellow = isSandMaskYellow(r, g, b, a)
+            if (isYellow && y > yellowBottomY) {
+                yellowBottomY = y
+            }
+            maskPixels[y * width + x] = if (isRed || isYellow) {
+                AndroidColor.WHITE
+            } else {
+                AndroidColor.TRANSPARENT
+            }
+        }
+    }
+
+    val maskBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    maskBitmap.setPixels(maskPixels, 0, width, 0, 0, width, height)
+    val topSandBaseYNorm = if (yellowBottomY >= 0) {
+        (yellowBottomY + 1).toFloat() / height.toFloat()
+    } else {
+        0.43f
+    }
+    return HourglassMaskData(
+        sandMask = maskBitmap.asImageBitmap(),
+        topSandBaseYNorm = topSandBaseYNorm,
+    )
+}
+
+private fun buildSandGeometry(
+    imageWidth: Float,
+    imageHeight: Float,
+    topSandBaseYNorm: Float,
+): HourglassGeometry {
     val cx = imageWidth / 2f
     val bulbW = imageWidth * 0.72f
     val frameInset = imageHeight * 0.07f
@@ -218,6 +287,7 @@ private fun buildSandGeometry(imageWidth: Float, imageHeight: Float): HourglassG
         neckCenter = Offset(cx, neckRect.center.y),
         sandColor = SereneTertiary,
         bulbH = bulbH,
+        topSandBaseY = imageHeight * topSandBaseYNorm,
     )
 }
 
@@ -280,13 +350,24 @@ private fun DrawScope.drawSandPile(
     fillRatio: Float,
     pileFromBottom: Boolean,
     sandColor: Color,
+    sandBaseY: Float? = null,
 ) {
     if (fillRatio <= 0f) return
     val bounds = bulbPath.getBounds()
     val cx = bounds.center.x
-    val sandHeight = bounds.height * fillRatio.coerceIn(0f, 1f)
-    val sandBottom = if (pileFromBottom) bounds.bottom - 3f else bounds.top + sandHeight
-    val sandTop = if (pileFromBottom) sandBottom - sandHeight else bounds.top
+    val fill = fillRatio.coerceIn(0f, 1f)
+    val sandBottom: Float
+    val sandTop: Float
+    if (pileFromBottom && sandBaseY != null) {
+        sandBottom = sandBaseY
+        val availableHeight = (sandBottom - bounds.top).coerceAtLeast(0f)
+        val sandHeight = availableHeight * fill
+        sandTop = sandBottom - sandHeight
+    } else {
+        val sandHeight = bounds.height * fill
+        sandBottom = if (pileFromBottom) bounds.bottom - 3f else bounds.top + sandHeight
+        sandTop = if (pileFromBottom) sandBottom - sandHeight else bounds.top
+    }
     val pileWidth = bounds.width * (0.55f + 0.38f * fillRatio.coerceIn(0.15f, 1f))
     val meniscusLift = bounds.height * 0.04f * fillRatio.coerceIn(0f, 1f)
 
@@ -309,39 +390,15 @@ private fun DrawScope.drawSandPile(
     drawPath(
         sandPath,
         brush = Brush.verticalGradient(
-            colors = listOf(SandHighlight, SandMid, SandDeep, sandColor.copy(alpha = 0.9f)),
+            colors = listOf(SandHighlight, SandMid, SandDeep, sandColor),
             startY = sandTop,
             endY = sandBottom,
         ),
     )
 
-    drawPath(
-        sandPath,
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.1f),
-                Color.Transparent,
-                Color.Black.copy(alpha = 0.14f),
-            ),
-            start = Offset(bounds.left, bounds.center.y),
-            end = Offset(bounds.right, bounds.center.y),
-        ),
-        alpha = 0.7f,
-    )
-
     val surfaceY = if (pileFromBottom) sandTop + meniscusLift else sandTop
     drawLine(
-        brush = Brush.horizontalGradient(
-            colors = listOf(
-                Color.Transparent,
-                Color.White.copy(alpha = 0.55f),
-                Color.White.copy(alpha = 0.72f),
-                Color.White.copy(alpha = 0.55f),
-                Color.Transparent,
-            ),
-            startX = cx - pileWidth * 0.35f,
-            endX = cx + pileWidth * 0.35f,
-        ),
+        color = Color(0xFFFFF0C8),
         start = Offset(cx - pileWidth * 0.35f, surfaceY),
         end = Offset(cx + pileWidth * 0.35f, surfaceY),
         strokeWidth = 2.2f,
@@ -354,7 +411,7 @@ private fun DrawScope.drawSandPile(
             val gx = cx + (i - grainCount / 2f) * (pileWidth / grainCount) * 0.9f
             val gy = surfaceY + (i % 3) * 2.5f + 3f
             drawCircle(
-                color = SandDeep.copy(alpha = 0.35f),
+                color = SandDeep,
                 radius = 1.1f + (i % 2) * 0.4f,
                 center = Offset(gx, gy),
             )
@@ -364,22 +421,13 @@ private fun DrawScope.drawSandPile(
 
 private fun DrawScope.drawFallingGrain(center: Offset, radius: Float, sandColor: Color) {
     drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(sandColor.copy(alpha = 0.18f), Color.Transparent),
-            center = center,
-            radius = radius * 3.2f,
-        ),
-        radius = radius * 3.2f,
+        color = sandColor,
+        radius = radius,
         center = center,
-        blendMode = BlendMode.Plus,
     )
     drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(SandHighlight.copy(alpha = 0.92f), sandColor.copy(alpha = 0.75f)),
-            center = center,
-            radius = radius,
-        ),
-        radius = radius,
+        color = SandHighlight,
+        radius = radius * 0.45f,
         center = center,
     )
 }
