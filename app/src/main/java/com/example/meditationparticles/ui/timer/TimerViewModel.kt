@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
 import com.example.meditationparticles.domain.timer.TimerEngine
 import com.example.meditationparticles.domain.timer.TimerPhase
@@ -37,7 +38,8 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     fun cycleTargetMinutes() = engine.cycleTargetMinutes()
     fun setTargetMinutes(minutes: Int) = engine.setTargetMinutes(minutes)
     fun setSound(sound: TimerSoundOption) = engine.setSound(sound)
-    fun setCustomSoundUri(uri: String?) = engine.setCustomSoundUri(uri)
+    fun setBellSound(choice: TimerBellSoundChoice, systemUri: String? = null) =
+        engine.setBellSound(choice, systemUri)
     fun setReminder(enabled: Boolean, hour: Int, minute: Int) = engine.setReminder(enabled, hour, minute)
     fun toggleRunning() = engine.toggleRunning()
     fun reset() = engine.reset()
@@ -46,7 +48,8 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         displayMode: TimerDisplayMode,
         targetMinutes: Int,
         sound: TimerSoundOption,
-        customSoundUri: String?,
+        bellSound: TimerBellSoundChoice,
+        bellSystemUri: String?,
         reminderEnabled: Boolean,
         reminderHour: Int,
         reminderMinute: Int,
@@ -55,7 +58,8 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             displayMode = displayMode,
             targetMinutes = targetMinutes,
             sound = sound,
-            customSoundUri = customSoundUri,
+            bellSound = bellSound,
+            bellSystemUri = bellSystemUri,
             reminderEnabled = reminderEnabled,
             reminderHour = reminderHour,
             reminderMinute = reminderMinute,

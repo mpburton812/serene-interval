@@ -1,8 +1,12 @@
 package com.example.meditationparticles.ui.timer
 
 import android.Manifest
+import android.app.Activity
 import android.app.TimePickerDialog
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -63,6 +67,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.audio.TimerAudioPlayer
 import com.example.meditationparticles.canvas.HourglassCanvas
 import com.example.meditationparticles.data.TimerPreferences
+import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
 import com.example.meditationparticles.domain.timer.TimerPhase
 import com.example.meditationparticles.domain.timer.TimerPrepareTiming
@@ -99,13 +104,16 @@ fun TimerScreen(
         (state.displayMode == TimerDisplayMode.Digital ||
             (state.displayMode == TimerDisplayMode.Blank && controlsVisible && !immersive))
 
+    var previousPhase by remember { mutableStateOf(state.phase) }
+
     LaunchedEffect(Unit) {
         val saved = preferences.load()
         viewModel.restorePreferences(
             displayMode = saved.displayMode,
             targetMinutes = saved.targetMinutes,
             sound = saved.sound,
-            customSoundUri = saved.customSoundUri,
+            bellSound = saved.bellSound,
+            bellSystemUri = saved.bellSystemUri,
             reminderEnabled = saved.reminderEnabled,
             reminderHour = saved.reminderHour,
             reminderMinute = saved.reminderMinute,
@@ -116,7 +124,8 @@ fun TimerScreen(
         state.displayMode,
         state.targetMinutes,
         state.sound,
-        state.customSoundUri,
+        state.bellSound,
+        state.bellSystemUri,
         state.reminderEnabled,
         state.reminderHour,
         state.reminderMinute,
@@ -127,7 +136,8 @@ fun TimerScreen(
                     displayMode = state.displayMode,
                     targetMinutes = state.targetMinutes,
                     sound = state.sound,
-                    customSoundUri = state.customSoundUri,
+                    bellSound = state.bellSound,
+                    bellSystemUri = state.bellSystemUri,
                     reminderEnabled = state.reminderEnabled,
                     reminderHour = state.reminderHour,
                     reminderMinute = state.reminderMinute,
@@ -137,15 +147,21 @@ fun TimerScreen(
         }
     }
 
-    LaunchedEffect(state.isRunning, state.phase, state.sound, state.customSoundUri) {
+    LaunchedEffect(state.isRunning, state.phase, state.sound) {
         val shouldPlay = state.isRunning && state.phase == TimerPhase.Running
-        audioPlayer.sync(state.sound, state.customSoundUri, shouldPlay)
+        audioPlayer.sync(state.sound, shouldPlay)
     }
 
     LaunchedEffect(state.phase) {
-        if (state.phase == TimerPhase.Complete) {
-            audioPlayer.playCompletionChime()
+        when {
+            previousPhase == TimerPhase.Prepare && state.phase == TimerPhase.Running -> {
+                audioPlayer.playBell(state.bellSound, state.bellSystemUri)
+            }
+            state.phase == TimerPhase.Complete && previousPhase != TimerPhase.Complete -> {
+                audioPlayer.playBell(state.bellSound, state.bellSystemUri)
+            }
         }
+        previousPhase = state.phase
     }
 
     LaunchedEffect(state.isRunning) {
@@ -177,10 +193,47 @@ fun TimerScreen(
         }
     }
 
-    val soundPickerLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent(),
-    ) { uri ->
-        uri?.let { viewModel.setCustomSoundUri(it.toString()) }
+    val ringtonePickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
+        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+        } ?: return@rememberLauncherForActivityResult
+
+        if (uri.scheme == "content") {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+        }
+        viewModel.setBellSound(TimerBellSoundChoice.SystemUri, uri.toString())
+    }
+
+    fun launchBellSoundPicker() {
+        val existingUri = state.bellSystemUri?.let(Uri::parse)
+        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existingUri)
+        }
+        ringtonePickerLauncher.launch(intent)
+    }
+
+    val customBellLabel = remember(state.bellSound, state.bellSystemUri) {
+        if (state.bellSound != TimerBellSoundChoice.SystemUri || state.bellSystemUri.isNullOrBlank()) {
+            TimerBellSoundChoice.SystemUri.label
+        } else {
+            runCatching {
+                RingtoneManager.getRingtone(context, Uri.parse(state.bellSystemUri))?.getTitle(context)
+            }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Custom sound"
+        }
     }
 
     SereneTabBackground(modifier = modifier) {
@@ -287,7 +340,7 @@ fun TimerScreen(
                             .padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        (TimerSoundOption.entries - TimerSoundOption.Custom).forEach { sound ->
+                        TimerSoundOption.entries.forEach { sound ->
                             FilterChip(
                                 selected = state.sound == sound,
                                 onClick = { viewModel.setSound(sound) },
@@ -299,14 +352,41 @@ fun TimerScreen(
                                 ),
                             )
                         }
+                    }
+                }
+
+                ControlSection(title = "BELL SOUND") {
+                    Row(
+                        modifier = Modifier
+                            .horizontalScroll(rememberScrollState())
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         FilterChip(
-                            selected = state.sound == TimerSoundOption.Custom,
-                            onClick = { soundPickerLauncher.launch("audio/*") },
-                            label = { Text("Custom", style = MaterialTheme.typography.labelMedium) },
+                            selected = state.bellSound == TimerBellSoundChoice.Default,
+                            onClick = { viewModel.setBellSound(TimerBellSoundChoice.Default) },
+                            label = {
+                                Text(
+                                    TimerBellSoundChoice.Default.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            },
                             enabled = !state.isRunning,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
-                                selectedLabelColor = MaterialTheme.colorScheme.secondary,
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                        FilterChip(
+                            selected = state.bellSound == TimerBellSoundChoice.SystemUri,
+                            onClick = { launchBellSoundPicker() },
+                            label = {
+                                Text(customBellLabel, style = MaterialTheme.typography.labelMedium)
+                            },
+                            enabled = !state.isRunning,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
                             ),
                         )
                     }
