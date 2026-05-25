@@ -2,6 +2,8 @@ package com.example.meditationparticles.ui.onboarding
 
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
+import com.example.meditationparticles.domain.toolkit.ToolkitLayout
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 
 data class OnboardingDraft(
@@ -14,9 +16,15 @@ data class OnboardingDraft(
     val enableToolkit: Boolean = true,
     val enableVisuals: Boolean = true,
     val enabledScenes: Set<String> = ExperienceSettings.defaultScenes,
+    val enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
 ) {
     val canComplete: Boolean
-        get() = enableBreathing || enableTimer || enableAffirmations || enableToolkit || enableVisuals
+        get() {
+            val hasExperienceTool = enableBreathing || enableTimer || enableAffirmations ||
+                enableToolkit || enableVisuals
+            val toolkitReady = !enableToolkit || enabledToolkitTools.isNotEmpty()
+            return hasExperienceTool && toolkitReady
+        }
 
     fun toExperienceSettings(): ExperienceSettings = ExperienceSettings(
         themeMode = themeMode,
@@ -44,6 +52,16 @@ data class OnboardingDraft(
             enabledScenes = settings.enabledScenes,
         )
     }
+}
+
+fun OnboardingDraft.toggleToolkitTool(id: ToolkitToolId): OnboardingDraft {
+    val next = enabledToolkitTools.toMutableSet()
+    if (id in next) {
+        if (next.size > 1) next.remove(id)
+    } else {
+        next.add(id)
+    }
+    return copy(enabledToolkitTools = next)
 }
 
 fun OnboardingDraft.toggleScene(id: CalmingVisualizationId): OnboardingDraft {

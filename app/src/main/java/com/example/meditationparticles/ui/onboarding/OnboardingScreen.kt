@@ -30,6 +30,9 @@ import com.example.meditationparticles.ui.settings.PreferredNameField
 import com.example.meditationparticles.ui.settings.SanctuaryNameField
 import com.example.meditationparticles.ui.settings.ThemeSection
 import com.example.meditationparticles.ui.settings.VisualSanctuarySection
+import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
+import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 @Composable
@@ -108,12 +111,26 @@ fun OnboardingScreen(
                         onToggleScene = viewModel::toggleScene,
                     )
                 }
+
+                if (draft.enableToolkit) {
+                    ToolkitToolSelectionContent(
+                        proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
+                        reactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
+                        enabledToolIds = draft.enabledToolkitTools,
+                        onToggleTool = viewModel::toggleToolkitTool,
+                        showHeader = false,
+                    )
+                }
             }
         }
 
         if (!draft.canComplete) {
             Text(
-                text = "Keep at least one tool enabled to continue.",
+                text = when {
+                    draft.enableToolkit && draft.enabledToolkitTools.isEmpty() ->
+                        "Enable at least one toolkit tool to continue."
+                    else -> "Keep at least one tool enabled to continue."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.tertiary,
                 textAlign = TextAlign.Center,

@@ -30,33 +30,31 @@ import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.theme.SereneTertiary
 
 @Composable
-fun ToolkitToolSelectionScreen(
+fun ToolkitToolSelectionContent(
     proactiveTools: List<ToolkitTool>,
     reactiveTools: List<ToolkitTool>,
     enabledToolIds: Set<ToolkitToolId>,
     onToggleTool: (ToolkitToolId) -> Unit,
-    onContinue: () -> Unit,
     modifier: Modifier = Modifier,
+    showHeader: Boolean = true,
 ) {
-    val canContinue = enabledToolIds.isNotEmpty()
-
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm)) {
-            Text(
-                text = "Choose Your Tools",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = "Select the Proactive Care and Reactive Relief tools you want in your toolkit.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        if (showHeader) {
+            Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm)) {
+                Text(
+                    text = "Choose Your Tools",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Select the Proactive Care and Reactive Relief tools you want in your toolkit.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         ToolSelectionSection(
@@ -73,6 +71,32 @@ fun ToolkitToolSelectionScreen(
             icon = Icons.Default.Emergency,
             titleColor = SereneTertiary,
             tools = reactiveTools,
+            enabledToolIds = enabledToolIds,
+            onToggleTool = onToggleTool,
+        )
+    }
+}
+
+@Composable
+fun ToolkitToolSelectionScreen(
+    proactiveTools: List<ToolkitTool>,
+    reactiveTools: List<ToolkitTool>,
+    enabledToolIds: Set<ToolkitToolId>,
+    onToggleTool: (ToolkitToolId) -> Unit,
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val canContinue = enabledToolIds.isNotEmpty()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
+    ) {
+        ToolkitToolSelectionContent(
+            proactiveTools = proactiveTools,
+            reactiveTools = reactiveTools,
             enabledToolIds = enabledToolIds,
             onToggleTool = onToggleTool,
         )

@@ -86,6 +86,20 @@ fun AffirmationsTab(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = viewModel::showAddDialog) {
+                Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
+                Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
+            }
+            TextButton(onClick = viewModel::showBulkImportDialog) {
+                Text("Bulk Import", maxLines = 1)
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             FilterChip(
@@ -132,21 +146,6 @@ fun AffirmationsTab(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 4.dp),
                 )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = viewModel::showAddDialog) {
-                    Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
-                    Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
-                }
-                TextButton(onClick = viewModel::showBulkImportDialog) {
-                    Text("Bulk import", maxLines = 1)
-                }
             }
         }
 

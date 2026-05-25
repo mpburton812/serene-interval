@@ -270,7 +270,7 @@ fun TimerScreen(
                         modifier = Modifier.weight(1f),
                     )
                     TimerStatCard(
-                        label = "REMAINING",
+                        label = "",
                         value = state.remainingFormatted,
                         unit = "",
                         onClick = {},
@@ -628,11 +628,13 @@ private fun TimerStatCard(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            )
+            if (label.isNotEmpty()) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                )
+            }
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),

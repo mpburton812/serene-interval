@@ -53,7 +53,7 @@ import com.example.meditationparticles.ui.visualizations.VisualizationsScreen
 private val allBottomNavItems = listOf(
     BottomNavItem(SereneDestination.Home, "Home", Icons.Outlined.Home, Icons.Default.Home),
     BottomNavItem(SereneDestination.Breathe, "Breathe", Icons.Outlined.Air, Icons.Default.Air),
-    BottomNavItem(SereneDestination.Timer, "Timer", Icons.Outlined.Timer, Icons.Default.Timer),
+    BottomNavItem(SereneDestination.Timer, "Meditation", Icons.Outlined.Timer, Icons.Default.Timer),
     BottomNavItem(
         SereneDestination.Affirmations,
         "Affirmations",

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.domain.settings.ThemeMode
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +45,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _draft.update { it.withToolEnabled(enableToolkit = enabled) }
     }
 
+    fun toggleToolkitTool(id: ToolkitToolId) {
+        _draft.update { it.toggleToolkitTool(id) }
+    }
+
     fun setEnableVisuals(enabled: Boolean) {
         _draft.update { it.withToolEnabled(enableVisuals = enabled) }
     }
@@ -57,7 +62,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         if (!current.canComplete) return
         preferences.save(current.toExperienceSettings())
         if (current.enableToolkit) {
-            AppGraph.toolkit(getApplication()).markNeedsConfiguration()
+            AppGraph.toolkit(getApplication()).saveConfiguration(current.enabledToolkitTools)
         }
     }
 }
