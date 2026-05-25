@@ -1,7 +1,7 @@
 {
-  "versionCode": 4,
-  "versionName": "1.0.3",
+  "versionCode": 5,
+  "versionName": "1.0.4",
   "apkUrl": "https://github.com/mpburton812/serene-interval/releases/latest/download/app-debug.apk",
-  "releaseNotes": "• Affirmations tab with bulk import\n• Toolkit: Refactoring, Relocate Center of Gravity, Anxiety Log, Loving Kindness, Future Self messages\n• Onboarding permissions (alarms, notifications)\n• Future Self notification overlay on Home\n• Meditation UI polish, photorealistic hourglass\n• Toolkit reorder and first-time tool selection\n• Rainfall spelling fix: Rhythmic Pattern",
+  "releaseNotes": "• UI polish: banner, navigation, affirmations list, home background on all tabs\n• Onboarding: Light theme default, auto-advance after exact alarms granted, Good evening greeting\n• Hearted home affirmation and Future Self notification overlay on Home\n• SereneTabBackground on Breathing, Timer, Toolkit, Affirmations, and Visualizations",
   "minVersionCode": 1
 }
