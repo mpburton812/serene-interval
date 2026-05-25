@@ -62,6 +62,7 @@ import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.breathing.BreathingSessionState
 import com.example.meditationparticles.domain.breathing.SessionMode
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private val PhaseTextFadeMs = 650
@@ -105,12 +106,12 @@ fun BreathingScreen(
         onDispose { onSessionActiveChange(false) }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .clickable(
+    SereneTabBackground(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 enabled = sessionActive,
@@ -297,6 +298,7 @@ fun BreathingScreen(
                 }
             }
         }
+    }
     }
 }
 

@@ -70,6 +70,7 @@ import com.example.meditationparticles.domain.timer.TimerSoundOption
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.reminder.MeditationReminderScheduler
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private val TextFadeMs = 650
@@ -171,12 +172,12 @@ fun TimerScreen(
         uri?.let { viewModel.setCustomSoundUri(it.toString()) }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .clickable(
+    SereneTabBackground(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 enabled = immersive,
@@ -410,6 +411,7 @@ fun TimerScreen(
                 }
             }
         }
+    }
     }
 }
 

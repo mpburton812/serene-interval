@@ -1,6 +1,5 @@
 package com.example.meditationparticles.ui.toolkit
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.navigation.PendingToolkitNavigation
+import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 @Composable
@@ -35,13 +35,13 @@ fun ToolkitScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(SereneSpacing.containerMargin),
-        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
-    ) {
+    SereneTabBackground(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+        ) {
         Text(
             text = "Toolkit",
             style = MaterialTheme.typography.headlineMedium,
@@ -67,5 +67,6 @@ fun ToolkitScreen(
                 )
             }
         }
+    }
     }
 }

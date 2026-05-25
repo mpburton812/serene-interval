@@ -53,6 +53,7 @@ import com.example.meditationparticles.canvas.CalmingVisualizationCanvas
 import com.example.meditationparticles.domain.visualizations.CalmingVisualization
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.audio.AmbientAudioPlayer
 import kotlinx.coroutines.CoroutineScope
@@ -68,14 +69,14 @@ fun VisualizationsScreen(
 ) {
     val visualizations by viewModel.visualizations.collectAsState()
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(SereneSpacing.containerMargin),
-        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
-    ) {
+    SereneTabBackground(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
+        ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = "Visual Sanctuary",
@@ -112,6 +113,7 @@ fun VisualizationsScreen(
         }
 
         Spacer(modifier = Modifier.height(SereneSpacing.stackMd))
+        }
     }
 }
 
