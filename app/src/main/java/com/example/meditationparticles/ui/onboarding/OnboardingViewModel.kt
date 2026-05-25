@@ -142,6 +142,28 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    /**
+     * Refreshes permission state on resume. When the user returns from exact-alarm settings
+     * with permission granted, advances to the next onboarding step automatically.
+     *
+     * @return true if onboarding completed and the caller should navigate away
+     */
+    fun onResume(): Boolean {
+        val current = _draft.value
+        val wasAwaitingSettingsReturn = current.permissionState.awaitingSettingsReturn
+
+        if (current.step == OnboardingStep.ExactAlarms && wasAwaitingSettingsReturn) {
+            refreshPermissionsOnResume()
+            if (SchedulingPermissions.canScheduleExactAlarms(appContext)) {
+                return continueFromExactAlarms()
+            }
+            return false
+        }
+
+        refreshPermissionsOnResume()
+        return false
+    }
+
     fun continueFromExactAlarms(): Boolean {
         refreshPermissionsOnResume()
         val exactAlarmsGranted = SchedulingPermissions.canScheduleExactAlarms(appContext)

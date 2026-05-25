@@ -1,0 +1,47 @@
+package com.example.meditationparticles.ui.components
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.example.meditationparticles.R
+import com.example.meditationparticles.ui.theme.isDarkScheme
+
+@Composable
+fun SereneTabBackground(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val isDark = isDarkScheme(MaterialTheme.colorScheme)
+    val scrimTopAlpha = if (isDark) 0.78f else 0.58f
+    val scrimBottomAlpha = if (isDark) 0.88f else 0.72f
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(R.drawable.home_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background.copy(alpha = scrimTopAlpha),
+                            MaterialTheme.colorScheme.background.copy(alpha = scrimBottomAlpha),
+                        ),
+                    ),
+                ),
+        )
+        content()
+    }
+}

@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -57,6 +58,7 @@ fun OnboardingScreen(
 ) {
     val draft by viewModel.draft.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val onCompleteUpdated by rememberUpdatedState(onComplete)
     val settingsPreview = draft.toExperienceSettings().copy(onboardingCompleted = false)
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -65,10 +67,10 @@ fun OnboardingScreen(
         viewModel.onNotificationPermissionResult(granted)
     }
 
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshPermissionsOnResume()
+            if (event == Lifecycle.Event.ON_RESUME && viewModel.onResume()) {
+                onCompleteUpdated()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

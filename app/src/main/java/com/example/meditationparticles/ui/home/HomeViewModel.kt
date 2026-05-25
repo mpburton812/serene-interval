@@ -23,13 +23,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeProgress.Empty)
 
     init {
-        refreshDailyAffirmation()
+        viewModelScope.launch {
+            affirmationRepository.seedIfEmpty()
+        }
     }
 
     fun refreshDailyAffirmation() {
         viewModelScope.launch {
             affirmationRepository.seedIfEmpty()
-            _dailyAffirmation.value = affirmationRepository.randomAffirmation()?.text ?: DefaultFallback
+            _dailyAffirmation.value = affirmationRepository.randomFavoriteAffirmation()?.text
+                ?: affirmationRepository.randomAffirmation()?.text
+                ?: DefaultFallback
         }
     }
 
