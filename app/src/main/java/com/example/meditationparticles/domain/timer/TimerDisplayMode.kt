@@ -16,7 +16,7 @@ enum class TimerPhase {
 enum class TimerSoundOption(val label: String) {
     None("None"),
     Rain("Rain"),
-    Ocean("Ocean"),
+    Waves("Waves"),
     Forest("Forest"),
     Wind("Wind"),
     Bell("Soft Bell"),

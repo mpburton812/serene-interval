@@ -1,7 +1,9 @@
 package com.example.meditationparticles.audio
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.net.Uri
 import com.example.meditationparticles.domain.visualizations.SceneAmbientSound
 
 class AmbientAudioPlayer(private val context: Context) {
@@ -11,7 +13,7 @@ class AmbientAudioPlayer(private val context: Context) {
     fun sync(
         sound: SceneAmbientSound,
         shouldPlay: Boolean,
-        volume: Float = 0.55f,
+        volume: Float = 1.0f,
     ) {
         if (!shouldPlay) {
             stop()
@@ -24,10 +26,9 @@ class AmbientAudioPlayer(private val context: Context) {
 
         stop()
 
-        val player = MediaPlayer.create(context, sound.resourceId) ?: return
-        currentSound = sound
-        player.isLooping = true
+        val player = createLoopingAmbientPlayer(sound.resourceId) ?: return
         player.setVolume(volume, volume)
+        currentSound = sound
         player.start()
         mediaPlayer = player
     }
@@ -42,4 +43,23 @@ class AmbientAudioPlayer(private val context: Context) {
     }
 
     fun release() = stop()
+
+    private fun createLoopingAmbientPlayer(resId: Int): MediaPlayer? = try {
+        MediaPlayer().apply {
+            setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build(),
+            )
+            setDataSource(
+                context,
+                Uri.parse("android.resource://${context.packageName}/$resId"),
+            )
+            prepare()
+            isLooping = true
+        }
+    } catch (_: Exception) {
+        null
+    }
 }

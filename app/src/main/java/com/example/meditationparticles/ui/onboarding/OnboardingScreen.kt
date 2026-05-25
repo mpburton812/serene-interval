@@ -32,11 +32,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.R
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
@@ -130,13 +132,14 @@ fun OnboardingScreen(
 
 @Composable
 private fun OnboardingHeader(step: OnboardingStep) {
+    val appName = stringResource(R.string.app_name)
     val (title, subtitle) = when (step) {
         OnboardingStep.Customization -> "Create Your Sanctuary" to
             "Let's shape a space that feels uniquely yours."
         OnboardingStep.ExactAlarms -> "Alarms & Reminders" to
             "Scheduled features need permission to deliver on time."
         OnboardingStep.Notifications -> "Notifications" to
-            "Allow Serene Interval to notify you when reminders are due."
+            "Allow $appName to notify you when reminders are due."
     }
 
     Column(
@@ -244,6 +247,7 @@ private fun OnboardingExactAlarmsStep(
     onOpenSettings: () -> Unit,
     onContinue: () -> Unit,
 ) {
+    val appName = stringResource(R.string.app_name)
     val granted = permissionState.exactAlarmsGranted
     val checked = permissionState.exactAlarmsChecked
 
@@ -259,7 +263,7 @@ private fun OnboardingExactAlarmsStep(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
             Text(
-                text = "Serene Interval uses Alarms & reminders to schedule meditation reminders " +
+                text = "$appName uses Alarms & reminders to schedule meditation reminders " +
                     "and Future Self messages at the exact time you choose.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -308,6 +312,7 @@ private fun OnboardingNotificationsStep(
     onOpenSettings: () -> Unit,
     onContinue: () -> Unit,
 ) {
+    val appName = stringResource(R.string.app_name)
     val granted = permissionState.notificationsGranted
     val checked = permissionState.notificationsChecked
     val needsRuntimeRequest = SchedulingPermissions.needsRuntimeNotificationPermission()
@@ -324,7 +329,7 @@ private fun OnboardingNotificationsStep(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
             Text(
-                text = "Notifications let Serene Interval alert you for daily meditation reminders " +
+                text = "Notifications let $appName alert you for daily meditation reminders " +
                     "and scheduled Future Self messages.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

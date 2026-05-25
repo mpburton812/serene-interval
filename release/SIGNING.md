@@ -15,7 +15,7 @@ This keystore is committed on purpose so every developer machine and CI produce 
 
 If a phone was installed with a machine-specific Android debug key (default `~/.android/debug.keystore` on another PC):
 
-1. Uninstall Serene Interval on the device.
+1. Uninstall Sway Meditation on the device.
 2. Install the latest APK from [GitHub Releases](https://github.com/mpburton812/serene-interval/releases) (or run `installDebug` after pulling this change).
 3. Future in-app updates will install normally.
 
@@ -27,7 +27,7 @@ From repo root:
 .\gradlew.bat assembleDebug
 ```
 
-Gradle still outputs `app/build/outputs/apk/debug/app-debug.apk` locally. For GitHub releases, upload it as **`meditation_app.apk`** (the release workflow renames automatically). Ensure `release/version.json` on `main` points at that asset and lists the correct `versionCode` / `versionName`.
+Gradle still outputs `app/build/outputs/apk/debug/app-debug.apk` locally. For GitHub releases, upload it as **`sway_meditation.apk`** (the release workflow renames automatically). Ensure `release/version.json` on `main` points at that asset and lists the correct `versionCode` / `versionName`.
 
 Verify signing before upload:
 

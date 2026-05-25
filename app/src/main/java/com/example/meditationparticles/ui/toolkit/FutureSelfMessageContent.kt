@@ -44,9 +44,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.example.meditationparticles.R
 import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
@@ -79,6 +81,7 @@ fun FutureSelfMessageContent(
     schedulingAvailable: Boolean = true,
 ) {
     val context = LocalContext.current
+    val appName = stringResource(R.string.app_name)
     if (!schedulingAvailable) {
         GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
             Column(
@@ -386,7 +389,7 @@ fun FutureSelfMessageContent(
             title = { Text("Notifications required") },
             text = {
                 Text(
-                    "Allow notifications so Serene Interval can deliver your message at the scheduled time. " +
+                    "Allow notifications so $appName can deliver your message at the scheduled time. " +
                         "You can enable them in system settings.",
                 )
             },
@@ -414,7 +417,7 @@ fun FutureSelfMessageContent(
             title = { Text("Enable precise delivery") },
             text = {
                 Text(
-                    "For on-time delivery, allow Alarms & reminders for Serene Interval in system settings. " +
+                    "For on-time delivery, allow Alarms & reminders for $appName in system settings. " +
                         "Without this, your message may arrive late when the device is idle.",
                 )
             },
