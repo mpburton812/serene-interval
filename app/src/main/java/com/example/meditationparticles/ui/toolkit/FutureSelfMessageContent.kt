@@ -4,8 +4,11 @@ import android.Manifest
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,6 +50,7 @@ import androidx.core.content.ContextCompat
 import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.text.SimpleDateFormat
@@ -72,11 +76,57 @@ fun FutureSelfMessageContent(
     onDeleteEntry: (FutureSelfMessageEntity) -> Unit,
     onOpenEntry: (FutureSelfMessageEntity) -> Unit,
     onCloseEntry: () -> Unit,
+    schedulingAvailable: Boolean = true,
 ) {
     val context = LocalContext.current
+    if (!schedulingAvailable) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
+            ) {
+                Text(
+                    text = "Future Self Message is unavailable",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Enable Alarms & reminders in system settings to schedule messages to your future self.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(
+                    onClick = { SchedulingPermissions.openExactAlarmSettings(context) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Open settings")
+                }
+            }
+        }
+        return
+    }
+
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
     val audioPlayer = remember { ToolkitAudioPlayer() }
     var isRecording by remember { mutableStateOf(false) }
+    var pendingSaveAfterNotification by remember { mutableStateOf(false) }
+    var showNotificationDeniedDialog by remember { mutableStateOf(false) }
+    var showExactAlarmDialog by remember { mutableStateOf(false) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted && pendingSaveAfterNotification) {
+            pendingSaveAfterNotification = false
+            onSave()
+            maybeShowExactAlarmGuidance(context) { showExactAlarmDialog = true }
+        } else {
+            pendingSaveAfterNotification = false
+            if (!granted) {
+                showNotificationDeniedDialog = true
+            }
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -175,6 +225,22 @@ fun FutureSelfMessageContent(
         ).show()
     }
 
+    fun trySchedule() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                pendingSaveAfterNotification = true
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
+            }
+        }
+        onSave()
+        maybeShowExactAlarmGuidance(context) { showExactAlarmDialog = true }
+    }
+
     val canSave = (text.isNotBlank() || pendingAudioPath != null) &&
         scheduledAtMillis > System.currentTimeMillis()
 
@@ -270,7 +336,7 @@ fun FutureSelfMessageContent(
                     Text(if (editingEntryId != null) "Cancel edit" else "Clear")
                 }
                 Button(
-                    onClick = onSave,
+                    onClick = ::trySchedule,
                     modifier = Modifier.weight(1f),
                     enabled = canSave,
                 ) {
@@ -311,6 +377,62 @@ fun FutureSelfMessageContent(
             entry = entry,
             audioPlayer = audioPlayer,
             onDismiss = onCloseEntry,
+        )
+    }
+
+    if (showNotificationDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotificationDeniedDialog = false },
+            title = { Text("Notifications required") },
+            text = {
+                Text(
+                    "Allow notifications so Serene Interval can deliver your message at the scheduled time. " +
+                        "You can enable them in system settings.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showNotificationDeniedDialog = false
+                        SchedulingPermissions.openNotificationSettings(context)
+                    },
+                ) {
+                    Text("Open settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNotificationDeniedDialog = false }) {
+                    Text("Not now")
+                }
+            },
+        )
+    }
+
+    if (showExactAlarmDialog) {
+        AlertDialog(
+            onDismissRequest = { showExactAlarmDialog = false },
+            title = { Text("Enable precise delivery") },
+            text = {
+                Text(
+                    "For on-time delivery, allow Alarms & reminders for Serene Interval in system settings. " +
+                        "Without this, your message may arrive late when the device is idle.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showExactAlarmDialog = false
+                        SchedulingPermissions.openExactAlarmSettings(context)
+                    },
+                ) {
+                    Text("Open settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExactAlarmDialog = false }) {
+                    Text("Continue anyway")
+                }
+            },
         )
     }
 }
@@ -455,4 +577,10 @@ fun defaultFutureSelfScheduleTime(): Long {
         set(Calendar.SECOND, 0)
         set(Calendar.MILLISECOND, 0)
     }.timeInMillis
+}
+
+private fun maybeShowExactAlarmGuidance(context: Context, onShow: () -> Unit) {
+    if (!SchedulingPermissions.canScheduleExactAlarms(context)) {
+        onShow()
+    }
 }

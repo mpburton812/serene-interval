@@ -15,6 +15,9 @@ class FutureSelfMessageRepository(
     suspend fun getPendingAfter(nowMillis: Long): List<FutureSelfMessageEntity> =
         dao.getPendingAfter(nowMillis)
 
+    suspend fun getOverdueUndelivered(nowMillis: Long): List<FutureSelfMessageEntity> =
+        dao.getOverdueUndelivered(nowMillis)
+
     suspend fun save(
         id: Long? = null,
         content: String,

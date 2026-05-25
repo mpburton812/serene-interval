@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -62,6 +63,7 @@ import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.navigation.PendingToolkitNavigation
+import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SerenePrimaryContainer
 import com.example.meditationparticles.ui.theme.SereneSecondaryContainer
@@ -392,6 +394,9 @@ private fun ToolDetailScreen(
     onClose: () -> Unit,
     onNavigateToBreathe: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val futureSelfSchedulingAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -469,6 +474,7 @@ private fun ToolDetailScreen(
                     onDeleteEntry = onDeleteFutureSelfEntry,
                     onOpenEntry = onOpenFutureSelfEntry,
                     onCloseEntry = onCloseFutureSelfEntry,
+                    schedulingAvailable = futureSelfSchedulingAvailable,
                 )
             }
             else -> {

@@ -1,5 +1,9 @@
 package com.example.meditationparticles.ui.onboarding
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,29 +15,39 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
+import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
 import com.example.meditationparticles.ui.settings.PreferredNameField
 import com.example.meditationparticles.ui.settings.SanctuaryNameField
 import com.example.meditationparticles.ui.settings.ThemeSection
 import com.example.meditationparticles.ui.settings.VisualSanctuarySection
-import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
-import com.example.meditationparticles.domain.toolkit.ToolkitCategory
-import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 import com.example.meditationparticles.ui.theme.SereneSpacing
+import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 
 @Composable
 fun OnboardingScreen(
@@ -42,7 +56,24 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = viewModel(),
 ) {
     val draft by viewModel.draft.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
     val settingsPreview = draft.toExperienceSettings().copy(onboardingCompleted = false)
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        viewModel.onNotificationPermissionResult(granted)
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshPermissionsOnResume()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(
         modifier = modifier
@@ -54,112 +85,312 @@ fun OnboardingScreen(
     ) {
         Spacer(modifier = Modifier.height(SereneSpacing.stackMd))
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
-        ) {
-            Text(
-                text = "Create Your Sanctuary",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = "Let's shape a space that feels uniquely yours.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
+        OnboardingHeader(step = draft.step)
 
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 24.dp,
-        ) {
-            Column(
-                modifier = Modifier.padding(SereneSpacing.containerMargin),
-                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
-            ) {
-                SanctuaryNameField(
-                    value = draft.sanctuaryName,
-                    onValueChange = viewModel::setSanctuaryName,
+        when (draft.step) {
+            OnboardingStep.Customization -> {
+                OnboardingCustomizationStep(
+                    draft = draft,
+                    settingsPreview = settingsPreview,
+                    viewModel = viewModel,
+                    onContinue = {
+                        if (viewModel.continueFromCustomization()) onComplete()
+                    },
                 )
-
-                PreferredNameField(
-                    value = draft.preferredName,
-                    onValueChange = viewModel::setPreferredName,
+            }
+            OnboardingStep.ExactAlarms -> {
+                OnboardingExactAlarmsStep(
+                    permissionState = draft.permissionState,
+                    onOpenSettings = viewModel::openExactAlarmSettings,
+                    onContinue = {
+                        if (viewModel.continueFromExactAlarms()) onComplete()
+                    },
                 )
-
-                ThemeSection(
-                    settings = settingsPreview,
-                    onThemeModeSelected = viewModel::setThemeMode,
+            }
+            OnboardingStep.Notifications -> {
+                OnboardingNotificationsStep(
+                    permissionState = draft.permissionState,
+                    onRequestPermission = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            viewModel.markAwaitingNotificationPermissionRequest()
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                    onOpenSettings = viewModel::openNotificationSettings,
+                    onContinue = {
+                        if (viewModel.continueFromNotifications()) onComplete()
+                    },
                 )
-
-                ExperienceSection(
-                    settings = settingsPreview,
-                    onBreathingChanged = viewModel::setEnableBreathing,
-                    onTimerChanged = viewModel::setEnableTimer,
-                    onAffirmationsChanged = viewModel::setEnableAffirmations,
-                    onToolkitChanged = viewModel::setEnableToolkit,
-                    onVisualsChanged = viewModel::setEnableVisuals,
-                )
-
-                if (draft.enableVisuals) {
-                    VisualSanctuarySection(
-                        enabledScenes = draft.enabledScenes,
-                        onToggleScene = viewModel::toggleScene,
-                    )
-                }
-
-                if (draft.enableToolkit) {
-                    ToolkitToolSelectionContent(
-                        proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
-                        reactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
-                        enabledToolIds = draft.enabledToolkitTools,
-                        onToggleTool = viewModel::toggleToolkitTool,
-                        showHeader = false,
-                    )
-                }
             }
         }
+    }
+}
 
-        if (!draft.canComplete) {
-            Text(
-                text = when {
-                    draft.enableToolkit && draft.enabledToolkitTools.isEmpty() ->
-                        "Enable at least one toolkit tool to continue."
-                    else -> "Keep at least one tool enabled to continue."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.tertiary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+@Composable
+private fun OnboardingHeader(step: OnboardingStep) {
+    val (title, subtitle) = when (step) {
+        OnboardingStep.Customization -> "Create Your Sanctuary" to
+            "Let's shape a space that feels uniquely yours."
+        OnboardingStep.ExactAlarms -> "Alarms & Reminders" to
+            "Scheduled features need permission to deliver on time."
+        OnboardingStep.Notifications -> "Notifications" to
+            "Allow Serene Interval to notify you when reminders are due."
+    }
 
-        Button(
-            onClick = {
-                viewModel.completeOnboarding()
-                onComplete()
-            },
-            enabled = draft.canComplete,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = SereneSpacing.stackLg),
-            shape = RoundedCornerShape(999.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun OnboardingCustomizationStep(
+    draft: OnboardingDraft,
+    settingsPreview: ExperienceSettings,
+    viewModel: OnboardingViewModel,
+    onContinue: () -> Unit,
+) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 24.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
         ) {
-            Text(
-                text = "Enter Your Sanctuary",
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(vertical = 8.dp),
+            SanctuaryNameField(
+                value = draft.sanctuaryName,
+                onValueChange = viewModel::setSanctuaryName,
             )
+
+            PreferredNameField(
+                value = draft.preferredName,
+                onValueChange = viewModel::setPreferredName,
+            )
+
+            ThemeSection(
+                settings = settingsPreview,
+                onThemeModeSelected = viewModel::setThemeMode,
+            )
+
+            ExperienceSection(
+                settings = settingsPreview,
+                onBreathingChanged = viewModel::setEnableBreathing,
+                onTimerChanged = viewModel::setEnableTimer,
+                onAffirmationsChanged = viewModel::setEnableAffirmations,
+                onToolkitChanged = viewModel::setEnableToolkit,
+                onVisualsChanged = viewModel::setEnableVisuals,
+            )
+
+            if (draft.enableVisuals) {
+                VisualSanctuarySection(
+                    enabledScenes = draft.enabledScenes,
+                    onToggleScene = viewModel::toggleScene,
+                )
+            }
+
+            if (draft.enableToolkit) {
+                ToolkitToolSelectionContent(
+                    proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
+                    reactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
+                    enabledToolIds = draft.enabledToolkitTools,
+                    onToggleTool = viewModel::toggleToolkitTool,
+                    showHeader = false,
+                )
+            }
         }
+    }
+
+    if (!draft.canComplete) {
+        Text(
+            text = when {
+                draft.enableToolkit && draft.enabledToolkitTools.isEmpty() ->
+                    "Enable at least one toolkit tool to continue."
+                else -> "Keep at least one tool enabled to continue."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.tertiary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+
+    OnboardingPrimaryButton(
+        text = "Continue",
+        enabled = draft.canComplete,
+        onClick = onContinue,
+    )
+}
+
+@Composable
+private fun OnboardingExactAlarmsStep(
+    permissionState: OnboardingPermissionState,
+    onOpenSettings: () -> Unit,
+    onContinue: () -> Unit,
+) {
+    val granted = permissionState.exactAlarmsGranted
+    val checked = permissionState.exactAlarmsChecked
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+        Column(
+            modifier = Modifier.padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Alarm,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            Text(
+                text = "Serene Interval uses Alarms & reminders to schedule meditation reminders " +
+                    "and Future Self messages at the exact time you choose.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Tap Open settings, enable Alarms & reminders for this app, then return here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Open settings")
+            }
+            if (checked) {
+                Text(
+                    text = if (granted) {
+                        "Alarms & reminders are enabled."
+                    } else {
+                        "Alarms & reminders are still off. Meditation reminder and Future Self Message " +
+                            "will be disabled until you enable this in system settings."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (granted) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.tertiary
+                    },
+                )
+            }
+        }
+    }
+
+    OnboardingPrimaryButton(
+        text = if (checked && !granted) "Continue without scheduling" else "Continue",
+        enabled = true,
+        onClick = onContinue,
+    )
+}
+
+@Composable
+private fun OnboardingNotificationsStep(
+    permissionState: OnboardingPermissionState,
+    onRequestPermission: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onContinue: () -> Unit,
+) {
+    val granted = permissionState.notificationsGranted
+    val checked = permissionState.notificationsChecked
+    val needsRuntimeRequest = SchedulingPermissions.needsRuntimeNotificationPermission()
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+        Column(
+            modifier = Modifier.padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            Text(
+                text = "Notifications let Serene Interval alert you for daily meditation reminders " +
+                    "and scheduled Future Self messages.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (needsRuntimeRequest) {
+                OutlinedButton(
+                    onClick = onRequestPermission,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Allow notifications")
+                }
+            }
+            OutlinedButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Open notification settings")
+            }
+            if (checked) {
+                Text(
+                    text = if (granted) {
+                        "Notifications are enabled."
+                    } else {
+                        "Notifications are still off. You can enable them later in system settings " +
+                            "when you turn on a reminder or schedule a message."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (granted) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        }
+    }
+
+    OnboardingPrimaryButton(
+        text = "Enter Your Sanctuary",
+        enabled = true,
+        onClick = onContinue,
+    )
+}
+
+@Composable
+private fun OnboardingPrimaryButton(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = SereneSpacing.stackLg),
+        shape = RoundedCornerShape(999.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
     }
 }

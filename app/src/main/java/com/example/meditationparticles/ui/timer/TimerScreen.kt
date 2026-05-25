@@ -67,6 +67,7 @@ import com.example.meditationparticles.domain.timer.TimerPhase
 import com.example.meditationparticles.domain.timer.TimerPrepareTiming
 import com.example.meditationparticles.domain.timer.TimerSessionState
 import com.example.meditationparticles.domain.timer.TimerSoundOption
+import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.reminder.MeditationReminderScheduler
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SereneSpacing
@@ -82,6 +83,7 @@ fun TimerScreen(
 ) {
     val state by viewModel.sessionState.collectAsState()
     val context = LocalContext.current
+    val remindersAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
     val preferences = remember { TimerPreferences(context) }
     val audioPlayer = remember { TimerAudioPlayer(context) }
     var controlsVisible by remember { mutableStateOf(true) }
@@ -312,10 +314,14 @@ fun TimerScreen(
                 }
 
                 GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
@@ -352,6 +358,7 @@ fun TimerScreen(
                             Switch(
                                 checked = state.reminderEnabled,
                                 onCheckedChange = { enabled ->
+                                    if (!remindersAvailable) return@Switch
                                     if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                         val granted = ContextCompat.checkSelfPermission(
                                             context,
@@ -378,7 +385,15 @@ fun TimerScreen(
                                         ).show()
                                     }
                                 },
-                                enabled = !state.isRunning,
+                                enabled = !state.isRunning && remindersAvailable,
+                            )
+                        }
+                    }
+                        if (!remindersAvailable) {
+                            Text(
+                                text = "Enable Alarms & reminders in system settings to use daily meditation reminders.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }

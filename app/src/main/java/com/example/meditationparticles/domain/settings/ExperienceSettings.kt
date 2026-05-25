@@ -13,6 +13,8 @@ data class ExperienceSettings(
     val enableToolkit: Boolean = true,
     val enableVisuals: Boolean = true,
     val enabledScenes: Set<String> = defaultScenes,
+    val meditationRemindersAvailable: Boolean = true,
+    val futureSelfSchedulingAvailable: Boolean = true,
 ) {
     val showToolkitTab: Boolean get() = enableToolkit
 

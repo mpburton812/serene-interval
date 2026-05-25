@@ -11,35 +11,62 @@ import kotlinx.coroutines.runBlocking
 object FutureSelfMessageScheduler {
     private const val REQUEST_CODE_BASE = 52000
 
-    fun schedule(context: Context, messageId: Long, triggerAtMillis: Long) {
-        if (triggerAtMillis <= System.currentTimeMillis()) return
+    fun schedule(context: Context, messageId: Long, triggerAtMillis: Long): Boolean {
+        if (triggerAtMillis <= System.currentTimeMillis()) return false
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = alarmPendingIntent(context, messageId)
         val canScheduleExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             alarmManager.canScheduleExactAlarms()
-        when {
-            canScheduleExact && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
-                    pendingIntent,
-                )
+        return try {
+            when {
+                canScheduleExact && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent,
+                    )
+                }
+                canScheduleExact -> {
+                    @Suppress("DEPRECATION")
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                }
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent,
+                    )
+                }
+                else -> {
+                    @Suppress("DEPRECATION")
+                    alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                }
             }
-            canScheduleExact -> {
-                @Suppress("DEPRECATION")
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-            }
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
+            true
+        } catch (_: SecurityException) {
+            scheduleInexactFallback(alarmManager, triggerAtMillis, pendingIntent)
+        }
+    }
+
+    private fun scheduleInexactFallback(
+        alarmManager: AlarmManager,
+        triggerAtMillis: Long,
+        pendingIntent: PendingIntent,
+    ): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
                     pendingIntent,
                 )
-            }
-            else -> {
+            } else {
                 @Suppress("DEPRECATION")
                 alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
             }
+            true
+        } catch (_: SecurityException) {
+            false
         }
     }
 

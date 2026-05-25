@@ -17,6 +17,8 @@ data class OnboardingDraft(
     val enableVisuals: Boolean = true,
     val enabledScenes: Set<String> = ExperienceSettings.defaultScenes,
     val enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    val step: OnboardingStep = OnboardingStep.Customization,
+    val permissionState: OnboardingPermissionState = OnboardingPermissionState(),
 ) {
     val canComplete: Boolean
         get() {
@@ -26,7 +28,10 @@ data class OnboardingDraft(
             return hasExperienceTool && toolkitReady
         }
 
-    fun toExperienceSettings(): ExperienceSettings = ExperienceSettings(
+    fun toExperienceSettings(
+        meditationRemindersAvailable: Boolean = true,
+        futureSelfSchedulingAvailable: Boolean = true,
+    ): ExperienceSettings = ExperienceSettings(
         themeMode = themeMode,
         preferredName = preferredName.trim(),
         sanctuaryName = sanctuaryName.trim(),
@@ -37,6 +42,8 @@ data class OnboardingDraft(
         enableToolkit = enableToolkit,
         enableVisuals = enableVisuals,
         enabledScenes = enabledScenes,
+        meditationRemindersAvailable = meditationRemindersAvailable,
+        futureSelfSchedulingAvailable = futureSelfSchedulingAvailable,
     )
 
     companion object {

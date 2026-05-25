@@ -17,6 +17,9 @@ interface FutureSelfMessageDao {
     @Query("SELECT * FROM future_self_messages WHERE delivered = 0 AND scheduledAtMillis > :nowMillis")
     suspend fun getPendingAfter(nowMillis: Long): List<FutureSelfMessageEntity>
 
+    @Query("SELECT * FROM future_self_messages WHERE delivered = 0 AND scheduledAtMillis <= :nowMillis")
+    suspend fun getOverdueUndelivered(nowMillis: Long): List<FutureSelfMessageEntity>
+
     @Insert
     suspend fun insert(entity: FutureSelfMessageEntity): Long
 
