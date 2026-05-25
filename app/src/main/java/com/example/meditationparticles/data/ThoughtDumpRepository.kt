@@ -2,18 +2,38 @@ package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.ThoughtDumpDao
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
+import com.example.meditationparticles.domain.toolkit.ToolkitLogType
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 
 class ThoughtDumpRepository(
     private val dao: ThoughtDumpDao,
 ) {
+    fun observeEntries(type: ToolkitLogType): Flow<List<ThoughtDumpEntity>> =
+        dao.observeByType(type.name)
+
     val latestDump: Flow<ThoughtDumpEntity?> = dao.observeLatest()
 
-    suspend fun save(content: String) {
+    suspend fun save(
+        type: ToolkitLogType,
+        content: String,
+        audioPath: String? = null,
+    ): Long? {
         val trimmed = content.trim()
-        if (trimmed.isEmpty()) return
-        dao.clearAll()
-        dao.insert(ThoughtDumpEntity(content = trimmed))
+        if (trimmed.isEmpty() && audioPath.isNullOrBlank()) return null
+        return dao.insert(
+            ThoughtDumpEntity(
+                content = trimmed,
+                logType = type.name,
+                audioPath = audioPath,
+            ),
+        )
+    }
+
+    suspend fun deleteEntry(id: Long) {
+        val entry = dao.getById(id) ?: return
+        entry.audioPath?.let { path -> File(path).delete() }
+        dao.deleteById(id)
     }
 
     suspend fun clear() = dao.clearAll()

@@ -12,6 +12,8 @@ enum class ToolkitToolId {
     Grounding54321,
     BoxBreathing,
     MuscleRelaxation,
+    LovingKindness,
+    AnxietyLog,
 }
 
 data class ToolkitTool(
@@ -97,6 +99,26 @@ object ToolkitCatalog {
                 "Tense your hands and arms, hold, then release.",
                 "Tense your shoulders and face, hold, then melt into ease.",
             ),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.LovingKindness,
+            title = "Loving Kindness",
+            description = "Send warmth to yourself and others.",
+            category = ToolkitCategory.Reactive,
+            steps = listOf(
+                "Find a comfortable posture. Place a hand on your heart if that feels grounding.",
+                "Silently repeat: May I be safe. May I be happy. May I be healthy. May I live with ease.",
+                "Bring someone you care about to mind. Repeat: May you be safe. May you be happy. May you be healthy. May you live with ease.",
+                "Extend this wish to all beings: May all beings be safe, happy, healthy, and at ease.",
+                "Notice how your body feels. Carry this warmth with you as you return.",
+            ),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.AnxietyLog,
+            title = "Anxiety Log",
+            description = "Notice, observe, and acknowledge what you feel.",
+            category = ToolkitCategory.Reactive,
+            steps = emptyList(),
         ),
     )
 

@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [AffirmationEntity::class, ThoughtDumpEntity::class, SessionEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -52,6 +52,21 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    ALTER TABLE thought_dumps ADD COLUMN logType TEXT NOT NULL DEFAULT 'THOUGHT_DUMP'
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    ALTER TABLE thought_dumps ADD COLUMN audioPath TEXT
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -59,7 +74,7 @@ abstract class SereneDatabase : RoomDatabase() {
                     SereneDatabase::class.java,
                     "serene_interval.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

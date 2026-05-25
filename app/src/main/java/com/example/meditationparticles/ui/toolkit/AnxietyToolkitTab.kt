@@ -41,7 +41,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,6 +53,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -78,9 +78,21 @@ fun AnxietyToolkitTab(
             currentStep = state.currentStep,
             isLastStep = state.isLastStep,
             thoughtDumpText = state.thoughtDumpText,
+            anxietyLogText = state.anxietyLogText,
+            pendingAudioPath = state.pendingAudioPath,
+            thoughtDumpEntries = state.thoughtDumpEntries,
+            anxietyLogEntries = state.anxietyLogEntries,
+            openedLogEntry = state.openedLogEntry,
             onThoughtDumpChange = viewModel::updateThoughtDump,
+            onAnxietyLogChange = viewModel::updateAnxietyLog,
+            onPendingAudioChange = viewModel::setPendingAudioPath,
+            onSpeechResult = viewModel::appendToActiveLog,
             onSaveThoughtDump = viewModel::saveThoughtDump,
-            onClearThoughtDump = viewModel::clearThoughtDump,
+            onSaveAnxietyLog = viewModel::saveAnxietyLog,
+            onClearDraft = viewModel::clearActiveDraft,
+            onOpenLogEntry = viewModel::openLogEntry,
+            onDeleteLogEntry = viewModel::deleteLogEntry,
+            onCloseLogEntry = viewModel::closeLogEntry,
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
@@ -298,9 +310,21 @@ private fun ToolDetailScreen(
     currentStep: String?,
     isLastStep: Boolean,
     thoughtDumpText: String,
+    anxietyLogText: String,
+    pendingAudioPath: String?,
+    thoughtDumpEntries: List<ThoughtDumpEntity>,
+    anxietyLogEntries: List<ThoughtDumpEntity>,
+    openedLogEntry: ThoughtDumpEntity?,
     onThoughtDumpChange: (String) -> Unit,
+    onAnxietyLogChange: (String) -> Unit,
+    onPendingAudioChange: (String?) -> Unit,
+    onSpeechResult: (String) -> Unit,
     onSaveThoughtDump: () -> Unit,
-    onClearThoughtDump: () -> Unit,
+    onSaveAnxietyLog: () -> Unit,
+    onClearDraft: () -> Unit,
+    onOpenLogEntry: (ThoughtDumpEntity) -> Unit,
+    onDeleteLogEntry: (ThoughtDumpEntity) -> Unit,
+    onCloseLogEntry: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
@@ -328,134 +352,117 @@ private fun ToolDetailScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        if (tool.id == ToolkitToolId.ThoughtDump) {
-            ThoughtDumpContent(
-                text = thoughtDumpText,
-                onTextChange = onThoughtDumpChange,
-                onSave = onSaveThoughtDump,
-                onClear = onClearThoughtDump,
-                onClose = onClose,
-            )
-        } else {
-            GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
-                ) {
-                    Text(
-                        text = "Step ${stepIndex + 1} of ${tool.steps.size}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-
-                    AnimatedContent(
-                        targetState = currentStep ?: "",
-                        transitionSpec = {
-                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                        },
-                        label = "tool_step",
-                    ) { step ->
-                        Text(
-                            text = step,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
+        when (tool.id) {
+            ToolkitToolId.ThoughtDump -> {
+                ToolkitLogContent(
+                    instructionText = "Write everything on your mind. No editing, no judgment.",
+                    text = thoughtDumpText,
+                    entries = thoughtDumpEntries,
+                    pendingAudioPath = pendingAudioPath,
+                    openedEntry = openedLogEntry,
+                    onTextChange = onThoughtDumpChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onSpeechResult,
+                    onSave = onSaveThoughtDump,
+                    onClear = onClearDraft,
+                    onClose = onClose,
+                    onOpenEntry = onOpenLogEntry,
+                    onDeleteEntry = onDeleteLogEntry,
+                    onCloseEntry = onCloseLogEntry,
+                )
             }
+            ToolkitToolId.AnxietyLog -> {
+                ToolkitLogContent(
+                    instructionText = "Notice, Observe, and Acknowledge. Feelings are temporary. I am Fine. I am Not Fine. I am Fine.",
+                    text = anxietyLogText,
+                    entries = anxietyLogEntries,
+                    pendingAudioPath = pendingAudioPath,
+                    openedEntry = openedLogEntry,
+                    onTextChange = onAnxietyLogChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onSpeechResult,
+                    onSave = onSaveAnxietyLog,
+                    onClear = onClearDraft,
+                    onClose = onClose,
+                    onOpenEntry = onOpenLogEntry,
+                    onDeleteEntry = onDeleteLogEntry,
+                    onCloseEntry = onCloseLogEntry,
+                )
+            }
+            else -> {
+                GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+                    ) {
+                        Text(
+                            text = "Step ${stepIndex + 1} of ${tool.steps.size}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
-            ) {
-                OutlinedButton(
-                    onClick = onPrevious,
-                    enabled = stepIndex > 0,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Previous")
+                        AnimatedContent(
+                            targetState = currentStep ?: "",
+                            transitionSpec = {
+                                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                            },
+                            label = "tool_step",
+                        ) { step ->
+                            Text(
+                                text = step,
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
                 }
 
-                if (tool.id == ToolkitToolId.BoxBreathing && isLastStep) {
-                    Button(
-                        onClick = {
-                            onClose()
-                            onNavigateToBreathe()
-                        },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
+                ) {
+                    OutlinedButton(
+                        onClick = onPrevious,
+                        enabled = stepIndex > 0,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Open Breathe")
-                        Icon(
-                            Icons.Default.Air,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(18.dp),
-                        )
+                        Text("Previous")
                     }
-                } else {
-                    Button(
-                        onClick = if (isLastStep) onClose else onNext,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(if (isLastStep) "Done" else "Next")
-                        if (!isLastStep) {
+
+                    if (tool.id == ToolkitToolId.BoxBreathing && isLastStep) {
+                        Button(
+                            onClick = {
+                                onClose()
+                                onNavigateToBreathe()
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Open Breathe")
                             Icon(
-                                Icons.AutoMirrored.Filled.ArrowForward,
+                                Icons.Default.Air,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .padding(start = 4.dp)
                                     .size(18.dp),
                             )
                         }
+                    } else {
+                        Button(
+                            onClick = if (isLastStep) onClose else onNext,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(if (isLastStep) "Done" else "Next")
+                            if (!isLastStep) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .padding(start = 4.dp)
+                                        .size(18.dp),
+                                )
+                            }
+                        }
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThoughtDumpContent(
-    text: String,
-    onTextChange: (String) -> Unit,
-    onSave: () -> Unit,
-    onClear: () -> Unit,
-    onClose: () -> Unit,
-) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
-        ) {
-            Text(
-                text = "Write everything on your mind. No editing, no judgment.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("What's on your mind…") },
-                minLines = 8,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(onClick = onClear, modifier = Modifier.weight(1f)) {
-                    Text("Clear")
-                }
-                Button(
-                    onClick = {
-                        onSave()
-                        onClose()
-                    },
-                    modifier = Modifier.weight(1f),
-                    enabled = text.isNotBlank(),
-                ) {
-                    Text("Save & Close")
                 }
             }
         }
@@ -470,6 +477,8 @@ private fun toolIcon(id: ToolkitToolId): ImageVector = when (id) {
     ToolkitToolId.Grounding54321 -> Icons.Default.GridView
     ToolkitToolId.BoxBreathing -> Icons.Default.Air
     ToolkitToolId.MuscleRelaxation -> Icons.Default.Spa
+    ToolkitToolId.LovingKindness -> Icons.Default.Favorite
+    ToolkitToolId.AnxietyLog -> Icons.Default.EditNote
 }
 
 @Composable

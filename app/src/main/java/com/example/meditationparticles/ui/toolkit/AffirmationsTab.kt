@@ -115,37 +115,37 @@ fun AffirmationsTab(
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            Column {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "My Collection",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                text = "Your personal echoes of strength",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            state.importMessage?.let { message ->
                 Text(
-                    text = "My Collection",
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp),
                 )
-                Text(
-                    text = "Your personal echoes of strength",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                state.importMessage?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 TextButton(onClick = viewModel::showBulkImportDialog) {
-                    Text("Bulk import")
+                    Text("Bulk import", maxLines = 1)
                 }
                 TextButton(onClick = viewModel::showAddDialog) {
                     Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
-                    Text("Add New", modifier = Modifier.padding(start = 4.dp))
+                    Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
                 }
             }
         }
