@@ -15,8 +15,12 @@ class TimerPreferences(context: Context) {
         }.getOrDefault(TimerDisplayMode.Hourglass)
 
         val soundName = prefs.getString(KEY_SOUND, TimerSoundOption.None.name)
+        val normalizedSoundName = when (soundName) {
+            "Ocean" -> TimerSoundOption.Waves.name
+            else -> soundName ?: TimerSoundOption.None.name
+        }
         val sound = runCatching {
-            TimerSoundOption.valueOf(soundName ?: TimerSoundOption.None.name)
+            TimerSoundOption.valueOf(normalizedSoundName)
         }.getOrDefault(TimerSoundOption.None)
 
         return TimerPrefsSnapshot(

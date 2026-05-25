@@ -8,14 +8,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.meditationparticles.R
 
 @Composable
 fun SereneAppBanner(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = "Serene Interval",
+        text = stringResource(R.string.app_name),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
         textAlign = TextAlign.Center,

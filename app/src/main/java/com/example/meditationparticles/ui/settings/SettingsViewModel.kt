@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.export.AppDataExporter
+import com.example.meditationparticles.data.export.AppDataImporter
+import com.example.meditationparticles.data.export.ImportParseException
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
@@ -20,11 +22,16 @@ data class SettingsUiState(
     val exportMessage: String? = null,
     val exportError: String? = null,
     val pendingExportJson: String? = null,
+    val isImporting: Boolean = false,
+    val importSummary: String? = null,
+    val importError: String? = null,
+    val showImportDialog: Boolean = false,
 )
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppGraph.settings(application)
     private val exporter = AppDataExporter(application)
+    private val importer = AppDataImporter(application)
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -127,5 +134,53 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun clearExportStatus() {
         _uiState.value = _uiState.value.copy(exportMessage = null, exportError = null)
+    }
+
+    fun importFromJson(json: String) {
+        if (_uiState.value.isImporting) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isImporting = true,
+                importSummary = null,
+                importError = null,
+                showImportDialog = false,
+            )
+            runCatching {
+                importer.importFromJson(json)
+            }.onSuccess { result ->
+                _uiState.value = _uiState.value.copy(
+                    isImporting = false,
+                    importSummary = result.buildSummary(),
+                    showImportDialog = true,
+                )
+            }.onFailure { error ->
+                val message = when (error) {
+                    is ImportParseException -> error.message
+                    else -> error.message ?: "Could not import backup."
+                }
+                _uiState.value = _uiState.value.copy(
+                    isImporting = false,
+                    importError = message,
+                )
+            }
+        }
+    }
+
+    fun reportImportError(message: String) {
+        _uiState.value = _uiState.value.copy(
+            isImporting = false,
+            importError = message,
+        )
+    }
+
+    fun dismissImportDialog() {
+        _uiState.value = _uiState.value.copy(
+            showImportDialog = false,
+            importSummary = null,
+        )
+    }
+
+    fun clearImportStatus() {
+        _uiState.value = _uiState.value.copy(importError = null)
     }
 }

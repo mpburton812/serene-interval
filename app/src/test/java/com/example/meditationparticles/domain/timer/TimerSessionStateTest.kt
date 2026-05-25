@@ -21,15 +21,15 @@ class TimerSessionStateTest {
     }
 
     @Test
-    fun prepareCountdownSeconds_countsDownFromTen() {
+    fun prepareCountdownSeconds_countsDownFromFive() {
         val state = TimerSessionState(phase = TimerPhase.Prepare, prepareElapsedMs = 0L)
-        assertEquals(10, state.prepareCountdownSeconds)
-        assertEquals(5, state.copy(prepareElapsedMs = 5_500L).prepareCountdownSeconds)
+        assertEquals(5, state.prepareCountdownSeconds)
+        assertEquals(3, state.copy(prepareElapsedMs = 2_500L).prepareCountdownSeconds)
     }
 
     @Test
     fun isPrepareBeginVisible_onlyAfterCountdown() {
-        val duringCountdown = TimerSessionState(phase = TimerPhase.Prepare, prepareElapsedMs = 5_000L)
+        val duringCountdown = TimerSessionState(phase = TimerPhase.Prepare, prepareElapsedMs = 4_500L)
         assertFalse(duringCountdown.isPrepareBeginVisible)
         val duringBegin = TimerSessionState(
             phase = TimerPhase.Prepare,

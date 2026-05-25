@@ -1,8 +1,8 @@
-{
-  "versionCode": 6,
-  "versionName": "1.0.5",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/latest/download/meditation_app.apk",
-  "expectedSha256": "30e8214ebe1d12169c3c37fb65a1bf4cce17c5ee51f07e9b18b6294e2fe08a1f",
-  "releaseNotes": "• Phase 1 cleanup: remove sand test scaffold and stale template code\n• Settings: export all app data as JSON for backup\n• Updates: SHA256 verification before install; release APK renamed to meditation_app.apk\n• Keep screen on during breathing, timer, and visualization sessions\n• CI workflow for unit tests and lint on dev/test/main",
-  "minVersionCode": 1
-}
+{
+  "versionCode": 6,
+  "versionName": "1.0.5",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/latest/download/sway_meditation.apk",
+  "expectedSha256": "30e8214ebe1d12169c3c37fb65a1bf4cce17c5ee51f07e9b18b6294e2fe08a1f",
+  "releaseNotes": "• Phase 1 cleanup: remove sand test scaffold and stale template code\n• Settings: export all app data as JSON for backup\n• Updates: SHA256 verification before install; release APK renamed to meditation_app.apk\n• Keep screen on during breathing, timer, and visualization sessions\n• CI workflow for unit tests and lint on dev/test/main",
+  "minVersionCode": 1
+}

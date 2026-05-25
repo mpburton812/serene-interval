@@ -44,7 +44,7 @@ data class TimerSessionState(
         get() {
             if (phase != TimerPhase.Prepare) return 0
             val remainingMs = (TimerPrepareTiming.COUNTDOWN_MS - prepareElapsedMs).coerceAtLeast(0L)
-            return ((remainingMs + 999) / 1_000).toInt().coerceIn(1, 10)
+            return ((remainingMs + 999) / 1_000).toInt().coerceIn(1, 5)
         }
 
     val isPrepareBeginVisible: Boolean
