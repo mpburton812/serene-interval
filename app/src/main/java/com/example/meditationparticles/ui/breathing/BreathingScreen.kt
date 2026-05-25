@@ -136,9 +136,9 @@ fun BreathingScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(1f - exerciseBlend),
-                ) { _ ->
+                ) { patternId ->
                     BreathingCanvas(
-                        sessionState = state,
+                        sessionState = state.copy(pattern = BreathingPattern.byId(patternId)),
                         displayMode = BreathingCanvasDisplayMode.Preview,
                         modifier = Modifier.fillMaxSize(),
                         topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },

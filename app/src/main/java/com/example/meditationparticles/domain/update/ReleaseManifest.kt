@@ -6,6 +6,7 @@ data class ReleaseManifest(
     val apkUrl: String,
     val releaseNotes: String,
     val minVersionCode: Int,
+    val expectedSha256: String? = null,
 )
 
 enum class UpdateComparison {

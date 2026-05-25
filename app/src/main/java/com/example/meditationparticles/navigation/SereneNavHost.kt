@@ -40,6 +40,7 @@ import com.example.meditationparticles.ui.breathing.BreathingScreen
 import com.example.meditationparticles.ui.components.BottomNavItem
 import com.example.meditationparticles.ui.components.BuildInfoFooter
 import com.example.meditationparticles.ui.components.SereneAppBanner
+import com.example.meditationparticles.ui.components.KeepScreenOnEffect
 import com.example.meditationparticles.ui.components.SereneBottomBar
 import com.example.meditationparticles.ui.home.FutureSelfNotificationOverlay
 import com.example.meditationparticles.ui.home.HomeScreen
@@ -79,6 +80,8 @@ fun SereneNavHost(
     val currentRoute = backStackEntry?.destination?.route
     val settings = LocalExperienceSettings.current
     var breathingSessionActive by remember { mutableStateOf(false) }
+    var timerSessionActive by remember { mutableStateOf(false) }
+    var visualizationPlayerActive by remember { mutableStateOf(false) }
     var activeFutureSelfMessageId by remember { mutableStateOf<Long?>(null) }
     var toolkitResetSignal by remember { mutableIntStateOf(0) }
 
@@ -99,7 +102,17 @@ fun SereneNavHost(
         if (currentRoute != SereneDestination.Breathe.route) {
             breathingSessionActive = false
         }
+        if (currentRoute != SereneDestination.Timer.route) {
+            timerSessionActive = false
+        }
+        if (currentRoute?.startsWith("visualizations/player") != true) {
+            visualizationPlayerActive = false
+        }
     }
+
+    KeepScreenOnEffect(
+        active = breathingSessionActive || timerSessionActive || visualizationPlayerActive,
+    )
 
     val bottomNavItems = remember(
         settings.enableBreathing,
@@ -270,7 +283,11 @@ fun SereneNavHost(
                 )
             }
             composable(SereneDestination.Timer.route) {
-                TimerScreen()
+                TimerScreen(
+                    onSessionActiveChange = { active ->
+                        timerSessionActive = active
+                    },
+                )
             }
             composable(SereneDestination.Affirmations.route) {
                 AffirmationsScreen()
@@ -328,6 +345,9 @@ fun SereneNavHost(
                     VisualizationPlayerScreen(
                         visualization = visualization,
                         onClose = { navController.popBackStack() },
+                        onPlayerActiveChange = { active ->
+                            visualizationPlayerActive = active
+                        },
                     )
                 }
             }

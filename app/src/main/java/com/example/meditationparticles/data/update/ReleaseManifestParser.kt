@@ -12,6 +12,7 @@ object ReleaseManifestParser {
             apkUrl = root.getString("apkUrl"),
             releaseNotes = root.optString("releaseNotes", ""),
             minVersionCode = root.optInt("minVersionCode", root.getInt("versionCode")),
+            expectedSha256 = root.optString("expectedSha256").takeIf { it.isNotBlank() },
         )
     }
 }

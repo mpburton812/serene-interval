@@ -4,15 +4,30 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+data class SettingsUiState(
+    val isExporting: Boolean = false,
+    val exportMessage: String? = null,
+    val exportError: String? = null,
+    val pendingExportJson: String? = null,
+)
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppGraph.settings(application)
+    private val exporter = AppDataExporter(application)
+
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     val settings: StateFlow<ExperienceSettings> = preferences.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperienceSettings())
@@ -73,5 +88,44 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun resetOnboarding() {
         preferences.update { it.copy(onboardingCompleted = false) }
+    }
+
+    fun prepareExport() {
+        if (_uiState.value.isExporting) return
+        viewModelScope.launch {
+            _uiState.value = SettingsUiState(isExporting = true)
+            runCatching {
+                exporter.buildExportJson()
+            }.onSuccess { json ->
+                _uiState.value = SettingsUiState(pendingExportJson = json)
+            }.onFailure { error ->
+                _uiState.value = SettingsUiState(
+                    exportError = error.message ?: "Could not prepare export.",
+                )
+            }
+        }
+    }
+
+    fun clearPendingExport() {
+        _uiState.value = _uiState.value.copy(pendingExportJson = null)
+    }
+
+    fun onExportFinished(success: Boolean, message: String? = null) {
+        _uiState.value = SettingsUiState(
+            exportMessage = if (success) {
+                message ?: "Export saved."
+            } else {
+                null
+            },
+            exportError = if (success) {
+                null
+            } else {
+                message ?: "Could not save export."
+            },
+        )
+    }
+
+    fun clearExportStatus() {
+        _uiState.value = _uiState.value.copy(exportMessage = null, exportError = null)
     }
 }

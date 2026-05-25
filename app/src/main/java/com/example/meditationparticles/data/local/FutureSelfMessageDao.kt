@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FutureSelfMessageDao {
     @Query("SELECT * FROM future_self_messages ORDER BY scheduledAtMillis ASC")
+    suspend fun getAll(): List<FutureSelfMessageEntity>
+
+    @Query("SELECT * FROM future_self_messages ORDER BY scheduledAtMillis ASC")
     fun observeAll(): Flow<List<FutureSelfMessageEntity>>
 
     @Query("SELECT * FROM future_self_messages WHERE id = :id")
