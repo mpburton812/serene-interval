@@ -10,24 +10,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import com.example.meditationparticles.ui.theme.GlassBorder
-import com.example.meditationparticles.ui.theme.GlassTube
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import android.graphics.BitmapFactory
+import com.example.meditationparticles.R
 import com.example.meditationparticles.ui.theme.SerenePrimaryContainer
 import com.example.meditationparticles.ui.theme.SereneSecondaryContainer
 import com.example.meditationparticles.ui.theme.SereneTertiary
 import kotlinx.coroutines.isActive
+import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -36,8 +44,6 @@ private data class HourglassGeometry(
     val bottomBulb: Path,
     val neckRect: Rect,
     val neckCenter: Offset,
-    val frameTop: Rect,
-    val frameBottom: Rect,
     val sandColor: Color,
     val bulbH: Float,
 )
@@ -49,12 +55,6 @@ private data class FallingGrain(
     var speed: Float,
 )
 
-private val FrameWoodDark = Color(0xFF3D2E1F)
-private val FrameWoodMid = Color(0xFF6B4E2E)
-private val FrameWoodLight = Color(0xFF9A7348)
-private val FrameWoodHighlight = Color(0xFFC4A06A)
-private val NeckMetalDark = Color(0xFF4A5258)
-private val NeckMetalLight = Color(0xFFB8C4CC)
 private val SandDeep = Color(0xFFC47A2A)
 private val SandMid = Color(0xFFE8A84C)
 private val SandHighlight = Color(0xFFF5D08A)
@@ -76,6 +76,12 @@ fun HourglassCanvas(
             )
         }
     }
+    val context = LocalContext.current
+    val backPainter = painterResource(R.drawable.hourglass_back)
+    val frontPainter = painterResource(R.drawable.hourglass_front)
+    val maskBitmap = remember {
+        BitmapFactory.decodeResource(context.resources, R.drawable.hourglass_mask).asImageBitmap()
+    }
 
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -88,85 +94,102 @@ fun HourglassCanvas(
     Canvas(modifier = modifier.fillMaxSize()) {
         if (size.width <= 0f || size.height <= 0f) return@Canvas
 
-        val cx = size.width / 2f
-        val maxW = size.width * 0.58f
-        val maxH = size.height * 0.82f
-        val frameH = maxW * 0.09f
-        val bulbH = maxH * 0.40f
-        val neckW = maxW * 0.11f
-        val neckH = maxH * 0.07f
-        val top = (size.height - maxH) / 2f + frameH * 0.35f
-
-        val geometry = buildHourglassGeometry(
-            cx = cx,
-            top = top,
-            bulbW = maxW,
-            bulbH = bulbH,
-            neckW = neckW,
-            neckH = neckH,
-            frameH = frameH,
+        val fitRect = computeContentScaleFitRect(
+            srcWidth = maskBitmap.width.toFloat(),
+            srcHeight = maskBitmap.height.toFloat(),
+            dstWidth = size.width,
+            dstHeight = size.height,
         )
+        if (fitRect.width <= 0f || fitRect.height <= 0f) return@Canvas
 
-        drawHourglassShadow(cx, top + maxH * 0.92f, maxW)
+        val geometry = buildSandGeometry(fitRect.width, fitRect.height)
 
-        drawAtmosphericGlow(cx, top + maxH / 2f)
+        drawHourglassShadow(fitRect.center.x, fitRect.bottom - fitRect.height * 0.04f, fitRect.width)
+        drawAtmosphericGlow(fitRect.center.x, fitRect.center.y)
 
-        drawWoodFrame(geometry.frameTop)
-        drawWoodFrame(geometry.frameBottom)
-
-        drawPhotoGlassInterior(geometry.topBulb)
-        drawPhotoGlassInterior(geometry.bottomBulb)
-
-        val fill = progress.coerceIn(0f, 1f)
-        val topFill = (1f - fill).coerceIn(0f, 1f)
-        val bottomFill = fill.coerceIn(0f, 1f)
-
-        clipPath(geometry.topBulb) {
-            drawSandPile(
-                bulbPath = geometry.topBulb,
-                fillRatio = topFill,
-                pileFromBottom = true,
-                sandColor = geometry.sandColor,
-            )
-        }
-
-        clipPath(geometry.bottomBulb) {
-            drawSandPile(
-                bulbPath = geometry.bottomBulb,
-                fillRatio = bottomFill,
-                pileFromBottom = true,
-                sandColor = geometry.sandColor,
-            )
-        }
-
-        drawPhotoNeck(geometry.neckRect, neckW)
-
-        if (isRunning && fill < 0.99f && topFill > 0.02f) {
-            grains.forEachIndexed { index, grain ->
-                if (grain.y <= 0f || grain.y >= geometry.neckRect.bottom + bulbH) {
-                    grain.x = geometry.neckCenter.x + sin(timeMs / 160f + index * 0.7f) * neckW * 0.12f
-                    grain.y = geometry.neckRect.top - grain.size
-                    grain.speed = Random.nextFloat() * 2.5f + 2.8f
-                }
-                grain.y += grain.speed
-                drawFallingGrain(Offset(grain.x, grain.y), grain.size, geometry.sandColor)
+        withTransform({ translate(fitRect.left, fitRect.top) }) {
+            with(backPainter) {
+                draw(size = fitRect.size)
             }
         }
 
-        drawPhotoGlassShell(geometry.topBulb)
-        drawPhotoGlassShell(geometry.bottomBulb)
+        drawContext.canvas.saveLayer(fitRect, Paint())
+        withTransform({ translate(fitRect.left, fitRect.top) }) {
+            val fill = progress.coerceIn(0f, 1f)
+            val topFill = (1f - fill).coerceIn(0f, 1f)
+            val bottomFill = fill.coerceIn(0f, 1f)
+
+            clipPath(geometry.topBulb) {
+                drawSandPile(
+                    bulbPath = geometry.topBulb,
+                    fillRatio = topFill,
+                    pileFromBottom = true,
+                    sandColor = geometry.sandColor,
+                )
+            }
+
+            clipPath(geometry.bottomBulb) {
+                drawSandPile(
+                    bulbPath = geometry.bottomBulb,
+                    fillRatio = bottomFill,
+                    pileFromBottom = true,
+                    sandColor = geometry.sandColor,
+                )
+            }
+
+            if (isRunning && fill < 0.99f && topFill > 0.02f) {
+                grains.forEachIndexed { index, grain ->
+                    if (grain.y <= 0f || grain.y >= geometry.neckRect.bottom + geometry.bulbH) {
+                        grain.x = geometry.neckCenter.x +
+                            sin(timeMs / 160f + index * 0.7f) * geometry.neckRect.width * 0.12f
+                        grain.y = geometry.neckRect.top - grain.size
+                        grain.speed = Random.nextFloat() * 2.5f + 2.8f
+                    }
+                    grain.y += grain.speed
+                    drawFallingGrain(Offset(grain.x, grain.y), grain.size, geometry.sandColor)
+                }
+            }
+        }
+        drawImage(
+            image = maskBitmap,
+            dstOffset = IntOffset(fitRect.left.roundToInt(), fitRect.top.roundToInt()),
+            dstSize = IntSize(fitRect.width.roundToInt(), fitRect.height.roundToInt()),
+            blendMode = BlendMode.DstIn,
+        )
+        drawContext.canvas.restore()
+
+        withTransform({ translate(fitRect.left, fitRect.top) }) {
+            with(frontPainter) {
+                draw(size = fitRect.size)
+            }
+        }
     }
 }
 
-private fun buildHourglassGeometry(
-    cx: Float,
-    top: Float,
-    bulbW: Float,
-    bulbH: Float,
-    neckW: Float,
-    neckH: Float,
-    frameH: Float,
-): HourglassGeometry {
+private fun computeContentScaleFitRect(
+    srcWidth: Float,
+    srcHeight: Float,
+    dstWidth: Float,
+    dstHeight: Float,
+): Rect {
+    if (srcWidth <= 0f || srcHeight <= 0f) return Rect.Zero
+    val scale = min(dstWidth / srcWidth, dstHeight / srcHeight)
+    val width = srcWidth * scale
+    val height = srcHeight * scale
+    val left = (dstWidth - width) / 2f
+    val top = (dstHeight - height) / 2f
+    return Rect(left, top, left + width, top + height)
+}
+
+private fun buildSandGeometry(imageWidth: Float, imageHeight: Float): HourglassGeometry {
+    val cx = imageWidth / 2f
+    val bulbW = imageWidth * 0.72f
+    val frameInset = imageHeight * 0.07f
+    val bulbH = imageHeight * 0.36f
+    val neckW = imageWidth * 0.14f
+    val neckH = imageHeight * 0.06f
+    val top = frameInset * 0.85f
+
     val topBulb = bulbPath(
         left = cx - bulbW / 2f,
         top = top,
@@ -188,24 +211,11 @@ private fun buildHourglassGeometry(
         right = cx + neckW / 2f,
         bottom = top + bulbH + neckH,
     )
-    val frameW = bulbW * 1.08f
     return HourglassGeometry(
         topBulb = topBulb,
         bottomBulb = bottomBulb,
         neckRect = neckRect,
         neckCenter = Offset(cx, neckRect.center.y),
-        frameTop = Rect(
-            left = cx - frameW / 2f,
-            top = top - frameH * 0.55f,
-            right = cx + frameW / 2f,
-            bottom = top + frameH * 0.45f,
-        ),
-        frameBottom = Rect(
-            left = cx - frameW / 2f,
-            top = bottomTop + bulbH - frameH * 0.45f,
-            right = cx + frameW / 2f,
-            bottom = bottomTop + bulbH + frameH * 0.55f,
-        ),
         sandColor = SereneTertiary,
         bulbH = bulbH,
     )
@@ -240,7 +250,7 @@ private fun bulbPath(
 private fun DrawScope.drawHourglassShadow(cx: Float, baseY: Float, width: Float) {
     drawOval(
         brush = Brush.radialGradient(
-            colors = listOf(Color.Black.copy(alpha = 0.32f), Color.Transparent),
+            colors = listOf(Color.Black.copy(alpha = 0.28f), Color.Transparent),
             center = Offset(cx, baseY),
             radius = width * 0.55f,
         ),
@@ -253,163 +263,15 @@ private fun DrawScope.drawAtmosphericGlow(cx: Float, cy: Float) {
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                SereneSecondaryContainer.copy(alpha = 0.22f),
-                SerenePrimaryContainer.copy(alpha = 0.08f),
+                SereneSecondaryContainer.copy(alpha = 0.18f),
+                SerenePrimaryContainer.copy(alpha = 0.06f),
                 Color.Transparent,
             ),
             center = Offset(cx, cy),
-            radius = size.width * 0.48f,
+            radius = size.width * 0.42f,
         ),
-        radius = size.width * 0.48f,
+        radius = size.width * 0.42f,
         center = Offset(cx, cy),
-    )
-}
-
-private fun DrawScope.drawWoodFrame(frame: Rect) {
-    drawRoundRect(
-        brush = Brush.verticalGradient(
-            colors = listOf(FrameWoodHighlight, FrameWoodMid, FrameWoodDark),
-            startY = frame.top,
-            endY = frame.bottom,
-        ),
-        topLeft = frame.topLeft,
-        size = frame.size,
-        cornerRadius = CornerRadius(frame.height * 0.22f),
-    )
-    drawRoundRect(
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.28f),
-                Color.Transparent,
-                Color.Black.copy(alpha = 0.18f),
-            ),
-            start = Offset(frame.left, frame.top),
-            end = Offset(frame.right, frame.bottom),
-        ),
-        topLeft = frame.topLeft,
-        size = frame.size,
-        cornerRadius = CornerRadius(frame.height * 0.22f),
-    )
-    drawRoundRect(
-        color = FrameWoodDark.copy(alpha = 0.55f),
-        topLeft = frame.topLeft,
-        size = frame.size,
-        cornerRadius = CornerRadius(frame.height * 0.22f),
-        style = Stroke(width = 1.5f),
-    )
-    val inset = frame.height * 0.18f
-    drawLine(
-        color = FrameWoodLight.copy(alpha = 0.45f),
-        start = Offset(frame.left + inset, frame.top + inset * 0.6f),
-        end = Offset(frame.right - inset, frame.top + inset * 0.6f),
-        strokeWidth = 1.2f,
-        cap = StrokeCap.Round,
-    )
-}
-
-private fun DrawScope.drawPhotoGlassInterior(path: Path) {
-    val bounds = path.getBounds()
-    clipPath(path) {
-        drawPath(
-            path = path,
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFF0A1218).copy(alpha = 0.62f),
-                    Color(0xFF152028).copy(alpha = 0.38f),
-                    Color(0xFF243038).copy(alpha = 0.15f),
-                ),
-                center = Offset(bounds.center.x, bounds.center.y + bounds.height * 0.12f),
-                radius = bounds.width * 0.72f,
-            ),
-        )
-    }
-}
-
-private fun DrawScope.drawPhotoGlassShell(path: Path) {
-    val bounds = path.getBounds()
-    val cx = bounds.center.x
-    val cy = bounds.center.y
-
-    drawPath(
-        path = path,
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.42f),
-                GlassTube.copy(alpha = 0.18f),
-                Color.White.copy(alpha = 0.08f),
-                GlassTube.copy(alpha = 0.28f),
-                Color.White.copy(alpha = 0.22f),
-            ),
-            start = Offset(bounds.left, bounds.top),
-            end = Offset(bounds.right, bounds.bottom),
-        ),
-        alpha = 0.75f,
-    )
-
-    drawPath(
-        path = path,
-        brush = Brush.radialGradient(
-            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.35f)),
-            center = Offset(cx, cy),
-            radius = bounds.width * 0.55f,
-        ),
-        alpha = 0.85f,
-    )
-
-    drawPath(
-        path = path,
-        color = GlassBorder.copy(alpha = 0.65f),
-        style = Stroke(width = 2.8f),
-    )
-
-    drawArc(
-        color = Color.White.copy(alpha = 0.58f),
-        startAngle = 205f,
-        sweepAngle = 72f,
-        useCenter = false,
-        topLeft = Offset(bounds.left + bounds.width * 0.1f, bounds.top + bounds.height * 0.12f),
-        size = Size(bounds.width * 0.32f, bounds.height * 0.42f),
-        style = Stroke(width = 3.2f, cap = StrokeCap.Round),
-    )
-
-    drawCircle(
-        color = Color.White.copy(alpha = 0.48f),
-        radius = bounds.width * 0.028f,
-        center = Offset(bounds.left + bounds.width * 0.28f, bounds.top + bounds.height * 0.22f),
-    )
-
-    drawLine(
-        color = Color.White.copy(alpha = 0.15f),
-        start = Offset(bounds.right - bounds.width * 0.12f, bounds.top + bounds.height * 0.18f),
-        end = Offset(bounds.right - bounds.width * 0.08f, bounds.bottom - bounds.height * 0.15f),
-        strokeWidth = 1.5f,
-        cap = StrokeCap.Round,
-    )
-}
-
-private fun DrawScope.drawPhotoNeck(neckRect: Rect, neckW: Float) {
-    drawRoundRect(
-        brush = Brush.linearGradient(
-            colors = listOf(NeckMetalLight, NeckMetalDark, NeckMetalLight),
-            start = Offset(neckRect.left, neckRect.center.y),
-            end = Offset(neckRect.right, neckRect.center.y),
-        ),
-        topLeft = neckRect.topLeft,
-        size = neckRect.size,
-        cornerRadius = CornerRadius(neckW / 2f),
-    )
-    drawRoundRect(
-        color = Color.White.copy(alpha = 0.35f),
-        topLeft = Offset(neckRect.left + 1f, neckRect.top + 1f),
-        size = Size(neckRect.width - 2f, neckRect.height * 0.35f),
-        cornerRadius = CornerRadius(neckW / 2f),
-    )
-    drawRoundRect(
-        color = GlassBorder.copy(alpha = 0.5f),
-        topLeft = neckRect.topLeft,
-        size = neckRect.size,
-        cornerRadius = CornerRadius(neckW / 2f),
-        style = Stroke(width = 1.8f),
     )
 }
 
