@@ -39,6 +39,7 @@ import com.example.meditationparticles.ui.breathing.BreathingScreen
 import com.example.meditationparticles.ui.components.BottomNavItem
 import com.example.meditationparticles.ui.components.BuildInfoFooter
 import com.example.meditationparticles.ui.components.SereneBottomBar
+import com.example.meditationparticles.ui.home.FutureSelfNotificationOverlay
 import com.example.meditationparticles.ui.home.HomeScreen
 import com.example.meditationparticles.ui.onboarding.OnboardingScreen
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
@@ -68,6 +69,7 @@ private val allBottomNavItems = listOf(
 fun SereneNavHost(
     updateViewModel: UpdateViewModel,
     pendingNavigation: PendingToolkitNavigation? = null,
+    pendingFutureSelfMessageId: Long? = null,
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -75,6 +77,20 @@ fun SereneNavHost(
     val currentRoute = backStackEntry?.destination?.route
     val settings = LocalExperienceSettings.current
     var breathingSessionActive by remember { mutableStateOf(false) }
+    var activeFutureSelfMessageId by remember { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(pendingFutureSelfMessageId, settings.onboardingCompleted) {
+        val messageId = pendingFutureSelfMessageId ?: return@LaunchedEffect
+        if (!settings.onboardingCompleted) return@LaunchedEffect
+        navController.navigate(SereneDestination.Home.route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+        activeFutureSelfMessageId = messageId
+    }
 
     LaunchedEffect(currentRoute) {
         if (currentRoute != SereneDestination.Breathe.route) {
@@ -119,6 +135,7 @@ fun SereneNavHost(
     LaunchedEffect(pendingNavigation, settings.onboardingCompleted) {
         val navigation = pendingNavigation ?: return@LaunchedEffect
         if (!settings.onboardingCompleted) return@LaunchedEffect
+        if (navigation.toolkitTab == null && navigation.toolId == null) return@LaunchedEffect
         val route = when (navigation.toolkitTab) {
             ToolkitTab.AFFIRMATIONS -> {
                 if (settings.enableAffirmations) {
@@ -291,6 +308,13 @@ fun SereneNavHost(
                 }
             }
         }
+            activeFutureSelfMessageId?.let { messageId ->
+                FutureSelfNotificationOverlay(
+                    messageId = messageId,
+                    onDismiss = { activeFutureSelfMessageId = null },
+                    onDeleted = { activeFutureSelfMessageId = null },
+                )
+            }
         }
     }
 }

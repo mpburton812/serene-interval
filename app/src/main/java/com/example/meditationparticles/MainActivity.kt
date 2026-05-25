@@ -19,18 +19,20 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val pendingNavigationState = mutableStateOf<PendingToolkitNavigation?>(null)
+    private val pendingFutureSelfMessageId = mutableStateOf<Long?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        consumeToolkitNavigation(intent)
+        consumeNavigationIntent(intent)
         deliverOverdueFutureSelfMessages()
         setContent {
             val updateViewModel: UpdateViewModel = viewModel()
             SereneApp(
                 updateViewModel = updateViewModel,
                 pendingNavigation = pendingNavigationState.value,
+                pendingFutureSelfMessageId = pendingFutureSelfMessageId.value,
             )
         }
     }
@@ -38,11 +40,25 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        consumeToolkitNavigation(intent)
+        consumeNavigationIntent(intent)
     }
 
-    private fun consumeToolkitNavigation(intent: Intent) {
-        pendingNavigationState.value = intent.toPendingToolkitNavigation()
+    private fun consumeNavigationIntent(intent: Intent) {
+        val navigation = intent.toPendingToolkitNavigation()
+        val isFutureSelfNotificationOnly = navigation.futureSelfMessageId != null &&
+            navigation.toolkitTab == null &&
+            navigation.toolId == null
+
+        if (isFutureSelfNotificationOnly) {
+            pendingFutureSelfMessageId.value = navigation.futureSelfMessageId
+            pendingNavigationState.value = null
+        } else if (navigation.toolkitTab != null || navigation.toolId != null) {
+            pendingNavigationState.value = navigation
+            pendingFutureSelfMessageId.value = null
+        } else {
+            pendingNavigationState.value = null
+            pendingFutureSelfMessageId.value = null
+        }
         intent.clearToolkitNavigationExtras()
     }
 

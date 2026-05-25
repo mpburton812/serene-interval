@@ -23,6 +23,7 @@ import com.example.meditationparticles.ui.update.UpdateViewModel
 fun SereneApp(
     updateViewModel: UpdateViewModel,
     pendingNavigation: PendingToolkitNavigation? = null,
+    pendingFutureSelfMessageId: Long? = null,
 ) {
     val context = LocalContext.current
     val settingsPreferences = remember { AppGraph.settings(context) }
@@ -44,6 +45,7 @@ fun SereneApp(
                 SereneNavHost(
                     updateViewModel = updateViewModel,
                     pendingNavigation = pendingNavigation,
+                    pendingFutureSelfMessageId = pendingFutureSelfMessageId,
                 )
             }
         }

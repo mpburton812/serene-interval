@@ -14,8 +14,6 @@ import com.example.meditationparticles.R
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.navigation.NavigationIntentExtras
 import com.example.meditationparticles.permissions.SchedulingPermissions
-import com.example.meditationparticles.navigation.SereneDestination
-import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import kotlinx.coroutines.runBlocking
 
 class FutureSelfMessageReceiver : BroadcastReceiver() {
@@ -47,11 +45,6 @@ class FutureSelfMessageReceiver : BroadcastReceiver() {
 
             val openIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra(NavigationIntentExtras.OPEN_TOOLKIT_TAB, SereneDestination.ToolkitTab.TOOLKIT)
-                putExtra(
-                    NavigationIntentExtras.OPEN_TOOLKIT_TOOL_ID,
-                    ToolkitToolId.FutureSelfMessage.name,
-                )
                 putExtra(NavigationIntentExtras.FUTURE_SELF_MESSAGE_ID, messageId)
             }
             val pending = PendingIntent.getActivity(
