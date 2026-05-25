@@ -37,6 +37,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -127,47 +128,83 @@ fun AffirmationsTab(
                 affirmation = state.currentAffirmation,
                 onNext = viewModel::nextAffirmation,
             )
-        }
 
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "My Collection",
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Text(
-                text = "Your personal echoes of strength",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            state.importMessage?.let { message ->
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp),
+                    text = "My Collection",
+                    style = MaterialTheme.typography.headlineMedium,
                 )
+                Text(
+                    text = "Your personal echoes of strength",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                state.importMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
-        }
 
-        if (state.affirmations.isEmpty()) {
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
+            if (state.affirmations.isEmpty()) {
+                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "No affirmations yet. Add your first one.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(24.dp),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
+                    state.affirmations.forEach { affirmation ->
+                        AffirmationCollectionCard(
+                            affirmation = affirmation,
+                            onFavorite = { viewModel.toggleFavorite(affirmation) },
+                            onEdit = { viewModel.showEditDialog(affirmation) },
+                            onDelete = { viewModel.deleteAffirmation(affirmation) },
+                        )
+                    }
+                }
+            }
+        } else {
+            if (state.affirmations.isEmpty()) {
                 Text(
                     text = "No affirmations yet. Add your first one.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
                     textAlign = TextAlign.Center,
                 )
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
-                state.affirmations.forEach { affirmation ->
-                    AffirmationCollectionCard(
-                        affirmation = affirmation,
-                        onFavorite = { viewModel.toggleFavorite(affirmation) },
-                        onEdit = { viewModel.showEditDialog(affirmation) },
-                        onDelete = { viewModel.deleteAffirmation(affirmation) },
-                    )
+            } else {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    state.importMessage?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
+                    state.affirmations.forEachIndexed { index, affirmation ->
+                        AffirmationListRow(
+                            affirmation = affirmation,
+                            onFavorite = { viewModel.toggleFavorite(affirmation) },
+                            onEdit = { viewModel.showEditDialog(affirmation) },
+                            onDelete = { viewModel.deleteAffirmation(affirmation) },
+                        )
+                        if (index < state.affirmations.lastIndex) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -305,6 +342,54 @@ private fun AffirmationHeroCard(
                         .size(18.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun AffirmationListRow(
+    affirmation: AffirmationEntity,
+    onFavorite: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = affirmation.text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = formatSavedAgo(affirmation.createdAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        IconButton(onClick = onFavorite) {
+            Icon(
+                imageVector = if (affirmation.isFavorite) {
+                    Icons.Default.Favorite
+                } else {
+                    Icons.Outlined.FavoriteBorder
+                },
+                contentDescription = "Favorite",
+                tint = if (affirmation.isFavorite) SereneTertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onEdit) {
+            Icon(Icons.Default.Edit, contentDescription = "Edit")
+        }
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete")
         }
     }
 }

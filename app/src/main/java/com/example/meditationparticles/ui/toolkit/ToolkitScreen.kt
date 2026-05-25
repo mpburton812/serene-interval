@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -21,11 +22,18 @@ import com.example.meditationparticles.ui.theme.SereneSpacing
 @Composable
 fun ToolkitScreen(
     pendingNavigation: PendingToolkitNavigation? = null,
+    resetSignal: Int = 0,
     onNavigateToBreathe: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ToolkitViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(resetSignal) {
+        if (resetSignal > 0) {
+            viewModel.closeTool()
+        }
+    }
 
     Column(
         modifier = modifier
