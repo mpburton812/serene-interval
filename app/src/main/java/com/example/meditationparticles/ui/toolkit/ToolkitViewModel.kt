@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
@@ -42,6 +43,19 @@ data class ToolkitUiState(
     val futureSelfEntries: List<FutureSelfMessageEntity> = emptyList(),
     val editingFutureSelfId: Long? = null,
     val openedFutureSelfEntry: FutureSelfMessageEntity? = null,
+    val refactoringStepIndex: Int = 0,
+    val refactoringInterpretation: String = "",
+    val refactoringActualFacts: String = "",
+    val refactoringExplanation1: String = "",
+    val refactoringExplanation2: String = "",
+    val refactoringExplanation3: String = "",
+    val refactoringInterpretationAudio: String? = null,
+    val refactoringActualFactsAudio: String? = null,
+    val refactoringExplanation1Audio: String? = null,
+    val refactoringExplanation2Audio: String? = null,
+    val refactoringExplanation3Audio: String? = null,
+    val refactoringEntries: List<RefactoringEntryEntity> = emptyList(),
+    val openedRefactoringEntry: RefactoringEntryEntity? = null,
     val randomToolState: RandomToolState = RandomToolState.Idle,
     val randomSelectedTool: ToolkitTool? = null,
 ) {
@@ -55,6 +69,7 @@ data class ToolkitUiState(
 class ToolkitViewModel(application: Application) : AndroidViewModel(application) {
     private val logRepository = AppGraph.thoughtDumps(application)
     private val futureSelfRepository = AppGraph.futureSelfMessages(application)
+    private val refactoringRepository = AppGraph.refactoringEntries(application)
     private val toolkitPreferences = AppGraph.toolkit(application)
     private val settingsPreferences = AppGraph.settings(application)
     private val appContext = application.applicationContext
@@ -84,6 +99,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             futureSelfRepository.observeAll().collect { entries ->
                 _uiState.update { it.copy(futureSelfEntries = entries) }
+            }
+        }
+        viewModelScope.launch {
+            refactoringRepository.observeAll().collect { entries ->
+                _uiState.update { it.copy(refactoringEntries = entries) }
             }
         }
     }
@@ -149,6 +169,18 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
                 editingFutureSelfId = null,
                 openedFutureSelfEntry = null,
+                refactoringStepIndex = 0,
+                refactoringInterpretation = "",
+                refactoringActualFacts = "",
+                refactoringExplanation1 = "",
+                refactoringExplanation2 = "",
+                refactoringExplanation3 = "",
+                refactoringInterpretationAudio = null,
+                refactoringActualFactsAudio = null,
+                refactoringExplanation1Audio = null,
+                refactoringExplanation2Audio = null,
+                refactoringExplanation3Audio = null,
+                openedRefactoringEntry = null,
             )
         }
     }
@@ -197,6 +229,18 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
                 editingFutureSelfId = null,
                 openedFutureSelfEntry = null,
+                refactoringStepIndex = 0,
+                refactoringInterpretation = "",
+                refactoringActualFacts = "",
+                refactoringExplanation1 = "",
+                refactoringExplanation2 = "",
+                refactoringExplanation3 = "",
+                refactoringInterpretationAudio = null,
+                refactoringActualFactsAudio = null,
+                refactoringExplanation1Audio = null,
+                refactoringExplanation2Audio = null,
+                refactoringExplanation3Audio = null,
+                openedRefactoringEntry = null,
             )
         }
     }
@@ -228,6 +272,180 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateFutureSelfScheduledAt(millis: Long) {
         _uiState.update { it.copy(futureSelfScheduledAtMillis = millis) }
+    }
+
+    fun updateRefactoringInterpretation(text: String) {
+        _uiState.update { it.copy(refactoringInterpretation = text) }
+    }
+
+    fun updateRefactoringActualFacts(text: String) {
+        _uiState.update { it.copy(refactoringActualFacts = text) }
+    }
+
+    fun updateRefactoringExplanation1(text: String) {
+        _uiState.update { it.copy(refactoringExplanation1 = text) }
+    }
+
+    fun updateRefactoringExplanation2(text: String) {
+        _uiState.update { it.copy(refactoringExplanation2 = text) }
+    }
+
+    fun updateRefactoringExplanation3(text: String) {
+        _uiState.update { it.copy(refactoringExplanation3 = text) }
+    }
+
+    fun appendToRefactoringField(target: RefactoringSpeechTarget, text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
+        _uiState.update { state ->
+            when (target) {
+                RefactoringSpeechTarget.Interpretation -> {
+                    val current = state.refactoringInterpretation
+                    val separator = if (current.isBlank()) "" else " "
+                    state.copy(refactoringInterpretation = current + separator + trimmed)
+                }
+                RefactoringSpeechTarget.ActualFacts -> {
+                    val current = state.refactoringActualFacts
+                    val separator = if (current.isBlank()) "" else " "
+                    state.copy(refactoringActualFacts = current + separator + trimmed)
+                }
+                RefactoringSpeechTarget.Explanation1 -> {
+                    val current = state.refactoringExplanation1
+                    val separator = if (current.isBlank()) "" else " "
+                    state.copy(refactoringExplanation1 = current + separator + trimmed)
+                }
+                RefactoringSpeechTarget.Explanation2 -> {
+                    val current = state.refactoringExplanation2
+                    val separator = if (current.isBlank()) "" else " "
+                    state.copy(refactoringExplanation2 = current + separator + trimmed)
+                }
+                RefactoringSpeechTarget.Explanation3 -> {
+                    val current = state.refactoringExplanation3
+                    val separator = if (current.isBlank()) "" else " "
+                    state.copy(refactoringExplanation3 = current + separator + trimmed)
+                }
+            }
+        }
+    }
+
+    fun nextRefactoringStep() {
+        commitPendingRefactoringAudio()
+        if (_uiState.value.refactoringStepIndex < 2) {
+            _uiState.update { it.copy(refactoringStepIndex = it.refactoringStepIndex + 1) }
+        }
+    }
+
+    fun previousRefactoringStep() {
+        commitPendingRefactoringAudio()
+        if (_uiState.value.refactoringStepIndex > 0) {
+            _uiState.update { it.copy(refactoringStepIndex = it.refactoringStepIndex - 1) }
+        }
+    }
+
+    private fun commitPendingRefactoringAudio() {
+        val state = _uiState.value
+        val pending = state.pendingAudioPath ?: return
+        _uiState.update {
+            when (state.refactoringStepIndex) {
+                0 -> it.copy(
+                    refactoringInterpretationAudio = pending,
+                    pendingAudioPath = null,
+                )
+                1 -> it.copy(
+                    refactoringActualFactsAudio = pending,
+                    pendingAudioPath = null,
+                )
+                else -> {
+                    when {
+                        state.refactoringExplanation1Audio == null -> it.copy(
+                            refactoringExplanation1Audio = pending,
+                            pendingAudioPath = null,
+                        )
+                        state.refactoringExplanation2Audio == null -> it.copy(
+                            refactoringExplanation2Audio = pending,
+                            pendingAudioPath = null,
+                        )
+                        else -> it.copy(
+                            refactoringExplanation3Audio = pending,
+                            pendingAudioPath = null,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun saveRefactoringEntry() {
+        viewModelScope.launch {
+            commitPendingRefactoringAudio()
+            val state = _uiState.value
+            refactoringRepository.save(
+                RefactoringEntryEntity(
+                    interpretation = state.refactoringInterpretation.trim(),
+                    interpretationAudioPath = state.refactoringInterpretationAudio,
+                    actualFacts = state.refactoringActualFacts.trim(),
+                    actualFactsAudioPath = state.refactoringActualFactsAudio,
+                    explanation1 = state.refactoringExplanation1.trim(),
+                    explanation1AudioPath = state.refactoringExplanation1Audio,
+                    explanation2 = state.refactoringExplanation2.trim(),
+                    explanation2AudioPath = state.refactoringExplanation2Audio,
+                    explanation3 = state.refactoringExplanation3.trim(),
+                    explanation3AudioPath = state.refactoringExplanation3Audio,
+                ),
+            )
+            _uiState.update {
+                it.copy(
+                    refactoringStepIndex = 0,
+                    refactoringInterpretation = "",
+                    refactoringActualFacts = "",
+                    refactoringExplanation1 = "",
+                    refactoringExplanation2 = "",
+                    refactoringExplanation3 = "",
+                    refactoringInterpretationAudio = null,
+                    refactoringActualFactsAudio = null,
+                    refactoringExplanation1Audio = null,
+                    refactoringExplanation2Audio = null,
+                    refactoringExplanation3Audio = null,
+                    pendingAudioPath = null,
+                )
+            }
+        }
+    }
+
+    fun clearRefactoringDraft() {
+        _uiState.update {
+            it.copy(
+                refactoringStepIndex = 0,
+                refactoringInterpretation = "",
+                refactoringActualFacts = "",
+                refactoringExplanation1 = "",
+                refactoringExplanation2 = "",
+                refactoringExplanation3 = "",
+                refactoringInterpretationAudio = null,
+                refactoringActualFactsAudio = null,
+                refactoringExplanation1Audio = null,
+                refactoringExplanation2Audio = null,
+                refactoringExplanation3Audio = null,
+                pendingAudioPath = null,
+            )
+        }
+    }
+
+    fun openRefactoringEntry(entry: RefactoringEntryEntity) {
+        _uiState.update { it.copy(openedRefactoringEntry = entry) }
+    }
+
+    fun closeRefactoringEntry() {
+        _uiState.update { it.copy(openedRefactoringEntry = null) }
+    }
+
+    fun deleteRefactoringEntry(entry: RefactoringEntryEntity) {
+        viewModelScope.launch {
+            refactoringRepository.deleteEntry(entry.id)
+            if (_uiState.value.openedRefactoringEntry?.id == entry.id) {
+                _uiState.update { it.copy(openedRefactoringEntry = null) }
+            }
+        }
     }
 
     fun setPendingAudioPath(path: String?) {
@@ -318,6 +536,17 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 pendingAudioPath = null,
                 futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
                 editingFutureSelfId = null,
+                refactoringStepIndex = 0,
+                refactoringInterpretation = "",
+                refactoringActualFacts = "",
+                refactoringExplanation1 = "",
+                refactoringExplanation2 = "",
+                refactoringExplanation3 = "",
+                refactoringInterpretationAudio = null,
+                refactoringActualFactsAudio = null,
+                refactoringExplanation1Audio = null,
+                refactoringExplanation2Audio = null,
+                refactoringExplanation3Audio = null,
             )
         }
     }
@@ -404,5 +633,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     fun isLogTool(tool: ToolkitTool?): Boolean =
         tool?.id == ToolkitToolId.ThoughtDump ||
             tool?.id == ToolkitToolId.AnxietyLog ||
-            tool?.id == ToolkitToolId.FutureSelfMessage
+            tool?.id == ToolkitToolId.FutureSelfMessage ||
+            tool?.id == ToolkitToolId.Refactoring
 }

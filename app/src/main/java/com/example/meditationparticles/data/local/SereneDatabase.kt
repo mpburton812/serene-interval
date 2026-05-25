@@ -8,8 +8,14 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [AffirmationEntity::class, ThoughtDumpEntity::class, SessionEntity::class, FutureSelfMessageEntity::class],
-    version = 5,
+    entities = [
+        AffirmationEntity::class,
+        ThoughtDumpEntity::class,
+        SessionEntity::class,
+        FutureSelfMessageEntity::class,
+        RefactoringEntryEntity::class,
+    ],
+    version = 6,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -17,6 +23,7 @@ abstract class SereneDatabase : RoomDatabase() {
     abstract fun thoughtDumpDao(): ThoughtDumpDao
     abstract fun sessionDao(): SessionDao
     abstract fun futureSelfMessageDao(): FutureSelfMessageDao
+    abstract fun refactoringEntryDao(): RefactoringEntryDao
 
     companion object {
         @Volatile
@@ -85,6 +92,29 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS refactoring_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        interpretation TEXT NOT NULL,
+                        interpretationAudioPath TEXT,
+                        actualFacts TEXT NOT NULL,
+                        actualFactsAudioPath TEXT,
+                        explanation1 TEXT NOT NULL,
+                        explanation1AudioPath TEXT,
+                        explanation2 TEXT NOT NULL,
+                        explanation2AudioPath TEXT,
+                        explanation3 TEXT NOT NULL,
+                        explanation3AudioPath TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -92,7 +122,13 @@ abstract class SereneDatabase : RoomDatabase() {
                     SereneDatabase::class.java,
                     "serene_interval.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                    )
                     .build()
                     .also { instance = it }
             }

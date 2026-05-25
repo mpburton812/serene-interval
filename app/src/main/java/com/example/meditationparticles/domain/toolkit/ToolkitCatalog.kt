@@ -14,6 +14,7 @@ enum class ToolkitToolId {
     MuscleRelaxation,
     LovingKindness,
     AnxietyLog,
+    Refactoring,
 }
 
 data class ToolkitTool(
@@ -114,6 +115,17 @@ object ToolkitCatalog {
             description = "Notice, observe, and acknowledge what you feel.",
             category = ToolkitCategory.Reactive,
             steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.Refactoring,
+            title = "Refactoring",
+            description = "Separate interpretation from facts and explore calmer explanations.",
+            category = ToolkitCategory.Reactive,
+            steps = listOf(
+                "Write down your interpretation — the story your mind is telling.",
+                "Write down the actual facts — only what you know for certain.",
+                "Write three non-threatening explanations based on logic.",
+            ),
         ),
     )
 

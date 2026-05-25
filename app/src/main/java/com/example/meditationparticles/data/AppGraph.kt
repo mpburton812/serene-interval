@@ -18,6 +18,9 @@ object AppGraph {
     @Volatile
     private var futureSelfMessageRepository: FutureSelfMessageRepository? = null
 
+    @Volatile
+    private var refactoringRepository: RefactoringRepository? = null
+
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
             affirmationRepository ?: AffirmationRepository(
@@ -56,5 +59,12 @@ object AppGraph {
             futureSelfMessageRepository ?: FutureSelfMessageRepository(
                 SereneDatabase.getInstance(context.applicationContext).futureSelfMessageDao(),
             ).also { futureSelfMessageRepository = it }
+        }
+
+    fun refactoringEntries(context: Context): RefactoringRepository =
+        refactoringRepository ?: synchronized(this) {
+            refactoringRepository ?: RefactoringRepository(
+                SereneDatabase.getInstance(context.applicationContext).refactoringEntryDao(),
+            ).also { refactoringRepository = it }
         }
 }

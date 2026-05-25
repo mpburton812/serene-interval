@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Spa
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
@@ -105,6 +107,14 @@ fun AnxietyToolkitTab(
             futureSelfEntries = state.futureSelfEntries,
             editingFutureSelfId = state.editingFutureSelfId,
             openedFutureSelfEntry = state.openedFutureSelfEntry,
+            refactoringStepIndex = state.refactoringStepIndex,
+            refactoringInterpretation = state.refactoringInterpretation,
+            refactoringActualFacts = state.refactoringActualFacts,
+            refactoringExplanation1 = state.refactoringExplanation1,
+            refactoringExplanation2 = state.refactoringExplanation2,
+            refactoringExplanation3 = state.refactoringExplanation3,
+            refactoringEntries = state.refactoringEntries,
+            openedRefactoringEntry = state.openedRefactoringEntry,
             onThoughtDumpChange = viewModel::updateThoughtDump,
             onAnxietyLogChange = viewModel::updateAnxietyLog,
             onFutureSelfTextChange = viewModel::updateFutureSelfText,
@@ -122,6 +132,19 @@ fun AnxietyToolkitTab(
             onDeleteFutureSelfEntry = viewModel::deleteFutureSelfEntry,
             onOpenFutureSelfEntry = viewModel::openFutureSelfEntry,
             onCloseFutureSelfEntry = viewModel::closeFutureSelfEntry,
+            onRefactoringInterpretationChange = viewModel::updateRefactoringInterpretation,
+            onRefactoringActualFactsChange = viewModel::updateRefactoringActualFacts,
+            onRefactoringExplanation1Change = viewModel::updateRefactoringExplanation1,
+            onRefactoringExplanation2Change = viewModel::updateRefactoringExplanation2,
+            onRefactoringExplanation3Change = viewModel::updateRefactoringExplanation3,
+            onRefactoringSpeechResult = viewModel::appendToRefactoringField,
+            onSaveRefactoringEntry = viewModel::saveRefactoringEntry,
+            onClearRefactoringDraft = viewModel::clearRefactoringDraft,
+            onOpenRefactoringEntry = viewModel::openRefactoringEntry,
+            onDeleteRefactoringEntry = viewModel::deleteRefactoringEntry,
+            onCloseRefactoringEntry = viewModel::closeRefactoringEntry,
+            onNextRefactoringStep = viewModel::nextRefactoringStep,
+            onPreviousRefactoringStep = viewModel::previousRefactoringStep,
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
@@ -372,6 +395,14 @@ private fun ToolDetailScreen(
     futureSelfEntries: List<FutureSelfMessageEntity>,
     editingFutureSelfId: Long?,
     openedFutureSelfEntry: FutureSelfMessageEntity?,
+    refactoringStepIndex: Int,
+    refactoringInterpretation: String,
+    refactoringActualFacts: String,
+    refactoringExplanation1: String,
+    refactoringExplanation2: String,
+    refactoringExplanation3: String,
+    refactoringEntries: List<RefactoringEntryEntity>,
+    openedRefactoringEntry: RefactoringEntryEntity?,
     onThoughtDumpChange: (String) -> Unit,
     onAnxietyLogChange: (String) -> Unit,
     onFutureSelfTextChange: (String) -> Unit,
@@ -389,6 +420,19 @@ private fun ToolDetailScreen(
     onDeleteFutureSelfEntry: (FutureSelfMessageEntity) -> Unit,
     onOpenFutureSelfEntry: (FutureSelfMessageEntity) -> Unit,
     onCloseFutureSelfEntry: () -> Unit,
+    onRefactoringInterpretationChange: (String) -> Unit,
+    onRefactoringActualFactsChange: (String) -> Unit,
+    onRefactoringExplanation1Change: (String) -> Unit,
+    onRefactoringExplanation2Change: (String) -> Unit,
+    onRefactoringExplanation3Change: (String) -> Unit,
+    onRefactoringSpeechResult: (RefactoringSpeechTarget, String) -> Unit,
+    onSaveRefactoringEntry: () -> Unit,
+    onClearRefactoringDraft: () -> Unit,
+    onOpenRefactoringEntry: (RefactoringEntryEntity) -> Unit,
+    onDeleteRefactoringEntry: (RefactoringEntryEntity) -> Unit,
+    onCloseRefactoringEntry: () -> Unit,
+    onNextRefactoringStep: () -> Unit,
+    onPreviousRefactoringStep: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
@@ -477,6 +521,33 @@ private fun ToolDetailScreen(
                     schedulingAvailable = futureSelfSchedulingAvailable,
                 )
             }
+            ToolkitToolId.Refactoring -> {
+                RefactoringContent(
+                    stepIndex = refactoringStepIndex,
+                    interpretation = refactoringInterpretation,
+                    actualFacts = refactoringActualFacts,
+                    explanation1 = refactoringExplanation1,
+                    explanation2 = refactoringExplanation2,
+                    explanation3 = refactoringExplanation3,
+                    pendingAudioPath = pendingAudioPath,
+                    entries = refactoringEntries,
+                    openedEntry = openedRefactoringEntry,
+                    onInterpretationChange = onRefactoringInterpretationChange,
+                    onActualFactsChange = onRefactoringActualFactsChange,
+                    onExplanation1Change = onRefactoringExplanation1Change,
+                    onExplanation2Change = onRefactoringExplanation2Change,
+                    onExplanation3Change = onRefactoringExplanation3Change,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onRefactoringSpeechResult,
+                    onPrevious = onPreviousRefactoringStep,
+                    onNext = onNextRefactoringStep,
+                    onSave = onSaveRefactoringEntry,
+                    onClear = onClearRefactoringDraft,
+                    onOpenEntry = onOpenRefactoringEntry,
+                    onDeleteEntry = onDeleteRefactoringEntry,
+                    onCloseEntry = onCloseRefactoringEntry,
+                )
+            }
             else -> {
                 GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
                     Column(
@@ -548,6 +619,7 @@ private fun toolIcon(id: ToolkitToolId): ImageVector = when (id) {
     ToolkitToolId.MuscleRelaxation -> Icons.Default.Spa
     ToolkitToolId.LovingKindness -> Icons.Default.Favorite
     ToolkitToolId.AnxietyLog -> Icons.Default.EditNote
+    ToolkitToolId.Refactoring -> Icons.Default.Psychology
 }
 
 @Composable
