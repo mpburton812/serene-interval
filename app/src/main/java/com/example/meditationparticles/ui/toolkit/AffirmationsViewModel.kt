@@ -24,6 +24,8 @@ data class AffirmationsUiState(
     val reminderHour: Int = 9,
     val reminderMinute: Int = 0,
     val showAddDialog: Boolean = false,
+    val showBulkImportDialog: Boolean = false,
+    val importMessage: String? = null,
     val editingAffirmation: AffirmationEntity? = null,
 ) {
     val currentAffirmation: AffirmationEntity?
@@ -78,10 +80,33 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
 
     fun showAddDialog() = _uiState.update { it.copy(showAddDialog = true, editingAffirmation = null) }
 
+    fun showBulkImportDialog() =
+        _uiState.update { it.copy(showBulkImportDialog = true, importMessage = null) }
+
+    fun dismissBulkImportDialog() = _uiState.update { it.copy(showBulkImportDialog = false) }
+
+    fun clearImportMessage() = _uiState.update { it.copy(importMessage = null) }
+
     fun showEditDialog(entity: AffirmationEntity) =
         _uiState.update { it.copy(showAddDialog = true, editingAffirmation = entity) }
 
     fun dismissDialog() = _uiState.update { it.copy(showAddDialog = false, editingAffirmation = null) }
+
+    fun bulkImport(text: String) {
+        viewModelScope.launch {
+            val count = repository.bulkAdd(text)
+            _uiState.update {
+                it.copy(
+                    showBulkImportDialog = false,
+                    importMessage = if (count > 0) {
+                        "Imported $count affirmation${if (count == 1) "" else "s"}."
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
+    }
 
     fun saveAffirmation(text: String) {
         viewModelScope.launch {

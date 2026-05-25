@@ -30,6 +30,17 @@ class AffirmationRepository(
         dao.insert(AffirmationEntity(text = trimmed))
     }
 
+    suspend fun bulkAdd(rawText: String): Int {
+        val texts = parseAffirmationLines(rawText)
+        if (texts.isEmpty()) return 0
+        val baseSortOrder = dao.count()
+        val entities = texts.mapIndexed { index, text ->
+            AffirmationEntity(text = text, sortOrder = baseSortOrder + index)
+        }
+        dao.insertAll(entities)
+        return texts.size
+    }
+
     suspend fun update(entity: AffirmationEntity) = dao.update(entity)
 
     suspend fun delete(entity: AffirmationEntity) = dao.delete(entity)
@@ -38,6 +49,11 @@ class AffirmationRepository(
         dao.setFavorite(entity.id, !entity.isFavorite)
     }
 }
+
+internal fun parseAffirmationLines(raw: String): List<String> =
+    raw.lines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
 
 private object DefaultAffirmations {
     val texts = listOf(

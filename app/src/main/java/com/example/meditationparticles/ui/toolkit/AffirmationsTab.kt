@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.local.AffirmationEntity
+import com.example.meditationparticles.data.parseAffirmationLines
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SerenePrimary
 import com.example.meditationparticles.ui.theme.SereneSpacing
@@ -129,10 +130,23 @@ fun AffirmationsTab(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                state.importMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
-            TextButton(onClick = viewModel::showAddDialog) {
-                Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
-                Text("Add New", modifier = Modifier.padding(start = 4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = viewModel::showBulkImportDialog) {
+                    Text("Bulk import")
+                }
+                TextButton(onClick = viewModel::showAddDialog) {
+                    Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
+                    Text("Add New", modifier = Modifier.padding(start = 4.dp))
+                }
             }
         }
 
@@ -220,6 +234,13 @@ fun AffirmationsTab(
                 )
             }
         }
+    }
+
+    if (state.showBulkImportDialog) {
+        BulkImportDialog(
+            onDismiss = viewModel::dismissBulkImportDialog,
+            onImport = viewModel::bulkImport,
+        )
     }
 
     if (state.showAddDialog) {
@@ -342,6 +363,62 @@ private fun AffirmationCollectionCard(
             }
         }
     }
+}
+
+@Composable
+private fun BulkImportDialog(
+    onDismiss: () -> Unit,
+    onImport: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    val parsedCount = remember(text) { parseAffirmationLines(text).size }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Bulk Import") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Paste one affirmation per line. Empty lines are ignored.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("I am calm and present…\nI choose peace over worry…") },
+                    minLines = 8,
+                )
+                Text(
+                    text = when (parsedCount) {
+                        0 -> "No affirmations to import"
+                        1 -> "1 affirmation ready to import"
+                        else -> "$parsedCount affirmations ready to import"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (parsedCount > 0) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onImport(text) },
+                enabled = parsedCount > 0,
+            ) {
+                Text("Import")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 @Composable
