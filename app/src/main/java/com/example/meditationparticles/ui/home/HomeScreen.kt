@@ -95,7 +95,7 @@ fun HomeScreen(
                     iconTint = MaterialTheme.colorScheme.tertiary,
                     iconBackground = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
                     onClick = {
-                        onNavigate(SereneDestination.Toolkit, SereneDestination.ToolkitTab.AFFIRMATIONS)
+                        onNavigate(SereneDestination.Affirmations, null)
                     },
                 ),
             )
@@ -108,7 +108,7 @@ fun HomeScreen(
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     iconBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
                     onClick = {
-                        onNavigate(SereneDestination.Toolkit, SereneDestination.ToolkitTab.TOOLKIT)
+                        onNavigate(SereneDestination.Toolkit, null)
                     },
                 ),
             )

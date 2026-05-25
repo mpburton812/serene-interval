@@ -7,5 +7,7 @@ import androidx.room.PrimaryKey
 data class ThoughtDumpEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val content: String,
+    val logType: String,
+    val audioPath: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )

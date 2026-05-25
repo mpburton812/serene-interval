@@ -8,14 +8,24 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [AffirmationEntity::class, ThoughtDumpEntity::class, SessionEntity::class],
-    version = 3,
+    entities = [
+        AffirmationEntity::class,
+        ThoughtDumpEntity::class,
+        SessionEntity::class,
+        FutureSelfMessageEntity::class,
+        RefactoringEntryEntity::class,
+        CenterOfGravityEntryEntity::class,
+    ],
+    version = 7,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
     abstract fun affirmationDao(): AffirmationDao
     abstract fun thoughtDumpDao(): ThoughtDumpDao
     abstract fun sessionDao(): SessionDao
+    abstract fun futureSelfMessageDao(): FutureSelfMessageDao
+    abstract fun refactoringEntryDao(): RefactoringEntryDao
+    abstract fun centerOfGravityEntryDao(): CenterOfGravityEntryDao
 
     companion object {
         @Volatile
@@ -52,6 +62,78 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    ALTER TABLE thought_dumps ADD COLUMN logType TEXT NOT NULL DEFAULT 'THOUGHT_DUMP'
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    ALTER TABLE thought_dumps ADD COLUMN audioPath TEXT
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS future_self_messages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        audioPath TEXT,
+                        scheduledAtMillis INTEGER NOT NULL,
+                        createdAtMillis INTEGER NOT NULL,
+                        delivered INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS refactoring_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        interpretation TEXT NOT NULL,
+                        interpretationAudioPath TEXT,
+                        actualFacts TEXT NOT NULL,
+                        actualFactsAudioPath TEXT,
+                        explanation1 TEXT NOT NULL,
+                        explanation1AudioPath TEXT,
+                        explanation2 TEXT NOT NULL,
+                        explanation2AudioPath TEXT,
+                        explanation3 TEXT NOT NULL,
+                        explanation3AudioPath TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS center_of_gravity_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        thoughtsAndFeelings TEXT NOT NULL,
+                        thoughtsAndFeelingsAudioPath TEXT,
+                        bodyAndNeeds TEXT NOT NULL,
+                        bodyAndNeedsAudioPath TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -59,7 +141,14 @@ abstract class SereneDatabase : RoomDatabase() {
                     SereneDatabase::class.java,
                     "serene_interval.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7,
+                    )
                     .build()
                     .also { instance = it }
             }
