@@ -44,50 +44,44 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
-import com.example.meditationparticles.data.local.RefactoringEntryEntity
+import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
-enum class RefactoringSpeechTarget {
-    Interpretation,
-    ActualFacts,
-    Explanation1,
-    Explanation2,
-    Explanation3,
+enum class CenterOfGravitySpeechTarget {
+    ThoughtsAndFeelings,
+    BodyAndNeeds,
 }
 
+private const val CENTER_OF_GRAVITY_INTRO =
+    "Anxious attachment causes an individual to externalize their center of gravity, constantly monitoring the partner's emotional state, needs, and micro-expressions while completely ignoring their own."
+
 @Composable
-fun RefactoringContent(
+fun CenterOfGravityContent(
     stepIndex: Int,
-    interpretation: String,
-    actualFacts: String,
-    explanation1: String,
-    explanation2: String,
-    explanation3: String,
+    thoughtsAndFeelings: String,
+    bodyAndNeeds: String,
     pendingAudioPath: String?,
-    entries: List<RefactoringEntryEntity>,
-    openedEntry: RefactoringEntryEntity?,
-    onInterpretationChange: (String) -> Unit,
-    onActualFactsChange: (String) -> Unit,
-    onExplanation1Change: (String) -> Unit,
-    onExplanation2Change: (String) -> Unit,
-    onExplanation3Change: (String) -> Unit,
+    entries: List<CenterOfGravityEntryEntity>,
+    openedEntry: CenterOfGravityEntryEntity?,
+    onThoughtsAndFeelingsChange: (String) -> Unit,
+    onBodyAndNeedsChange: (String) -> Unit,
     onPendingAudioChange: (String?) -> Unit,
-    onSpeechResult: (RefactoringSpeechTarget, String) -> Unit,
+    onSpeechResult: (CenterOfGravitySpeechTarget, String) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onSave: () -> Unit,
     onClear: () -> Unit,
-    onOpenEntry: (RefactoringEntryEntity) -> Unit,
-    onDeleteEntry: (RefactoringEntryEntity) -> Unit,
+    onOpenEntry: (CenterOfGravityEntryEntity) -> Unit,
+    onDeleteEntry: (CenterOfGravityEntryEntity) -> Unit,
     onCloseEntry: () -> Unit,
 ) {
     val context = LocalContext.current
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
     val audioPlayer = remember { ToolkitAudioPlayer() }
     var isRecording by remember { mutableStateOf(false) }
-    var speechTarget by remember { mutableStateOf(RefactoringSpeechTarget.Interpretation) }
+    var speechTarget by remember { mutableStateOf(CenterOfGravitySpeechTarget.ThoughtsAndFeelings) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -118,7 +112,7 @@ fun RefactoringContent(
         }
     }
 
-    fun launchSpeechToText(target: RefactoringSpeechTarget) {
+    fun launchSpeechToText(target: CenterOfGravitySpeechTarget) {
         speechTarget = target
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -148,24 +142,24 @@ fun RefactoringContent(
         }
     }
 
-    val stepCount = 3
+    val stepCount = 2
     val isLastStep = stepIndex >= stepCount - 1
     val stepInstruction = when (stepIndex) {
-        0 -> "Write down the actual facts — only what you know for certain."
-        1 -> "Write down your interpretation — the story your mind is telling."
-        else -> "Write three non-threatening explanations based on logic."
+        0 -> "What am I thinking and feeling right now?"
+        else -> "What am I feeling in my body right now? What do I need in this moment to feel slightly more grounded?"
     }
 
     fun stepHasContent(): Boolean = when (stepIndex) {
-        0 -> actualFacts.isNotBlank() || pendingAudioPath != null
-        1 -> interpretation.isNotBlank() || pendingAudioPath != null
-        else -> {
-            val hasText = explanation1.isNotBlank() ||
-                explanation2.isNotBlank() ||
-                explanation3.isNotBlank()
-            hasText || pendingAudioPath != null
-        }
+        0 -> thoughtsAndFeelings.isNotBlank() || pendingAudioPath != null
+        else -> bodyAndNeeds.isNotBlank() || pendingAudioPath != null
     }
+
+    Text(
+        text = CENTER_OF_GRAVITY_INTRO,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth(),
+    )
 
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
         Column(
@@ -184,56 +178,24 @@ fun RefactoringContent(
             )
 
             when (stepIndex) {
-                0 -> RefactoringFieldEditor(
-                    label = "The actual facts",
-                    text = actualFacts,
-                    onTextChange = onActualFactsChange,
-                    onDictate = { launchSpeechToText(RefactoringSpeechTarget.ActualFacts) },
+                0 -> CenterOfGravityFieldEditor(
+                    label = "Thoughts and feelings",
+                    text = thoughtsAndFeelings,
+                    onTextChange = onThoughtsAndFeelingsChange,
+                    onDictate = { launchSpeechToText(CenterOfGravitySpeechTarget.ThoughtsAndFeelings) },
                     onToggleRecord = ::toggleRecording,
                     isRecording = isRecording,
                     pendingAudioPath = pendingAudioPath,
                 )
-                1 -> RefactoringFieldEditor(
-                    label = "Interpretation",
-                    text = interpretation,
-                    onTextChange = onInterpretationChange,
-                    onDictate = { launchSpeechToText(RefactoringSpeechTarget.Interpretation) },
+                else -> CenterOfGravityFieldEditor(
+                    label = "Body and needs",
+                    text = bodyAndNeeds,
+                    onTextChange = onBodyAndNeedsChange,
+                    onDictate = { launchSpeechToText(CenterOfGravitySpeechTarget.BodyAndNeeds) },
                     onToggleRecord = ::toggleRecording,
                     isRecording = isRecording,
                     pendingAudioPath = pendingAudioPath,
                 )
-                else -> {
-                    RefactoringFieldEditor(
-                        label = "Explanation 1",
-                        text = explanation1,
-                        onTextChange = onExplanation1Change,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation1) },
-                        onToggleRecord = ::toggleRecording,
-                        isRecording = isRecording,
-                        pendingAudioPath = pendingAudioPath,
-                        minLines = 3,
-                    )
-                    RefactoringFieldEditor(
-                        label = "Explanation 2",
-                        text = explanation2,
-                        onTextChange = onExplanation2Change,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation2) },
-                        onToggleRecord = ::toggleRecording,
-                        isRecording = isRecording,
-                        pendingAudioPath = pendingAudioPath,
-                        minLines = 3,
-                    )
-                    RefactoringFieldEditor(
-                        label = "Explanation 3",
-                        text = explanation3,
-                        onTextChange = onExplanation3Change,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation3) },
-                        onToggleRecord = ::toggleRecording,
-                        isRecording = isRecording,
-                        pendingAudioPath = pendingAudioPath,
-                        minLines = 3,
-                    )
-                }
             }
 
             if (pendingAudioPath != null) {
@@ -301,7 +263,7 @@ fun RefactoringContent(
                     if (index > 0) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     }
-                    RefactoringEntryRow(
+                    CenterOfGravityEntryRow(
                         entry = entry,
                         onOpen = { onOpenEntry(entry) },
                         onDelete = { onDeleteEntry(entry) },
@@ -312,7 +274,7 @@ fun RefactoringContent(
     }
 
     openedEntry?.let { entry ->
-        RefactoringEntryDetailDialog(
+        CenterOfGravityEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
             onDismiss = onCloseEntry,
@@ -321,7 +283,7 @@ fun RefactoringContent(
 }
 
 @Composable
-private fun RefactoringFieldEditor(
+private fun CenterOfGravityFieldEditor(
     label: String,
     text: String,
     onTextChange: (String) -> Unit,
@@ -375,8 +337,8 @@ private fun RefactoringFieldEditor(
 }
 
 @Composable
-private fun RefactoringEntryRow(
-    entry: RefactoringEntryEntity,
+private fun CenterOfGravityEntryRow(
+    entry: CenterOfGravityEntryEntity,
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -386,14 +348,12 @@ private fun RefactoringEntryRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = formatRefactoringTimestamp(entry.createdAt),
+                text = formatCenterOfGravityTimestamp(entry.createdAt),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            val preview = entry.actualFacts.ifBlank {
-                entry.interpretation.ifBlank {
-                    entry.explanation1.ifBlank { "Refactoring entry" }
-                }
+            val preview = entry.thoughtsAndFeelings.ifBlank {
+                entry.bodyAndNeeds.ifBlank { "Center of gravity entry" }
             }
             Text(
                 text = preview,
@@ -412,8 +372,8 @@ private fun RefactoringEntryRow(
 }
 
 @Composable
-private fun RefactoringEntryDetailDialog(
-    entry: RefactoringEntryEntity,
+private fun CenterOfGravityEntryDetailDialog(
+    entry: CenterOfGravityEntryEntity,
     audioPlayer: ToolkitAudioPlayer,
     onDismiss: () -> Unit,
 ) {
@@ -428,13 +388,13 @@ private fun RefactoringEntryDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(formatRefactoringTimestamp(entry.createdAt)) },
+        title = { Text(formatCenterOfGravityTimestamp(entry.createdAt)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                RefactoringReadOnlySection(
-                    label = "The actual facts",
-                    text = entry.actualFacts,
-                    audioPath = entry.actualFactsAudioPath,
+                CenterOfGravityReadOnlySection(
+                    label = "Thoughts and feelings",
+                    text = entry.thoughtsAndFeelings,
+                    audioPath = entry.thoughtsAndFeelingsAudioPath,
                     playingPath = playingPath,
                     onPlayToggle = { path ->
                         if (playingPath == path) {
@@ -446,55 +406,10 @@ private fun RefactoringEntryDetailDialog(
                         }
                     },
                 )
-                RefactoringReadOnlySection(
-                    label = "Interpretation",
-                    text = entry.interpretation,
-                    audioPath = entry.interpretationAudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
-                RefactoringReadOnlySection(
-                    label = "Explanation 1",
-                    text = entry.explanation1,
-                    audioPath = entry.explanation1AudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
-                RefactoringReadOnlySection(
-                    label = "Explanation 2",
-                    text = entry.explanation2,
-                    audioPath = entry.explanation2AudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
-                RefactoringReadOnlySection(
-                    label = "Explanation 3",
-                    text = entry.explanation3,
-                    audioPath = entry.explanation3AudioPath,
+                CenterOfGravityReadOnlySection(
+                    label = "Body and needs",
+                    text = entry.bodyAndNeeds,
+                    audioPath = entry.bodyAndNeedsAudioPath,
                     playingPath = playingPath,
                     onPlayToggle = { path ->
                         if (playingPath == path) {
@@ -517,7 +432,7 @@ private fun RefactoringEntryDetailDialog(
 }
 
 @Composable
-private fun RefactoringReadOnlySection(
+private fun CenterOfGravityReadOnlySection(
     label: String,
     text: String,
     audioPath: String?,
@@ -554,7 +469,7 @@ private fun RefactoringReadOnlySection(
     }
 }
 
-private fun formatRefactoringTimestamp(createdAt: Long): String {
+private fun formatCenterOfGravityTimestamp(createdAt: Long): String {
     val formatter = java.text.SimpleDateFormat("MMM d, yyyy · h:mm a", java.util.Locale.getDefault())
     return formatter.format(Date(createdAt))
 }

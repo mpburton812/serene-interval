@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Schedule
@@ -58,6 +59,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -115,6 +117,11 @@ fun AnxietyToolkitTab(
             refactoringExplanation3 = state.refactoringExplanation3,
             refactoringEntries = state.refactoringEntries,
             openedRefactoringEntry = state.openedRefactoringEntry,
+            centerOfGravityStepIndex = state.centerOfGravityStepIndex,
+            centerOfGravityThoughtsAndFeelings = state.centerOfGravityThoughtsAndFeelings,
+            centerOfGravityBodyAndNeeds = state.centerOfGravityBodyAndNeeds,
+            centerOfGravityEntries = state.centerOfGravityEntries,
+            openedCenterOfGravityEntry = state.openedCenterOfGravityEntry,
             onThoughtDumpChange = viewModel::updateThoughtDump,
             onAnxietyLogChange = viewModel::updateAnxietyLog,
             onFutureSelfTextChange = viewModel::updateFutureSelfText,
@@ -145,6 +152,16 @@ fun AnxietyToolkitTab(
             onCloseRefactoringEntry = viewModel::closeRefactoringEntry,
             onNextRefactoringStep = viewModel::nextRefactoringStep,
             onPreviousRefactoringStep = viewModel::previousRefactoringStep,
+            onCenterOfGravityThoughtsAndFeelingsChange = viewModel::updateCenterOfGravityThoughtsAndFeelings,
+            onCenterOfGravityBodyAndNeedsChange = viewModel::updateCenterOfGravityBodyAndNeeds,
+            onCenterOfGravitySpeechResult = viewModel::appendToCenterOfGravityField,
+            onSaveCenterOfGravityEntry = viewModel::saveCenterOfGravityEntry,
+            onClearCenterOfGravityDraft = viewModel::clearCenterOfGravityDraft,
+            onOpenCenterOfGravityEntry = viewModel::openCenterOfGravityEntry,
+            onDeleteCenterOfGravityEntry = viewModel::deleteCenterOfGravityEntry,
+            onCloseCenterOfGravityEntry = viewModel::closeCenterOfGravityEntry,
+            onNextCenterOfGravityStep = viewModel::nextCenterOfGravityStep,
+            onPreviousCenterOfGravityStep = viewModel::previousCenterOfGravityStep,
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
@@ -403,6 +420,11 @@ private fun ToolDetailScreen(
     refactoringExplanation3: String,
     refactoringEntries: List<RefactoringEntryEntity>,
     openedRefactoringEntry: RefactoringEntryEntity?,
+    centerOfGravityStepIndex: Int,
+    centerOfGravityThoughtsAndFeelings: String,
+    centerOfGravityBodyAndNeeds: String,
+    centerOfGravityEntries: List<CenterOfGravityEntryEntity>,
+    openedCenterOfGravityEntry: CenterOfGravityEntryEntity?,
     onThoughtDumpChange: (String) -> Unit,
     onAnxietyLogChange: (String) -> Unit,
     onFutureSelfTextChange: (String) -> Unit,
@@ -433,6 +455,16 @@ private fun ToolDetailScreen(
     onCloseRefactoringEntry: () -> Unit,
     onNextRefactoringStep: () -> Unit,
     onPreviousRefactoringStep: () -> Unit,
+    onCenterOfGravityThoughtsAndFeelingsChange: (String) -> Unit,
+    onCenterOfGravityBodyAndNeedsChange: (String) -> Unit,
+    onCenterOfGravitySpeechResult: (CenterOfGravitySpeechTarget, String) -> Unit,
+    onSaveCenterOfGravityEntry: () -> Unit,
+    onClearCenterOfGravityDraft: () -> Unit,
+    onOpenCenterOfGravityEntry: (CenterOfGravityEntryEntity) -> Unit,
+    onDeleteCenterOfGravityEntry: (CenterOfGravityEntryEntity) -> Unit,
+    onCloseCenterOfGravityEntry: () -> Unit,
+    onNextCenterOfGravityStep: () -> Unit,
+    onPreviousCenterOfGravityStep: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
@@ -548,6 +580,27 @@ private fun ToolDetailScreen(
                     onCloseEntry = onCloseRefactoringEntry,
                 )
             }
+            ToolkitToolId.RelocateCenterOfGravity -> {
+                CenterOfGravityContent(
+                    stepIndex = centerOfGravityStepIndex,
+                    thoughtsAndFeelings = centerOfGravityThoughtsAndFeelings,
+                    bodyAndNeeds = centerOfGravityBodyAndNeeds,
+                    pendingAudioPath = pendingAudioPath,
+                    entries = centerOfGravityEntries,
+                    openedEntry = openedCenterOfGravityEntry,
+                    onThoughtsAndFeelingsChange = onCenterOfGravityThoughtsAndFeelingsChange,
+                    onBodyAndNeedsChange = onCenterOfGravityBodyAndNeedsChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onCenterOfGravitySpeechResult,
+                    onPrevious = onPreviousCenterOfGravityStep,
+                    onNext = onNextCenterOfGravityStep,
+                    onSave = onSaveCenterOfGravityEntry,
+                    onClear = onClearCenterOfGravityDraft,
+                    onOpenEntry = onOpenCenterOfGravityEntry,
+                    onDeleteEntry = onDeleteCenterOfGravityEntry,
+                    onCloseEntry = onCloseCenterOfGravityEntry,
+                )
+            }
             else -> {
                 GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
                     Column(
@@ -620,6 +673,7 @@ private fun toolIcon(id: ToolkitToolId): ImageVector = when (id) {
     ToolkitToolId.LovingKindness -> Icons.Default.Favorite
     ToolkitToolId.AnxietyLog -> Icons.Default.EditNote
     ToolkitToolId.Refactoring -> Icons.Default.Psychology
+    ToolkitToolId.RelocateCenterOfGravity -> Icons.Default.MyLocation
 }
 
 @Composable

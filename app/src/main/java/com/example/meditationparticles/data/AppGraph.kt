@@ -21,6 +21,9 @@ object AppGraph {
     @Volatile
     private var refactoringRepository: RefactoringRepository? = null
 
+    @Volatile
+    private var centerOfGravityRepository: CenterOfGravityRepository? = null
+
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
             affirmationRepository ?: AffirmationRepository(
@@ -66,5 +69,12 @@ object AppGraph {
             refactoringRepository ?: RefactoringRepository(
                 SereneDatabase.getInstance(context.applicationContext).refactoringEntryDao(),
             ).also { refactoringRepository = it }
+        }
+
+    fun centerOfGravityEntries(context: Context): CenterOfGravityRepository =
+        centerOfGravityRepository ?: synchronized(this) {
+            centerOfGravityRepository ?: CenterOfGravityRepository(
+                SereneDatabase.getInstance(context.applicationContext).centerOfGravityEntryDao(),
+            ).also { centerOfGravityRepository = it }
         }
 }

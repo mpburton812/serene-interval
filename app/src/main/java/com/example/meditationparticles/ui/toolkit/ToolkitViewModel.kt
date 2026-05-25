@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -56,6 +57,13 @@ data class ToolkitUiState(
     val refactoringExplanation3Audio: String? = null,
     val refactoringEntries: List<RefactoringEntryEntity> = emptyList(),
     val openedRefactoringEntry: RefactoringEntryEntity? = null,
+    val centerOfGravityStepIndex: Int = 0,
+    val centerOfGravityThoughtsAndFeelings: String = "",
+    val centerOfGravityBodyAndNeeds: String = "",
+    val centerOfGravityThoughtsAndFeelingsAudio: String? = null,
+    val centerOfGravityBodyAndNeedsAudio: String? = null,
+    val centerOfGravityEntries: List<CenterOfGravityEntryEntity> = emptyList(),
+    val openedCenterOfGravityEntry: CenterOfGravityEntryEntity? = null,
     val randomToolState: RandomToolState = RandomToolState.Idle,
     val randomSelectedTool: ToolkitTool? = null,
 ) {
@@ -70,6 +78,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     private val logRepository = AppGraph.thoughtDumps(application)
     private val futureSelfRepository = AppGraph.futureSelfMessages(application)
     private val refactoringRepository = AppGraph.refactoringEntries(application)
+    private val centerOfGravityRepository = AppGraph.centerOfGravityEntries(application)
     private val toolkitPreferences = AppGraph.toolkit(application)
     private val settingsPreferences = AppGraph.settings(application)
     private val appContext = application.applicationContext
@@ -104,6 +113,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             refactoringRepository.observeAll().collect { entries ->
                 _uiState.update { it.copy(refactoringEntries = entries) }
+            }
+        }
+        viewModelScope.launch {
+            centerOfGravityRepository.observeAll().collect { entries ->
+                _uiState.update { it.copy(centerOfGravityEntries = entries) }
             }
         }
     }
@@ -181,6 +195,12 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 refactoringExplanation2Audio = null,
                 refactoringExplanation3Audio = null,
                 openedRefactoringEntry = null,
+                centerOfGravityStepIndex = 0,
+                centerOfGravityThoughtsAndFeelings = "",
+                centerOfGravityBodyAndNeeds = "",
+                centerOfGravityThoughtsAndFeelingsAudio = null,
+                centerOfGravityBodyAndNeedsAudio = null,
+                openedCenterOfGravityEntry = null,
             )
         }
     }
@@ -241,6 +261,12 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 refactoringExplanation2Audio = null,
                 refactoringExplanation3Audio = null,
                 openedRefactoringEntry = null,
+                centerOfGravityStepIndex = 0,
+                centerOfGravityThoughtsAndFeelings = "",
+                centerOfGravityBodyAndNeeds = "",
+                centerOfGravityThoughtsAndFeelingsAudio = null,
+                centerOfGravityBodyAndNeedsAudio = null,
+                openedCenterOfGravityEntry = null,
             )
         }
     }
@@ -348,11 +374,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update {
             when (state.refactoringStepIndex) {
                 0 -> it.copy(
-                    refactoringInterpretationAudio = pending,
+                    refactoringActualFactsAudio = pending,
                     pendingAudioPath = null,
                 )
                 1 -> it.copy(
-                    refactoringActualFactsAudio = pending,
+                    refactoringInterpretationAudio = pending,
                     pendingAudioPath = null,
                 )
                 else -> {
@@ -444,6 +470,119 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             refactoringRepository.deleteEntry(entry.id)
             if (_uiState.value.openedRefactoringEntry?.id == entry.id) {
                 _uiState.update { it.copy(openedRefactoringEntry = null) }
+            }
+        }
+    }
+
+    fun updateCenterOfGravityThoughtsAndFeelings(text: String) {
+        _uiState.update { it.copy(centerOfGravityThoughtsAndFeelings = text) }
+    }
+
+    fun updateCenterOfGravityBodyAndNeeds(text: String) {
+        _uiState.update { it.copy(centerOfGravityBodyAndNeeds = text) }
+    }
+
+    fun appendToCenterOfGravityField(target: CenterOfGravitySpeechTarget, text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
+        _uiState.update { state ->
+            when (target) {
+                CenterOfGravitySpeechTarget.ThoughtsAndFeelings -> {
+                    val current = state.centerOfGravityThoughtsAndFeelings
+                    val separator = if (current.isBlank()) "" else " "
+                    state.copy(centerOfGravityThoughtsAndFeelings = current + separator + trimmed)
+                }
+                CenterOfGravitySpeechTarget.BodyAndNeeds -> {
+                    val current = state.centerOfGravityBodyAndNeeds
+                    val separator = if (current.isBlank()) "" else " "
+                    state.copy(centerOfGravityBodyAndNeeds = current + separator + trimmed)
+                }
+            }
+        }
+    }
+
+    fun nextCenterOfGravityStep() {
+        commitPendingCenterOfGravityAudio()
+        if (_uiState.value.centerOfGravityStepIndex < 1) {
+            _uiState.update { it.copy(centerOfGravityStepIndex = it.centerOfGravityStepIndex + 1) }
+        }
+    }
+
+    fun previousCenterOfGravityStep() {
+        commitPendingCenterOfGravityAudio()
+        if (_uiState.value.centerOfGravityStepIndex > 0) {
+            _uiState.update { it.copy(centerOfGravityStepIndex = it.centerOfGravityStepIndex - 1) }
+        }
+    }
+
+    private fun commitPendingCenterOfGravityAudio() {
+        val state = _uiState.value
+        val pending = state.pendingAudioPath ?: return
+        _uiState.update {
+            when (state.centerOfGravityStepIndex) {
+                0 -> it.copy(
+                    centerOfGravityThoughtsAndFeelingsAudio = pending,
+                    pendingAudioPath = null,
+                )
+                else -> it.copy(
+                    centerOfGravityBodyAndNeedsAudio = pending,
+                    pendingAudioPath = null,
+                )
+            }
+        }
+    }
+
+    fun saveCenterOfGravityEntry() {
+        viewModelScope.launch {
+            commitPendingCenterOfGravityAudio()
+            val state = _uiState.value
+            centerOfGravityRepository.save(
+                CenterOfGravityEntryEntity(
+                    thoughtsAndFeelings = state.centerOfGravityThoughtsAndFeelings.trim(),
+                    thoughtsAndFeelingsAudioPath = state.centerOfGravityThoughtsAndFeelingsAudio,
+                    bodyAndNeeds = state.centerOfGravityBodyAndNeeds.trim(),
+                    bodyAndNeedsAudioPath = state.centerOfGravityBodyAndNeedsAudio,
+                ),
+            )
+            _uiState.update {
+                it.copy(
+                    centerOfGravityStepIndex = 0,
+                    centerOfGravityThoughtsAndFeelings = "",
+                    centerOfGravityBodyAndNeeds = "",
+                    centerOfGravityThoughtsAndFeelingsAudio = null,
+                    centerOfGravityBodyAndNeedsAudio = null,
+                    pendingAudioPath = null,
+                )
+            }
+        }
+    }
+
+    fun clearCenterOfGravityDraft() {
+        _uiState.update {
+            it.copy(
+                centerOfGravityStepIndex = 0,
+                centerOfGravityThoughtsAndFeelings = "",
+                centerOfGravityBodyAndNeeds = "",
+                centerOfGravityThoughtsAndFeelingsAudio = null,
+                centerOfGravityBodyAndNeedsAudio = null,
+                pendingAudioPath = null,
+            )
+        }
+    }
+
+    fun openCenterOfGravityEntry(entry: CenterOfGravityEntryEntity) {
+        _uiState.update { it.copy(openedCenterOfGravityEntry = entry) }
+    }
+
+    fun closeCenterOfGravityEntry() {
+        _uiState.update { it.copy(openedCenterOfGravityEntry = null) }
+    }
+
+    fun deleteCenterOfGravityEntry(entry: CenterOfGravityEntryEntity) {
+        viewModelScope.launch {
+            centerOfGravityRepository.deleteEntry(entry.id)
+            if (_uiState.value.openedCenterOfGravityEntry?.id == entry.id) {
+                _uiState.update { it.copy(openedCenterOfGravityEntry = null) }
             }
         }
     }
@@ -547,6 +686,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 refactoringExplanation1Audio = null,
                 refactoringExplanation2Audio = null,
                 refactoringExplanation3Audio = null,
+                centerOfGravityStepIndex = 0,
+                centerOfGravityThoughtsAndFeelings = "",
+                centerOfGravityBodyAndNeeds = "",
+                centerOfGravityThoughtsAndFeelingsAudio = null,
+                centerOfGravityBodyAndNeedsAudio = null,
             )
         }
     }
@@ -634,5 +778,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         tool?.id == ToolkitToolId.ThoughtDump ||
             tool?.id == ToolkitToolId.AnxietyLog ||
             tool?.id == ToolkitToolId.FutureSelfMessage ||
-            tool?.id == ToolkitToolId.Refactoring
+            tool?.id == ToolkitToolId.Refactoring ||
+            tool?.id == ToolkitToolId.RelocateCenterOfGravity
 }

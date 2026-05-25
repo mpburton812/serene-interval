@@ -14,8 +14,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SessionEntity::class,
         FutureSelfMessageEntity::class,
         RefactoringEntryEntity::class,
+        CenterOfGravityEntryEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -24,6 +25,7 @@ abstract class SereneDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun futureSelfMessageDao(): FutureSelfMessageDao
     abstract fun refactoringEntryDao(): RefactoringEntryDao
+    abstract fun centerOfGravityEntryDao(): CenterOfGravityEntryDao
 
     companion object {
         @Volatile
@@ -115,6 +117,23 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS center_of_gravity_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        thoughtsAndFeelings TEXT NOT NULL,
+                        thoughtsAndFeelingsAudioPath TEXT,
+                        bodyAndNeeds TEXT NOT NULL,
+                        bodyAndNeedsAudioPath TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -128,6 +147,7 @@ abstract class SereneDatabase : RoomDatabase() {
                         MIGRATION_3_4,
                         MIGRATION_4_5,
                         MIGRATION_5_6,
+                        MIGRATION_6_7,
                     )
                     .build()
                     .also { instance = it }
