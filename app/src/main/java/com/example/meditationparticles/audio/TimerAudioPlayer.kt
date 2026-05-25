@@ -1,6 +1,7 @@
 package com.example.meditationparticles.audio
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import com.example.meditationparticles.R
@@ -30,18 +31,16 @@ class TimerAudioPlayer(private val context: Context) {
             TimerSoundOption.None -> return
             TimerSoundOption.Custom -> {
                 val uri = customUri?.let { Uri.parse(it) } ?: return
-                MediaPlayer.create(context, uri)
+                createLoopingAmbientPlayer(uri)
             }
-            TimerSoundOption.Rain -> MediaPlayer.create(context, R.raw.timer_rain)
-            TimerSoundOption.Ocean -> MediaPlayer.create(context, R.raw.timer_ocean)
-            TimerSoundOption.Forest -> MediaPlayer.create(context, R.raw.timer_forest)
-            TimerSoundOption.Wind -> MediaPlayer.create(context, R.raw.timer_wind)
-            TimerSoundOption.Bell -> MediaPlayer.create(context, R.raw.timer_bell)
+            TimerSoundOption.Rain -> createLoopingAmbientPlayer(R.raw.timer_rain)
+            TimerSoundOption.Ocean -> createLoopingAmbientPlayer(R.raw.timer_ocean)
+            TimerSoundOption.Forest -> createLoopingAmbientPlayer(R.raw.timer_forest)
+            TimerSoundOption.Wind -> createLoopingAmbientPlayer(R.raw.timer_wind)
+            TimerSoundOption.Bell -> createLoopingAmbientPlayer(R.raw.timer_bell)
         } ?: return
 
         currentSound = sound
-        player.isLooping = true
-        player.setVolume(0.55f, 0.55f)
         player.start()
         mediaPlayer = player
     }
@@ -64,4 +63,26 @@ class TimerAudioPlayer(private val context: Context) {
     }
 
     fun release() = stop()
+
+    private fun createLoopingAmbientPlayer(resId: Int): MediaPlayer? =
+        createLoopingAmbientPlayer(
+            Uri.parse("android.resource://${context.packageName}/$resId"),
+        )
+
+    private fun createLoopingAmbientPlayer(uri: Uri): MediaPlayer? = try {
+        MediaPlayer().apply {
+            setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build(),
+            )
+            setDataSource(context, uri)
+            prepare()
+            isLooping = true
+            setVolume(1.0f, 1.0f)
+        }
+    } catch (_: Exception) {
+        null
+    }
 }
