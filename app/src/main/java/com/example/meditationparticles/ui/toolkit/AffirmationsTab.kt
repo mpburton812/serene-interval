@@ -140,12 +140,12 @@ fun AffirmationsTab(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = viewModel::showBulkImportDialog) {
-                    Text("Bulk import", maxLines = 1)
-                }
                 TextButton(onClick = viewModel::showAddDialog) {
                     Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
                     Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
+                }
+                TextButton(onClick = viewModel::showBulkImportDialog) {
+                    Text("Bulk import", maxLines = 1)
                 }
             }
         }

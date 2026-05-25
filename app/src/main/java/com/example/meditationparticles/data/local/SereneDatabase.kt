@@ -8,14 +8,15 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [AffirmationEntity::class, ThoughtDumpEntity::class, SessionEntity::class],
-    version = 4,
+    entities = [AffirmationEntity::class, ThoughtDumpEntity::class, SessionEntity::class, FutureSelfMessageEntity::class],
+    version = 5,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
     abstract fun affirmationDao(): AffirmationDao
     abstract fun thoughtDumpDao(): ThoughtDumpDao
     abstract fun sessionDao(): SessionDao
+    abstract fun futureSelfMessageDao(): FutureSelfMessageDao
 
     companion object {
         @Volatile
@@ -67,6 +68,23 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS future_self_messages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        audioPath TEXT,
+                        scheduledAtMillis INTEGER NOT NULL,
+                        createdAtMillis INTEGER NOT NULL,
+                        delivered INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -74,7 +92,7 @@ abstract class SereneDatabase : RoomDatabase() {
                     SereneDatabase::class.java,
                     "serene_interval.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { instance = it }
             }

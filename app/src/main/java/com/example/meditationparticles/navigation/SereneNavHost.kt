@@ -33,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationCatalog
+import com.example.meditationparticles.navigation.PendingToolkitNavigation
 import com.example.meditationparticles.navigation.SereneDestination.ToolkitTab
 import com.example.meditationparticles.ui.breathing.BreathingScreen
 import com.example.meditationparticles.ui.components.BottomNavItem
@@ -59,6 +60,7 @@ private val allBottomNavItems = listOf(
 @Composable
 fun SereneNavHost(
     updateViewModel: UpdateViewModel,
+    pendingNavigation: PendingToolkitNavigation? = null,
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -109,6 +111,19 @@ fun SereneNavHost(
         SereneDestination.Home.route
     } else {
         SereneDestination.Onboarding.route
+    }
+
+    LaunchedEffect(pendingNavigation, settings.onboardingCompleted) {
+        val navigation = pendingNavigation ?: return@LaunchedEffect
+        if (!settings.onboardingCompleted) return@LaunchedEffect
+        val tab = navigation.toolkitTab ?: SereneDestination.ToolkitTab.TOOLKIT
+        navController.navigate(SereneDestination.Toolkit.createRoute(tab)) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
     }
 
     Scaffold(
@@ -216,6 +231,7 @@ fun SereneNavHost(
                 }
                 ToolkitScreen(
                     initialTab = resolvedTab,
+                    pendingNavigation = if (resolvedTab == ToolkitTab.TOOLKIT) pendingNavigation else null,
                     onNavigateToBreathe = {
                         navController.navigate(SereneDestination.Breathe.route) {
                             popUpTo(navController.graph.findStartDestination().id) {

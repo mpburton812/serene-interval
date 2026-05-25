@@ -44,6 +44,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".reminder.FutureSelfMessageReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".reminder.BootReminderReceiver"
             android:exported="false">
             <intent-filter>

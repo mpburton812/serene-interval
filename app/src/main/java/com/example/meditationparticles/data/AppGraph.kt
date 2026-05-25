@@ -13,6 +13,9 @@ object AppGraph {
     @Volatile
     private var sessionRepository: SessionRepository? = null
 
+    @Volatile
+    private var futureSelfMessageRepository: FutureSelfMessageRepository? = null
+
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
             affirmationRepository ?: AffirmationRepository(
@@ -38,5 +41,12 @@ object AppGraph {
             sessionRepository ?: SessionRepository(
                 SereneDatabase.getInstance(context.applicationContext).sessionDao(),
             ).also { sessionRepository = it }
+        }
+
+    fun futureSelfMessages(context: Context): FutureSelfMessageRepository =
+        futureSelfMessageRepository ?: synchronized(this) {
+            futureSelfMessageRepository ?: FutureSelfMessageRepository(
+                SereneDatabase.getInstance(context.applicationContext).futureSelfMessageDao(),
+            ).also { futureSelfMessageRepository = it }
         }
 }

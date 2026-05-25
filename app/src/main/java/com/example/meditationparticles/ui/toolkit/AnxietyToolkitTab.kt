@@ -23,13 +23,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
@@ -44,6 +44,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -53,10 +54,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
+import com.example.meditationparticles.navigation.PendingToolkitNavigation
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SerenePrimaryContainer
 import com.example.meditationparticles.ui.theme.SereneSecondaryContainer
@@ -67,9 +70,19 @@ import com.example.meditationparticles.ui.theme.SereneTertiaryContainer
 @Composable
 fun AnxietyToolkitTab(
     onNavigateToBreathe: () -> Unit,
+    pendingNavigation: PendingToolkitNavigation? = null,
     viewModel: ToolkitViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(pendingNavigation) {
+        pendingNavigation?.let { navigation ->
+            viewModel.handlePendingNavigation(
+                toolId = navigation.toolId,
+                futureSelfMessageId = navigation.futureSelfMessageId,
+            )
+        }
+    }
 
     if (state.selectedTool != null) {
         ToolDetailScreen(
@@ -83,16 +96,28 @@ fun AnxietyToolkitTab(
             thoughtDumpEntries = state.thoughtDumpEntries,
             anxietyLogEntries = state.anxietyLogEntries,
             openedLogEntry = state.openedLogEntry,
+            futureSelfText = state.futureSelfText,
+            futureSelfScheduledAtMillis = state.futureSelfScheduledAtMillis,
+            futureSelfEntries = state.futureSelfEntries,
+            editingFutureSelfId = state.editingFutureSelfId,
+            openedFutureSelfEntry = state.openedFutureSelfEntry,
             onThoughtDumpChange = viewModel::updateThoughtDump,
             onAnxietyLogChange = viewModel::updateAnxietyLog,
+            onFutureSelfTextChange = viewModel::updateFutureSelfText,
+            onFutureSelfScheduledAtChange = viewModel::updateFutureSelfScheduledAt,
             onPendingAudioChange = viewModel::setPendingAudioPath,
             onSpeechResult = viewModel::appendToActiveLog,
             onSaveThoughtDump = viewModel::saveThoughtDump,
             onSaveAnxietyLog = viewModel::saveAnxietyLog,
+            onSaveFutureSelfMessage = viewModel::saveFutureSelfMessage,
             onClearDraft = viewModel::clearActiveDraft,
             onOpenLogEntry = viewModel::openLogEntry,
             onDeleteLogEntry = viewModel::deleteLogEntry,
             onCloseLogEntry = viewModel::closeLogEntry,
+            onEditFutureSelfEntry = viewModel::editFutureSelfEntry,
+            onDeleteFutureSelfEntry = viewModel::deleteFutureSelfEntry,
+            onOpenFutureSelfEntry = viewModel::openFutureSelfEntry,
+            onCloseFutureSelfEntry = viewModel::closeFutureSelfEntry,
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
@@ -315,16 +340,28 @@ private fun ToolDetailScreen(
     thoughtDumpEntries: List<ThoughtDumpEntity>,
     anxietyLogEntries: List<ThoughtDumpEntity>,
     openedLogEntry: ThoughtDumpEntity?,
+    futureSelfText: String,
+    futureSelfScheduledAtMillis: Long,
+    futureSelfEntries: List<FutureSelfMessageEntity>,
+    editingFutureSelfId: Long?,
+    openedFutureSelfEntry: FutureSelfMessageEntity?,
     onThoughtDumpChange: (String) -> Unit,
     onAnxietyLogChange: (String) -> Unit,
+    onFutureSelfTextChange: (String) -> Unit,
+    onFutureSelfScheduledAtChange: (Long) -> Unit,
     onPendingAudioChange: (String?) -> Unit,
     onSpeechResult: (String) -> Unit,
     onSaveThoughtDump: () -> Unit,
     onSaveAnxietyLog: () -> Unit,
+    onSaveFutureSelfMessage: () -> Unit,
     onClearDraft: () -> Unit,
     onOpenLogEntry: (ThoughtDumpEntity) -> Unit,
     onDeleteLogEntry: (ThoughtDumpEntity) -> Unit,
     onCloseLogEntry: () -> Unit,
+    onEditFutureSelfEntry: (FutureSelfMessageEntity) -> Unit,
+    onDeleteFutureSelfEntry: (FutureSelfMessageEntity) -> Unit,
+    onOpenFutureSelfEntry: (FutureSelfMessageEntity) -> Unit,
+    onCloseFutureSelfEntry: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
@@ -389,6 +426,26 @@ private fun ToolDetailScreen(
                     onCloseEntry = onCloseLogEntry,
                 )
             }
+            ToolkitToolId.FutureSelfMessage -> {
+                FutureSelfMessageContent(
+                    text = futureSelfText,
+                    scheduledAtMillis = futureSelfScheduledAtMillis,
+                    pendingAudioPath = pendingAudioPath,
+                    entries = futureSelfEntries,
+                    editingEntryId = editingFutureSelfId,
+                    openedEntry = openedFutureSelfEntry,
+                    onTextChange = onFutureSelfTextChange,
+                    onScheduledAtChange = onFutureSelfScheduledAtChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onSpeechResult,
+                    onSave = onSaveFutureSelfMessage,
+                    onClear = onClearDraft,
+                    onEditEntry = onEditFutureSelfEntry,
+                    onDeleteEntry = onDeleteFutureSelfEntry,
+                    onOpenEntry = onOpenFutureSelfEntry,
+                    onCloseEntry = onCloseFutureSelfEntry,
+                )
+            }
             else -> {
                 GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
                     Column(
@@ -429,38 +486,19 @@ private fun ToolDetailScreen(
                         Text("Previous")
                     }
 
-                    if (tool.id == ToolkitToolId.BoxBreathing && isLastStep) {
-                        Button(
-                            onClick = {
-                                onClose()
-                                onNavigateToBreathe()
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Open Breathe")
+                    Button(
+                        onClick = if (isLastStep) onClose else onNext,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(if (isLastStep) "Done" else "Next")
+                        if (!isLastStep) {
                             Icon(
-                                Icons.Default.Air,
+                                Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .padding(start = 4.dp)
                                     .size(18.dp),
                             )
-                        }
-                    } else {
-                        Button(
-                            onClick = if (isLastStep) onClose else onNext,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(if (isLastStep) "Done" else "Next")
-                            if (!isLastStep) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .padding(start = 4.dp)
-                                        .size(18.dp),
-                                )
-                            }
                         }
                     }
                 }
@@ -474,8 +512,8 @@ private fun toolIcon(id: ToolkitToolId): ImageVector = when (id) {
     ToolkitToolId.ThoughtDump -> Icons.Default.EditNote
     ToolkitToolId.BoundarySetting -> Icons.Default.NotificationsActive
     ToolkitToolId.MicroPause -> Icons.Default.Schedule
+    ToolkitToolId.FutureSelfMessage -> Icons.Default.Mail
     ToolkitToolId.Grounding54321 -> Icons.Default.GridView
-    ToolkitToolId.BoxBreathing -> Icons.Default.Air
     ToolkitToolId.MuscleRelaxation -> Icons.Default.Spa
     ToolkitToolId.LovingKindness -> Icons.Default.Favorite
     ToolkitToolId.AnxietyLog -> Icons.Default.EditNote

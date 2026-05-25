@@ -4,12 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
+import com.example.meditationparticles.reminder.FutureSelfMessageScheduler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +32,11 @@ data class ToolkitUiState(
     val thoughtDumpEntries: List<ThoughtDumpEntity> = emptyList(),
     val anxietyLogEntries: List<ThoughtDumpEntity> = emptyList(),
     val openedLogEntry: ThoughtDumpEntity? = null,
+    val futureSelfText: String = "",
+    val futureSelfScheduledAtMillis: Long = defaultFutureSelfScheduleTime(),
+    val futureSelfEntries: List<FutureSelfMessageEntity> = emptyList(),
+    val editingFutureSelfId: Long? = null,
+    val openedFutureSelfEntry: FutureSelfMessageEntity? = null,
     val randomToolState: RandomToolState = RandomToolState.Idle,
     val randomSelectedTool: ToolkitTool? = null,
 ) {
@@ -42,6 +49,8 @@ data class ToolkitUiState(
 
 class ToolkitViewModel(application: Application) : AndroidViewModel(application) {
     private val logRepository = AppGraph.thoughtDumps(application)
+    private val futureSelfRepository = AppGraph.futureSelfMessages(application)
+    private val appContext = application.applicationContext
 
     private val _uiState = MutableStateFlow(ToolkitUiState())
     val uiState: StateFlow<ToolkitUiState> = _uiState.asStateFlow()
@@ -57,6 +66,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 _uiState.update { it.copy(anxietyLogEntries = entries) }
             }
         }
+        viewModelScope.launch {
+            futureSelfRepository.observeAll().collect { entries ->
+                _uiState.update { it.copy(futureSelfEntries = entries) }
+            }
+        }
     }
 
     fun openTool(tool: ToolkitTool) {
@@ -69,7 +83,42 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 anxietyLogText = "",
                 pendingAudioPath = null,
                 openedLogEntry = null,
+                futureSelfText = "",
+                futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
+                editingFutureSelfId = null,
+                openedFutureSelfEntry = null,
             )
+        }
+    }
+
+    fun openFutureSelfMessage(messageId: Long) {
+        viewModelScope.launch {
+            val message = futureSelfRepository.getById(messageId) ?: return@launch
+            val tool = ToolkitCatalog.byId(ToolkitToolId.FutureSelfMessage) ?: return@launch
+            _uiState.update {
+                it.copy(
+                    selectedTool = tool,
+                    stepIndex = 0,
+                    openedFutureSelfEntry = message,
+                    futureSelfText = "",
+                    futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
+                    editingFutureSelfId = null,
+                    pendingAudioPath = null,
+                )
+            }
+        }
+    }
+
+    fun handlePendingNavigation(toolId: ToolkitToolId?, futureSelfMessageId: Long?) {
+        when (toolId) {
+            ToolkitToolId.FutureSelfMessage -> {
+                if (futureSelfMessageId != null) {
+                    openFutureSelfMessage(futureSelfMessageId)
+                } else {
+                    ToolkitCatalog.byId(ToolkitToolId.FutureSelfMessage)?.let(::openTool)
+                }
+            }
+            else -> Unit
         }
     }
 
@@ -82,6 +131,10 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 anxietyLogText = "",
                 pendingAudioPath = null,
                 openedLogEntry = null,
+                futureSelfText = "",
+                futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
+                editingFutureSelfId = null,
+                openedFutureSelfEntry = null,
             )
         }
     }
@@ -107,6 +160,14 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(anxietyLogText = text) }
     }
 
+    fun updateFutureSelfText(text: String) {
+        _uiState.update { it.copy(futureSelfText = text) }
+    }
+
+    fun updateFutureSelfScheduledAt(millis: Long) {
+        _uiState.update { it.copy(futureSelfScheduledAtMillis = millis) }
+    }
+
     fun setPendingAudioPath(path: String?) {
         _uiState.update { it.copy(pendingAudioPath = path) }
     }
@@ -124,6 +185,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 val current = _uiState.value.anxietyLogText
                 val separator = if (current.isBlank()) "" else " "
                 _uiState.update { it.copy(anxietyLogText = current + separator + trimmed) }
+            }
+            ToolkitToolId.FutureSelfMessage -> {
+                val current = _uiState.value.futureSelfText
+                val separator = if (current.isBlank()) "" else " "
+                _uiState.update { it.copy(futureSelfText = current + separator + trimmed) }
             }
             else -> Unit
         }
@@ -151,12 +217,45 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun saveFutureSelfMessage() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.futureSelfScheduledAtMillis <= System.currentTimeMillis()) return@launch
+            val editingId = state.editingFutureSelfId
+            if (editingId != null) {
+                FutureSelfMessageScheduler.cancel(appContext, editingId)
+            }
+            val savedId = futureSelfRepository.save(
+                id = editingId,
+                content = state.futureSelfText,
+                audioPath = state.pendingAudioPath,
+                scheduledAtMillis = state.futureSelfScheduledAtMillis,
+            ) ?: return@launch
+            FutureSelfMessageScheduler.schedule(
+                appContext,
+                savedId,
+                state.futureSelfScheduledAtMillis,
+            )
+            _uiState.update {
+                it.copy(
+                    futureSelfText = "",
+                    pendingAudioPath = null,
+                    futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
+                    editingFutureSelfId = null,
+                )
+            }
+        }
+    }
+
     fun clearActiveDraft() {
         _uiState.update {
             it.copy(
                 thoughtDumpText = "",
                 anxietyLogText = "",
+                futureSelfText = "",
                 pendingAudioPath = null,
+                futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
+                editingFutureSelfId = null,
             )
         }
     }
@@ -174,6 +273,46 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             logRepository.deleteEntry(entry.id)
             if (_uiState.value.openedLogEntry?.id == entry.id) {
                 _uiState.update { it.copy(openedLogEntry = null) }
+            }
+        }
+    }
+
+    fun openFutureSelfEntry(entry: FutureSelfMessageEntity) {
+        _uiState.update { it.copy(openedFutureSelfEntry = entry) }
+    }
+
+    fun closeFutureSelfEntry() {
+        _uiState.update { it.copy(openedFutureSelfEntry = null) }
+    }
+
+    fun editFutureSelfEntry(entry: FutureSelfMessageEntity) {
+        _uiState.update {
+            it.copy(
+                futureSelfText = entry.content,
+                pendingAudioPath = entry.audioPath,
+                futureSelfScheduledAtMillis = entry.scheduledAtMillis,
+                editingFutureSelfId = entry.id,
+                openedFutureSelfEntry = null,
+            )
+        }
+    }
+
+    fun deleteFutureSelfEntry(entry: FutureSelfMessageEntity) {
+        viewModelScope.launch {
+            FutureSelfMessageScheduler.cancel(appContext, entry.id)
+            futureSelfRepository.delete(entry.id)
+            if (_uiState.value.openedFutureSelfEntry?.id == entry.id) {
+                _uiState.update { it.copy(openedFutureSelfEntry = null) }
+            }
+            if (_uiState.value.editingFutureSelfId == entry.id) {
+                _uiState.update {
+                    it.copy(
+                        editingFutureSelfId = null,
+                        futureSelfText = "",
+                        pendingAudioPath = null,
+                        futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
+                    )
+                }
             }
         }
     }
@@ -201,5 +340,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun isLogTool(tool: ToolkitTool?): Boolean =
-        tool?.id == ToolkitToolId.ThoughtDump || tool?.id == ToolkitToolId.AnxietyLog
+        tool?.id == ToolkitToolId.ThoughtDump ||
+            tool?.id == ToolkitToolId.AnxietyLog ||
+            tool?.id == ToolkitToolId.FutureSelfMessage
 }

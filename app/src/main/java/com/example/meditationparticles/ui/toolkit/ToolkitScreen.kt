@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.meditationparticles.navigation.PendingToolkitNavigation
 import com.example.meditationparticles.navigation.SereneDestination
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
@@ -31,6 +32,7 @@ enum class ToolkitScreenTab { Affirmations, Toolkit }
 @Composable
 fun ToolkitScreen(
     initialTab: String = SereneDestination.ToolkitTab.AFFIRMATIONS,
+    pendingNavigation: PendingToolkitNavigation? = null,
     onNavigateToBreathe: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -75,7 +77,10 @@ fun ToolkitScreen(
             when {
                 selectedTab == ToolkitScreenTab.Affirmations && showAffirmations -> AffirmationsTab()
                 selectedTab == ToolkitScreenTab.Toolkit && showToolkit ->
-                    AnxietyToolkitTab(onNavigateToBreathe = onNavigateToBreathe)
+                    AnxietyToolkitTab(
+                        onNavigateToBreathe = onNavigateToBreathe,
+                        pendingNavigation = pendingNavigation,
+                    )
             }
         }
     }

@@ -9,8 +9,8 @@ enum class ToolkitToolId {
     ThoughtDump,
     BoundarySetting,
     MicroPause,
+    FutureSelfMessage,
     Grounding54321,
-    BoxBreathing,
     MuscleRelaxation,
     LovingKindness,
     AnxietyLog,
@@ -63,6 +63,13 @@ object ToolkitCatalog {
             ),
         ),
         ToolkitTool(
+            id = ToolkitToolId.FutureSelfMessage,
+            title = "Give Message To Future Self",
+            description = "Write or record a note your future self will receive.",
+            category = ToolkitCategory.Proactive,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
             id = ToolkitToolId.Grounding54321,
             title = "5-4-3-2-1 Grounding",
             description = "Engage your senses to return to the now.",
@@ -73,18 +80,6 @@ object ToolkitCatalog {
                 "Name 3 things you can hear right now.",
                 "Name 2 things you can smell.",
                 "Name 1 thing you can taste.",
-            ),
-        ),
-        ToolkitTool(
-            id = ToolkitToolId.BoxBreathing,
-            title = "Box Breathing",
-            description = "Immediate nervous system regulation.",
-            category = ToolkitCategory.Reactive,
-            steps = listOf(
-                "Inhale slowly through your nose for 4 counts.",
-                "Hold gently for 4 counts.",
-                "Exhale slowly through your mouth for 4 counts.",
-                "Hold empty for 4 counts, then repeat.",
             ),
         ),
         ToolkitTool(
