@@ -38,7 +38,7 @@ object CalmingVisualizationCatalog {
         CalmingVisualization(
             id = CalmingVisualizationId.Rainfall,
             title = "Rainfall",
-            subtitle = "Rhythmic Patter",
+            subtitle = "Rhythmic Pattern",
             backgroundTop = Color(0xFF2A3D35),
             backgroundBottom = Color(0xFF1A2822),
             cardAccent = Color(0xFF8BA88E),
