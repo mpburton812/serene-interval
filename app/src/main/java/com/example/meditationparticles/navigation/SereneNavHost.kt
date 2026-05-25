@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -27,6 +28,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -35,6 +40,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationCatalog
+import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.navigation.SereneDestination.ToolkitTab
 import com.example.meditationparticles.ui.breathing.BreathingScreen
 import com.example.meditationparticles.ui.components.BottomNavItem
@@ -68,6 +74,17 @@ private val allBottomNavItems = listOf(
     BottomNavItem(SereneDestination.Visualizations, "Visuals", Icons.Outlined.Landscape, Icons.Default.Landscape),
 )
 
+private val tabBackgroundRoutes = setOf(
+    SereneDestination.Home.route,
+    SereneDestination.Breathe.route,
+    SereneDestination.Timer.route,
+    SereneDestination.Affirmations.route,
+    SereneDestination.Toolkit.route,
+    SereneDestination.Visualizations.route,
+)
+
+private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
+
 @Composable
 fun SereneNavHost(
     updateViewModel: UpdateViewModel,
@@ -78,12 +95,38 @@ fun SereneNavHost(
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val context = LocalContext.current
+    val tabBackgroundRotation = remember { AppGraph.tabBackgroundRotation(context) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var resumeCount by remember { mutableIntStateOf(0) }
     val settings = LocalExperienceSettings.current
     var breathingSessionActive by remember { mutableStateOf(false) }
     var timerSessionActive by remember { mutableStateOf(false) }
     var visualizationPlayerActive by remember { mutableStateOf(false) }
     var activeFutureSelfMessageId by remember { mutableStateOf<Long?>(null) }
     var toolkitResetSignal by remember { mutableIntStateOf(0) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                resumeCount++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(currentRoute) {
+        if (isTabBackgroundRoute(currentRoute)) {
+            tabBackgroundRotation.advance()
+        }
+    }
+
+    LaunchedEffect(resumeCount) {
+        if (resumeCount > 1 && isTabBackgroundRoute(currentRoute)) {
+            tabBackgroundRotation.advance()
+        }
+    }
 
     LaunchedEffect(pendingFutureSelfMessageId, settings.onboardingCompleted) {
         val messageId = pendingFutureSelfMessageId ?: return@LaunchedEffect

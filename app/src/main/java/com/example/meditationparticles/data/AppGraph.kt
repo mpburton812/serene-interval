@@ -24,6 +24,9 @@ object AppGraph {
     @Volatile
     private var centerOfGravityRepository: CenterOfGravityRepository? = null
 
+    @Volatile
+    private var tabBackgroundRotation: TabBackgroundRotation? = null
+
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
             affirmationRepository ?: AffirmationRepository(
@@ -76,5 +79,11 @@ object AppGraph {
             centerOfGravityRepository ?: CenterOfGravityRepository(
                 SereneDatabase.getInstance(context.applicationContext).centerOfGravityEntryDao(),
             ).also { centerOfGravityRepository = it }
+        }
+
+    fun tabBackgroundRotation(context: Context): TabBackgroundRotation =
+        tabBackgroundRotation ?: synchronized(this) {
+            tabBackgroundRotation ?: TabBackgroundRotation(context.applicationContext)
+                .also { tabBackgroundRotation = it }
         }
 }
