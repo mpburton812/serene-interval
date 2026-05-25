@@ -27,7 +27,7 @@ From repo root:
 .\gradlew.bat assembleDebug
 ```
 
-Upload `app/build/outputs/apk/debug/app-debug.apk` to the GitHub release. Ensure `release/version.json` on `main` points at that asset and lists the correct `versionCode` / `versionName`.
+Gradle still outputs `app/build/outputs/apk/debug/app-debug.apk` locally. For GitHub releases, upload it as **`meditation_app.apk`** (the release workflow renames automatically). Ensure `release/version.json` on `main` points at that asset and lists the correct `versionCode` / `versionName`.
 
 Verify signing before upload:
 

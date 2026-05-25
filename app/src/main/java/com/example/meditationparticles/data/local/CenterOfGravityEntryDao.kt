@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CenterOfGravityEntryDao {
     @Query("SELECT * FROM center_of_gravity_entries ORDER BY createdAt DESC")
+    suspend fun getAll(): List<CenterOfGravityEntryEntity>
+
+    @Query("SELECT * FROM center_of_gravity_entries ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<CenterOfGravityEntryEntity>>
 
     @Insert
