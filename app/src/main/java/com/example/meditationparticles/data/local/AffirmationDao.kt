@@ -22,6 +22,9 @@ interface AffirmationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: AffirmationEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<AffirmationEntity>)
+
     @Update
     suspend fun update(entity: AffirmationEntity)
 

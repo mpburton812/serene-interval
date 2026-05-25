@@ -9,9 +9,13 @@ enum class ToolkitToolId {
     ThoughtDump,
     BoundarySetting,
     MicroPause,
+    FutureSelfMessage,
     Grounding54321,
-    BoxBreathing,
     MuscleRelaxation,
+    LovingKindness,
+    AnxietyLog,
+    Refactoring,
+    RelocateCenterOfGravity,
 }
 
 data class ToolkitTool(
@@ -61,6 +65,13 @@ object ToolkitCatalog {
             ),
         ),
         ToolkitTool(
+            id = ToolkitToolId.FutureSelfMessage,
+            title = "Give Message To Future Self",
+            description = "Write or record a note your future self will receive.",
+            category = ToolkitCategory.Proactive,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
             id = ToolkitToolId.Grounding54321,
             title = "5-4-3-2-1 Grounding",
             description = "Engage your senses to return to the now.",
@@ -74,18 +85,6 @@ object ToolkitCatalog {
             ),
         ),
         ToolkitTool(
-            id = ToolkitToolId.BoxBreathing,
-            title = "Box Breathing",
-            description = "Immediate nervous system regulation.",
-            category = ToolkitCategory.Reactive,
-            steps = listOf(
-                "Inhale slowly through your nose for 4 counts.",
-                "Hold gently for 4 counts.",
-                "Exhale slowly through your mouth for 4 counts.",
-                "Hold empty for 4 counts, then repeat.",
-            ),
-        ),
-        ToolkitTool(
             id = ToolkitToolId.MuscleRelaxation,
             title = "Muscle Relaxation",
             description = "Step-by-step tension release.",
@@ -96,6 +95,47 @@ object ToolkitCatalog {
                 "Tense your stomach and chest, hold, then let go.",
                 "Tense your hands and arms, hold, then release.",
                 "Tense your shoulders and face, hold, then melt into ease.",
+            ),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.LovingKindness,
+            title = "Loving Kindness",
+            description = "Send warmth to yourself and others.",
+            category = ToolkitCategory.Reactive,
+            steps = listOf(
+                "Find a comfortable posture. Place a hand on your heart if that feels grounding.",
+                "Silently repeat: May I be safe. May I be happy. May I be healthy. May I live with ease.",
+                "Bring someone you care about to mind. Repeat: May you be safe. May you be happy. May you be healthy. May you live with ease.",
+                "Extend this wish to all beings: May all beings be safe, happy, healthy, and at ease.",
+                "Notice how your body feels. Carry this warmth with you as you return.",
+            ),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.AnxietyLog,
+            title = "Anxiety Log",
+            description = "Notice, observe, and acknowledge what you feel.",
+            category = ToolkitCategory.Reactive,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.Refactoring,
+            title = "Refactoring",
+            description = "Separate interpretation from facts and explore calmer explanations.",
+            category = ToolkitCategory.Reactive,
+            steps = listOf(
+                "Write down the actual facts — only what you know for certain.",
+                "Write down your interpretation — the story your mind is telling.",
+                "Write three non-threatening explanations based on logic.",
+            ),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.RelocateCenterOfGravity,
+            title = "Relocate Center of Gravity",
+            description = "Return attention from your partner to your own inner ground.",
+            category = ToolkitCategory.Reactive,
+            steps = listOf(
+                "What am I thinking and feeling right now?",
+                "What am I feeling in my body right now? What do I need in this moment to feel slightly more grounded?",
             ),
         ),
     )

@@ -13,8 +13,10 @@ data class ExperienceSettings(
     val enableToolkit: Boolean = true,
     val enableVisuals: Boolean = true,
     val enabledScenes: Set<String> = defaultScenes,
+    val meditationRemindersAvailable: Boolean = true,
+    val futureSelfSchedulingAvailable: Boolean = true,
 ) {
-    val showToolkitTab: Boolean get() = enableAffirmations || enableToolkit
+    val showToolkitTab: Boolean get() = enableToolkit
 
     val hasAnyToolEnabled: Boolean
         get() = enableBreathing || enableTimer || enableAffirmations || enableToolkit || enableVisuals

@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.local.AffirmationEntity
+import com.example.meditationparticles.data.parseAffirmationLines
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SerenePrimary
 import com.example.meditationparticles.ui.theme.SereneSpacing
@@ -83,6 +84,20 @@ fun AffirmationsTab(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = viewModel::showAddDialog) {
+                Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
+                Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
+            }
+            TextButton(onClick = viewModel::showBulkImportDialog) {
+                Text("Bulk Import", maxLines = 1)
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -114,25 +129,23 @@ fun AffirmationsTab(
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            Column {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "My Collection",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                text = "Your personal echoes of strength",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            state.importMessage?.let { message ->
                 Text(
-                    text = "My Collection",
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp),
                 )
-                Text(
-                    text = "Your personal echoes of strength",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            TextButton(onClick = viewModel::showAddDialog) {
-                Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
-                Text("Add New", modifier = Modifier.padding(start = 4.dp))
             }
         }
 
@@ -220,6 +233,13 @@ fun AffirmationsTab(
                 )
             }
         }
+    }
+
+    if (state.showBulkImportDialog) {
+        BulkImportDialog(
+            onDismiss = viewModel::dismissBulkImportDialog,
+            onImport = viewModel::bulkImport,
+        )
     }
 
     if (state.showAddDialog) {
@@ -342,6 +362,62 @@ private fun AffirmationCollectionCard(
             }
         }
     }
+}
+
+@Composable
+private fun BulkImportDialog(
+    onDismiss: () -> Unit,
+    onImport: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    val parsedCount = remember(text) { parseAffirmationLines(text).size }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Bulk Import") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Paste one affirmation per line. Empty lines are ignored.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("I am calm and present…\nI choose peace over worry…") },
+                    minLines = 8,
+                )
+                Text(
+                    text = when (parsedCount) {
+                        0 -> "No affirmations to import"
+                        1 -> "1 affirmation ready to import"
+                        else -> "$parsedCount affirmations ready to import"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (parsedCount > 0) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onImport(text) },
+                enabled = parsedCount > 0,
+            ) {
+                Text("Import")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 @Composable

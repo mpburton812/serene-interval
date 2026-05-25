@@ -4,9 +4,8 @@ sealed class SereneDestination(val route: String) {
     data object Home : SereneDestination("home")
     data object Breathe : SereneDestination("breathe")
     data object Timer : SereneDestination("timer")
-    data object Toolkit : SereneDestination("toolkit/{tab}") {
-        fun createRoute(tab: String = ToolkitTab.AFFIRMATIONS): String = "toolkit/$tab"
-    }
+    data object Affirmations : SereneDestination("affirmations")
+    data object Toolkit : SereneDestination("toolkit")
     data object Visualizations : SereneDestination("visualizations") {
         fun playerRoute(vizId: String) = "visualizations/player/$vizId"
     }
@@ -19,6 +18,6 @@ sealed class SereneDestination(val route: String) {
     }
 
     companion object {
-        val bottomNavDestinations = listOf(Home, Breathe, Timer, Toolkit, Visualizations)
+        val bottomNavDestinations = listOf(Home, Breathe, Timer, Affirmations, Toolkit, Visualizations)
     }
 }

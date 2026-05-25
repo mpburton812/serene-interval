@@ -11,7 +11,18 @@ object AppGraph {
     @Volatile
     private var settingsPreferences: SettingsPreferences? = null
     @Volatile
+    private var toolkitPreferences: ToolkitPreferences? = null
+    @Volatile
     private var sessionRepository: SessionRepository? = null
+
+    @Volatile
+    private var futureSelfMessageRepository: FutureSelfMessageRepository? = null
+
+    @Volatile
+    private var refactoringRepository: RefactoringRepository? = null
+
+    @Volatile
+    private var centerOfGravityRepository: CenterOfGravityRepository? = null
 
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
@@ -33,10 +44,37 @@ object AppGraph {
                 .also { settingsPreferences = it }
         }
 
+    fun toolkit(context: Context): ToolkitPreferences =
+        toolkitPreferences ?: synchronized(this) {
+            toolkitPreferences ?: ToolkitPreferences(context.applicationContext)
+                .also { toolkitPreferences = it }
+        }
+
     fun sessions(context: Context): SessionRepository =
         sessionRepository ?: synchronized(this) {
             sessionRepository ?: SessionRepository(
                 SereneDatabase.getInstance(context.applicationContext).sessionDao(),
             ).also { sessionRepository = it }
+        }
+
+    fun futureSelfMessages(context: Context): FutureSelfMessageRepository =
+        futureSelfMessageRepository ?: synchronized(this) {
+            futureSelfMessageRepository ?: FutureSelfMessageRepository(
+                SereneDatabase.getInstance(context.applicationContext).futureSelfMessageDao(),
+            ).also { futureSelfMessageRepository = it }
+        }
+
+    fun refactoringEntries(context: Context): RefactoringRepository =
+        refactoringRepository ?: synchronized(this) {
+            refactoringRepository ?: RefactoringRepository(
+                SereneDatabase.getInstance(context.applicationContext).refactoringEntryDao(),
+            ).also { refactoringRepository = it }
+        }
+
+    fun centerOfGravityEntries(context: Context): CenterOfGravityRepository =
+        centerOfGravityRepository ?: synchronized(this) {
+            centerOfGravityRepository ?: CenterOfGravityRepository(
+                SereneDatabase.getInstance(context.applicationContext).centerOfGravityEntryDao(),
+            ).also { centerOfGravityRepository = it }
         }
 }

@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import com.example.meditationparticles.MainActivity
 import com.example.meditationparticles.R
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.navigation.NavigationIntentExtras
 import com.example.meditationparticles.navigation.SereneDestination
 import kotlinx.coroutines.runBlocking
 
@@ -48,7 +49,7 @@ class AffirmationReminderReceiver : BroadcastReceiver() {
 
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("open_toolkit_tab", SereneDestination.ToolkitTab.AFFIRMATIONS)
+            putExtra(NavigationIntentExtras.OPEN_TOOLKIT_TAB, SereneDestination.ToolkitTab.AFFIRMATIONS)
         }
         val pending = android.app.PendingIntent.getActivity(
             context,

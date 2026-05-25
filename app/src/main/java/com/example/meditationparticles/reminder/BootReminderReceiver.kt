@@ -9,6 +9,7 @@ class BootReminderReceiver : BroadcastReceiver() {
         if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
             MeditationReminderScheduler.syncFromPreferences(context)
             AffirmationReminderScheduler.syncFromPreferences(context)
+            FutureSelfMessageScheduler.rescheduleAll(context)
         }
     }
 }

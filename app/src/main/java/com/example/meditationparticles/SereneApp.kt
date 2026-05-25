@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.navigation.PendingToolkitNavigation
 import com.example.meditationparticles.navigation.SereneNavHost
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.SereneIntervalTheme
@@ -21,6 +22,8 @@ import com.example.meditationparticles.ui.update.UpdateViewModel
 @Composable
 fun SereneApp(
     updateViewModel: UpdateViewModel,
+    pendingNavigation: PendingToolkitNavigation? = null,
+    pendingFutureSelfMessageId: Long? = null,
 ) {
     val context = LocalContext.current
     val settingsPreferences = remember { AppGraph.settings(context) }
@@ -39,7 +42,11 @@ fun SereneApp(
                 color = MaterialTheme.colorScheme.background,
             ) {
                 UpdatePromptHost(viewModel = updateViewModel)
-                SereneNavHost(updateViewModel = updateViewModel)
+                SereneNavHost(
+                    updateViewModel = updateViewModel,
+                    pendingNavigation = pendingNavigation,
+                    pendingFutureSelfMessageId = pendingFutureSelfMessageId,
+                )
             }
         }
     }

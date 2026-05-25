@@ -23,14 +23,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Spa
@@ -41,22 +44,30 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
+import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.RefactoringEntryEntity
+import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
+import com.example.meditationparticles.navigation.PendingToolkitNavigation
+import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SerenePrimaryContainer
 import com.example.meditationparticles.ui.theme.SereneSecondaryContainer
@@ -67,9 +78,19 @@ import com.example.meditationparticles.ui.theme.SereneTertiaryContainer
 @Composable
 fun AnxietyToolkitTab(
     onNavigateToBreathe: () -> Unit,
+    pendingNavigation: PendingToolkitNavigation? = null,
     viewModel: ToolkitViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(pendingNavigation) {
+        pendingNavigation?.let { navigation ->
+            viewModel.handlePendingNavigation(
+                toolId = navigation.toolId,
+                futureSelfMessageId = navigation.futureSelfMessageId,
+            )
+        }
+    }
 
     if (state.selectedTool != null) {
         ToolDetailScreen(
@@ -78,9 +99,69 @@ fun AnxietyToolkitTab(
             currentStep = state.currentStep,
             isLastStep = state.isLastStep,
             thoughtDumpText = state.thoughtDumpText,
+            anxietyLogText = state.anxietyLogText,
+            pendingAudioPath = state.pendingAudioPath,
+            thoughtDumpEntries = state.thoughtDumpEntries,
+            anxietyLogEntries = state.anxietyLogEntries,
+            openedLogEntry = state.openedLogEntry,
+            futureSelfText = state.futureSelfText,
+            futureSelfScheduledAtMillis = state.futureSelfScheduledAtMillis,
+            futureSelfEntries = state.futureSelfEntries,
+            editingFutureSelfId = state.editingFutureSelfId,
+            openedFutureSelfEntry = state.openedFutureSelfEntry,
+            refactoringStepIndex = state.refactoringStepIndex,
+            refactoringInterpretation = state.refactoringInterpretation,
+            refactoringActualFacts = state.refactoringActualFacts,
+            refactoringExplanation1 = state.refactoringExplanation1,
+            refactoringExplanation2 = state.refactoringExplanation2,
+            refactoringExplanation3 = state.refactoringExplanation3,
+            refactoringEntries = state.refactoringEntries,
+            openedRefactoringEntry = state.openedRefactoringEntry,
+            centerOfGravityStepIndex = state.centerOfGravityStepIndex,
+            centerOfGravityThoughtsAndFeelings = state.centerOfGravityThoughtsAndFeelings,
+            centerOfGravityBodyAndNeeds = state.centerOfGravityBodyAndNeeds,
+            centerOfGravityEntries = state.centerOfGravityEntries,
+            openedCenterOfGravityEntry = state.openedCenterOfGravityEntry,
             onThoughtDumpChange = viewModel::updateThoughtDump,
+            onAnxietyLogChange = viewModel::updateAnxietyLog,
+            onFutureSelfTextChange = viewModel::updateFutureSelfText,
+            onFutureSelfScheduledAtChange = viewModel::updateFutureSelfScheduledAt,
+            onPendingAudioChange = viewModel::setPendingAudioPath,
+            onSpeechResult = viewModel::appendToActiveLog,
             onSaveThoughtDump = viewModel::saveThoughtDump,
-            onClearThoughtDump = viewModel::clearThoughtDump,
+            onSaveAnxietyLog = viewModel::saveAnxietyLog,
+            onSaveFutureSelfMessage = viewModel::saveFutureSelfMessage,
+            onClearDraft = viewModel::clearActiveDraft,
+            onOpenLogEntry = viewModel::openLogEntry,
+            onDeleteLogEntry = viewModel::deleteLogEntry,
+            onCloseLogEntry = viewModel::closeLogEntry,
+            onEditFutureSelfEntry = viewModel::editFutureSelfEntry,
+            onDeleteFutureSelfEntry = viewModel::deleteFutureSelfEntry,
+            onOpenFutureSelfEntry = viewModel::openFutureSelfEntry,
+            onCloseFutureSelfEntry = viewModel::closeFutureSelfEntry,
+            onRefactoringInterpretationChange = viewModel::updateRefactoringInterpretation,
+            onRefactoringActualFactsChange = viewModel::updateRefactoringActualFacts,
+            onRefactoringExplanation1Change = viewModel::updateRefactoringExplanation1,
+            onRefactoringExplanation2Change = viewModel::updateRefactoringExplanation2,
+            onRefactoringExplanation3Change = viewModel::updateRefactoringExplanation3,
+            onRefactoringSpeechResult = viewModel::appendToRefactoringField,
+            onSaveRefactoringEntry = viewModel::saveRefactoringEntry,
+            onClearRefactoringDraft = viewModel::clearRefactoringDraft,
+            onOpenRefactoringEntry = viewModel::openRefactoringEntry,
+            onDeleteRefactoringEntry = viewModel::deleteRefactoringEntry,
+            onCloseRefactoringEntry = viewModel::closeRefactoringEntry,
+            onNextRefactoringStep = viewModel::nextRefactoringStep,
+            onPreviousRefactoringStep = viewModel::previousRefactoringStep,
+            onCenterOfGravityThoughtsAndFeelingsChange = viewModel::updateCenterOfGravityThoughtsAndFeelings,
+            onCenterOfGravityBodyAndNeedsChange = viewModel::updateCenterOfGravityBodyAndNeeds,
+            onCenterOfGravitySpeechResult = viewModel::appendToCenterOfGravityField,
+            onSaveCenterOfGravityEntry = viewModel::saveCenterOfGravityEntry,
+            onClearCenterOfGravityDraft = viewModel::clearCenterOfGravityDraft,
+            onOpenCenterOfGravityEntry = viewModel::openCenterOfGravityEntry,
+            onDeleteCenterOfGravityEntry = viewModel::deleteCenterOfGravityEntry,
+            onCloseCenterOfGravityEntry = viewModel::closeCenterOfGravityEntry,
+            onNextCenterOfGravityStep = viewModel::nextCenterOfGravityStep,
+            onPreviousCenterOfGravityStep = viewModel::previousCenterOfGravityStep,
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
@@ -107,6 +188,7 @@ fun AnxietyToolkitTab(
             titleColor = MaterialTheme.colorScheme.primary,
             tools = state.proactiveTools,
             onToolClick = viewModel::openTool,
+            onReorder = viewModel::reorderProactiveTool,
         )
 
         ToolkitSection(
@@ -115,6 +197,7 @@ fun AnxietyToolkitTab(
             titleColor = SereneTertiary,
             tools = state.reactiveTools,
             onToolClick = viewModel::openTool,
+            onReorder = viewModel::reorderReactiveTool,
             accentBorder = true,
         )
     }
@@ -198,6 +281,7 @@ private fun ToolkitSection(
     titleColor: androidx.compose.ui.graphics.Color,
     tools: List<ToolkitTool>,
     onToolClick: (ToolkitTool) -> Unit,
+    onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
     accentBorder: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
@@ -209,14 +293,25 @@ private fun ToolkitSection(
             Text(text = title, style = MaterialTheme.typography.headlineMedium, color = titleColor)
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
-            tools.forEach { tool ->
-                ToolkitToolCard(
-                    tool = tool,
-                    accentBorder = accentBorder,
-                    onClick = { onToolClick(tool) },
-                )
-            }
+        Text(
+            text = "Press and hold to reorder",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        ReorderableToolkitToolList(
+            tools = tools,
+            accentBorder = accentBorder,
+            onToolClick = onToolClick,
+            onReorder = onReorder,
+        ) { tool, sectionAccentBorder, onClick, itemModifier, isDragging ->
+            ToolkitToolCard(
+                tool = tool,
+                accentBorder = sectionAccentBorder,
+                onClick = onClick,
+                isDragging = isDragging,
+                modifier = itemModifier,
+            )
         }
     }
 }
@@ -226,10 +321,13 @@ private fun ToolkitToolCard(
     tool: ToolkitTool,
     accentBorder: Boolean,
     onClick: () -> Unit,
+    isDragging: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     GlassCard(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .alpha(if (isDragging) 0.92f else 1f)
             .clickable(onClick = onClick),
         cornerRadius = 20.dp,
     ) {
@@ -287,6 +385,12 @@ private fun ToolkitToolCard(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
             )
+
+            Icon(
+                Icons.Default.DragHandle,
+                contentDescription = "Reorder",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            )
         }
     }
 }
@@ -298,14 +402,77 @@ private fun ToolDetailScreen(
     currentStep: String?,
     isLastStep: Boolean,
     thoughtDumpText: String,
+    anxietyLogText: String,
+    pendingAudioPath: String?,
+    thoughtDumpEntries: List<ThoughtDumpEntity>,
+    anxietyLogEntries: List<ThoughtDumpEntity>,
+    openedLogEntry: ThoughtDumpEntity?,
+    futureSelfText: String,
+    futureSelfScheduledAtMillis: Long,
+    futureSelfEntries: List<FutureSelfMessageEntity>,
+    editingFutureSelfId: Long?,
+    openedFutureSelfEntry: FutureSelfMessageEntity?,
+    refactoringStepIndex: Int,
+    refactoringInterpretation: String,
+    refactoringActualFacts: String,
+    refactoringExplanation1: String,
+    refactoringExplanation2: String,
+    refactoringExplanation3: String,
+    refactoringEntries: List<RefactoringEntryEntity>,
+    openedRefactoringEntry: RefactoringEntryEntity?,
+    centerOfGravityStepIndex: Int,
+    centerOfGravityThoughtsAndFeelings: String,
+    centerOfGravityBodyAndNeeds: String,
+    centerOfGravityEntries: List<CenterOfGravityEntryEntity>,
+    openedCenterOfGravityEntry: CenterOfGravityEntryEntity?,
     onThoughtDumpChange: (String) -> Unit,
+    onAnxietyLogChange: (String) -> Unit,
+    onFutureSelfTextChange: (String) -> Unit,
+    onFutureSelfScheduledAtChange: (Long) -> Unit,
+    onPendingAudioChange: (String?) -> Unit,
+    onSpeechResult: (String) -> Unit,
     onSaveThoughtDump: () -> Unit,
-    onClearThoughtDump: () -> Unit,
+    onSaveAnxietyLog: () -> Unit,
+    onSaveFutureSelfMessage: () -> Unit,
+    onClearDraft: () -> Unit,
+    onOpenLogEntry: (ThoughtDumpEntity) -> Unit,
+    onDeleteLogEntry: (ThoughtDumpEntity) -> Unit,
+    onCloseLogEntry: () -> Unit,
+    onEditFutureSelfEntry: (FutureSelfMessageEntity) -> Unit,
+    onDeleteFutureSelfEntry: (FutureSelfMessageEntity) -> Unit,
+    onOpenFutureSelfEntry: (FutureSelfMessageEntity) -> Unit,
+    onCloseFutureSelfEntry: () -> Unit,
+    onRefactoringInterpretationChange: (String) -> Unit,
+    onRefactoringActualFactsChange: (String) -> Unit,
+    onRefactoringExplanation1Change: (String) -> Unit,
+    onRefactoringExplanation2Change: (String) -> Unit,
+    onRefactoringExplanation3Change: (String) -> Unit,
+    onRefactoringSpeechResult: (RefactoringSpeechTarget, String) -> Unit,
+    onSaveRefactoringEntry: () -> Unit,
+    onClearRefactoringDraft: () -> Unit,
+    onOpenRefactoringEntry: (RefactoringEntryEntity) -> Unit,
+    onDeleteRefactoringEntry: (RefactoringEntryEntity) -> Unit,
+    onCloseRefactoringEntry: () -> Unit,
+    onNextRefactoringStep: () -> Unit,
+    onPreviousRefactoringStep: () -> Unit,
+    onCenterOfGravityThoughtsAndFeelingsChange: (String) -> Unit,
+    onCenterOfGravityBodyAndNeedsChange: (String) -> Unit,
+    onCenterOfGravitySpeechResult: (CenterOfGravitySpeechTarget, String) -> Unit,
+    onSaveCenterOfGravityEntry: () -> Unit,
+    onClearCenterOfGravityDraft: () -> Unit,
+    onOpenCenterOfGravityEntry: (CenterOfGravityEntryEntity) -> Unit,
+    onDeleteCenterOfGravityEntry: (CenterOfGravityEntryEntity) -> Unit,
+    onCloseCenterOfGravityEntry: () -> Unit,
+    onNextCenterOfGravityStep: () -> Unit,
+    onPreviousCenterOfGravityStep: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
     onNavigateToBreathe: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val futureSelfSchedulingAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -328,72 +495,152 @@ private fun ToolDetailScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        if (tool.id == ToolkitToolId.ThoughtDump) {
-            ThoughtDumpContent(
-                text = thoughtDumpText,
-                onTextChange = onThoughtDumpChange,
-                onSave = onSaveThoughtDump,
-                onClear = onClearThoughtDump,
-                onClose = onClose,
-            )
-        } else {
-            GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
-                ) {
-                    Text(
-                        text = "Step ${stepIndex + 1} of ${tool.steps.size}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-
-                    AnimatedContent(
-                        targetState = currentStep ?: "",
-                        transitionSpec = {
-                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                        },
-                        label = "tool_step",
-                    ) { step ->
+        when (tool.id) {
+            ToolkitToolId.ThoughtDump -> {
+                ToolkitLogContent(
+                    instructionText = "Write everything on your mind. No editing, no judgment.",
+                    text = thoughtDumpText,
+                    entries = thoughtDumpEntries,
+                    pendingAudioPath = pendingAudioPath,
+                    openedEntry = openedLogEntry,
+                    onTextChange = onThoughtDumpChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onSpeechResult,
+                    onSave = onSaveThoughtDump,
+                    onClear = onClearDraft,
+                    onClose = onClose,
+                    onOpenEntry = onOpenLogEntry,
+                    onDeleteEntry = onDeleteLogEntry,
+                    onCloseEntry = onCloseLogEntry,
+                )
+            }
+            ToolkitToolId.AnxietyLog -> {
+                ToolkitLogContent(
+                    instructionText = "Notice, Observe, and Acknowledge. Feelings are temporary. I am Fine. I am Not Fine. I am Fine.",
+                    text = anxietyLogText,
+                    entries = anxietyLogEntries,
+                    pendingAudioPath = pendingAudioPath,
+                    openedEntry = openedLogEntry,
+                    onTextChange = onAnxietyLogChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onSpeechResult,
+                    onSave = onSaveAnxietyLog,
+                    onClear = onClearDraft,
+                    onClose = onClose,
+                    onOpenEntry = onOpenLogEntry,
+                    onDeleteEntry = onDeleteLogEntry,
+                    onCloseEntry = onCloseLogEntry,
+                )
+            }
+            ToolkitToolId.FutureSelfMessage -> {
+                FutureSelfMessageContent(
+                    text = futureSelfText,
+                    scheduledAtMillis = futureSelfScheduledAtMillis,
+                    pendingAudioPath = pendingAudioPath,
+                    entries = futureSelfEntries,
+                    editingEntryId = editingFutureSelfId,
+                    openedEntry = openedFutureSelfEntry,
+                    onTextChange = onFutureSelfTextChange,
+                    onScheduledAtChange = onFutureSelfScheduledAtChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onSpeechResult,
+                    onSave = onSaveFutureSelfMessage,
+                    onClear = onClearDraft,
+                    onEditEntry = onEditFutureSelfEntry,
+                    onDeleteEntry = onDeleteFutureSelfEntry,
+                    onOpenEntry = onOpenFutureSelfEntry,
+                    onCloseEntry = onCloseFutureSelfEntry,
+                    schedulingAvailable = futureSelfSchedulingAvailable,
+                )
+            }
+            ToolkitToolId.Refactoring -> {
+                RefactoringContent(
+                    stepIndex = refactoringStepIndex,
+                    interpretation = refactoringInterpretation,
+                    actualFacts = refactoringActualFacts,
+                    explanation1 = refactoringExplanation1,
+                    explanation2 = refactoringExplanation2,
+                    explanation3 = refactoringExplanation3,
+                    pendingAudioPath = pendingAudioPath,
+                    entries = refactoringEntries,
+                    openedEntry = openedRefactoringEntry,
+                    onInterpretationChange = onRefactoringInterpretationChange,
+                    onActualFactsChange = onRefactoringActualFactsChange,
+                    onExplanation1Change = onRefactoringExplanation1Change,
+                    onExplanation2Change = onRefactoringExplanation2Change,
+                    onExplanation3Change = onRefactoringExplanation3Change,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onRefactoringSpeechResult,
+                    onPrevious = onPreviousRefactoringStep,
+                    onNext = onNextRefactoringStep,
+                    onSave = onSaveRefactoringEntry,
+                    onClear = onClearRefactoringDraft,
+                    onOpenEntry = onOpenRefactoringEntry,
+                    onDeleteEntry = onDeleteRefactoringEntry,
+                    onCloseEntry = onCloseRefactoringEntry,
+                )
+            }
+            ToolkitToolId.RelocateCenterOfGravity -> {
+                CenterOfGravityContent(
+                    stepIndex = centerOfGravityStepIndex,
+                    thoughtsAndFeelings = centerOfGravityThoughtsAndFeelings,
+                    bodyAndNeeds = centerOfGravityBodyAndNeeds,
+                    pendingAudioPath = pendingAudioPath,
+                    entries = centerOfGravityEntries,
+                    openedEntry = openedCenterOfGravityEntry,
+                    onThoughtsAndFeelingsChange = onCenterOfGravityThoughtsAndFeelingsChange,
+                    onBodyAndNeedsChange = onCenterOfGravityBodyAndNeedsChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onCenterOfGravitySpeechResult,
+                    onPrevious = onPreviousCenterOfGravityStep,
+                    onNext = onNextCenterOfGravityStep,
+                    onSave = onSaveCenterOfGravityEntry,
+                    onClear = onClearCenterOfGravityDraft,
+                    onOpenEntry = onOpenCenterOfGravityEntry,
+                    onDeleteEntry = onDeleteCenterOfGravityEntry,
+                    onCloseEntry = onCloseCenterOfGravityEntry,
+                )
+            }
+            else -> {
+                GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+                    ) {
                         Text(
-                            text = step,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            text = "Step ${stepIndex + 1} of ${tool.steps.size}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
                         )
+
+                        AnimatedContent(
+                            targetState = currentStep ?: "",
+                            transitionSpec = {
+                                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                            },
+                            label = "tool_step",
+                        ) { step ->
+                            Text(
+                                text = step,
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
                 }
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
-            ) {
-                OutlinedButton(
-                    onClick = onPrevious,
-                    enabled = stepIndex > 0,
-                    modifier = Modifier.weight(1f),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
                 ) {
-                    Text("Previous")
-                }
-
-                if (tool.id == ToolkitToolId.BoxBreathing && isLastStep) {
-                    Button(
-                        onClick = {
-                            onClose()
-                            onNavigateToBreathe()
-                        },
+                    OutlinedButton(
+                        onClick = onPrevious,
+                        enabled = stepIndex > 0,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Open Breathe")
-                        Icon(
-                            Icons.Default.Air,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(18.dp),
-                        )
+                        Text("Previous")
                     }
-                } else {
+
                     Button(
                         onClick = if (isLastStep) onClose else onNext,
                         modifier = Modifier.weight(1f),
@@ -416,60 +663,17 @@ private fun ToolDetailScreen(
 }
 
 @Composable
-private fun ThoughtDumpContent(
-    text: String,
-    onTextChange: (String) -> Unit,
-    onSave: () -> Unit,
-    onClear: () -> Unit,
-    onClose: () -> Unit,
-) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
-        ) {
-            Text(
-                text = "Write everything on your mind. No editing, no judgment.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("What's on your mind…") },
-                minLines = 8,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(onClick = onClear, modifier = Modifier.weight(1f)) {
-                    Text("Clear")
-                }
-                Button(
-                    onClick = {
-                        onSave()
-                        onClose()
-                    },
-                    modifier = Modifier.weight(1f),
-                    enabled = text.isNotBlank(),
-                ) {
-                    Text("Save & Close")
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun toolIcon(id: ToolkitToolId): ImageVector = when (id) {
     ToolkitToolId.ThoughtDump -> Icons.Default.EditNote
     ToolkitToolId.BoundarySetting -> Icons.Default.NotificationsActive
     ToolkitToolId.MicroPause -> Icons.Default.Schedule
+    ToolkitToolId.FutureSelfMessage -> Icons.Default.Mail
     ToolkitToolId.Grounding54321 -> Icons.Default.GridView
-    ToolkitToolId.BoxBreathing -> Icons.Default.Air
     ToolkitToolId.MuscleRelaxation -> Icons.Default.Spa
+    ToolkitToolId.LovingKindness -> Icons.Default.Favorite
+    ToolkitToolId.AnxietyLog -> Icons.Default.EditNote
+    ToolkitToolId.Refactoring -> Icons.Default.Psychology
+    ToolkitToolId.RelocateCenterOfGravity -> Icons.Default.MyLocation
 }
 
 @Composable
