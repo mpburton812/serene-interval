@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
@@ -49,6 +50,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
@@ -144,6 +146,7 @@ fun AnxietyToolkitTab(
             titleColor = MaterialTheme.colorScheme.primary,
             tools = state.proactiveTools,
             onToolClick = viewModel::openTool,
+            onReorder = viewModel::reorderProactiveTool,
         )
 
         ToolkitSection(
@@ -152,6 +155,7 @@ fun AnxietyToolkitTab(
             titleColor = SereneTertiary,
             tools = state.reactiveTools,
             onToolClick = viewModel::openTool,
+            onReorder = viewModel::reorderReactiveTool,
             accentBorder = true,
         )
     }
@@ -235,6 +239,7 @@ private fun ToolkitSection(
     titleColor: androidx.compose.ui.graphics.Color,
     tools: List<ToolkitTool>,
     onToolClick: (ToolkitTool) -> Unit,
+    onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
     accentBorder: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
@@ -246,14 +251,25 @@ private fun ToolkitSection(
             Text(text = title, style = MaterialTheme.typography.headlineMedium, color = titleColor)
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
-            tools.forEach { tool ->
-                ToolkitToolCard(
-                    tool = tool,
-                    accentBorder = accentBorder,
-                    onClick = { onToolClick(tool) },
-                )
-            }
+        Text(
+            text = "Press and hold to reorder",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        ReorderableToolkitToolList(
+            tools = tools,
+            accentBorder = accentBorder,
+            onToolClick = onToolClick,
+            onReorder = onReorder,
+        ) { tool, sectionAccentBorder, onClick, itemModifier, isDragging ->
+            ToolkitToolCard(
+                tool = tool,
+                accentBorder = sectionAccentBorder,
+                onClick = onClick,
+                isDragging = isDragging,
+                modifier = itemModifier,
+            )
         }
     }
 }
@@ -263,10 +279,13 @@ private fun ToolkitToolCard(
     tool: ToolkitTool,
     accentBorder: Boolean,
     onClick: () -> Unit,
+    isDragging: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     GlassCard(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .alpha(if (isDragging) 0.92f else 1f)
             .clickable(onClick = onClick),
         cornerRadius = 20.dp,
     ) {
@@ -323,6 +342,12 @@ private fun ToolkitToolCard(
                 Icons.Outlined.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
+            )
+
+            Icon(
+                Icons.Default.DragHandle,
+                contentDescription = "Reorder",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             )
         }
     }

@@ -56,5 +56,8 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         val current = _draft.value
         if (!current.canComplete) return
         preferences.save(current.toExperienceSettings())
+        if (current.enableToolkit) {
+            AppGraph.toolkit(getApplication()).markNeedsConfiguration()
+        }
     }
 }

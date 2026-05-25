@@ -42,7 +42,8 @@ fun SereneBottomBar(
     ) {
         items.forEach { item ->
             val selected = when (item.destination) {
-                SereneDestination.Toolkit -> currentRoute?.startsWith("toolkit") == true
+                SereneDestination.Toolkit -> currentRoute == SereneDestination.Toolkit.route
+                SereneDestination.Affirmations -> currentRoute == SereneDestination.Affirmations.route
                 SereneDestination.Visualizations -> currentRoute?.startsWith("visualizations") == true
                 else -> currentRoute == item.destination.route
             }

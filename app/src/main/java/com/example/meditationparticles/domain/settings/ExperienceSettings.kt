@@ -14,7 +14,7 @@ data class ExperienceSettings(
     val enableVisuals: Boolean = true,
     val enabledScenes: Set<String> = defaultScenes,
 ) {
-    val showToolkitTab: Boolean get() = enableAffirmations || enableToolkit
+    val showToolkitTab: Boolean get() = enableToolkit
 
     val hasAnyToolEnabled: Boolean
         get() = enableBreathing || enableTimer || enableAffirmations || enableToolkit || enableVisuals

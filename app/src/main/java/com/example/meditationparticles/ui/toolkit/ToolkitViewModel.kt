@@ -8,6 +8,7 @@ import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -22,8 +23,12 @@ import kotlinx.coroutines.launch
 enum class RandomToolState { Idle, Finding, Selected }
 
 data class ToolkitUiState(
+    val toolkitConfigured: Boolean = true,
+    val enabledToolIds: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
     val proactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
     val reactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
+    val selectionProactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
+    val selectionReactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
     val selectedTool: ToolkitTool? = null,
     val stepIndex: Int = 0,
     val thoughtDumpText: String = "",
@@ -50,12 +55,22 @@ data class ToolkitUiState(
 class ToolkitViewModel(application: Application) : AndroidViewModel(application) {
     private val logRepository = AppGraph.thoughtDumps(application)
     private val futureSelfRepository = AppGraph.futureSelfMessages(application)
+    private val toolkitPreferences = AppGraph.toolkit(application)
+    private val settingsPreferences = AppGraph.settings(application)
     private val appContext = application.applicationContext
 
     private val _uiState = MutableStateFlow(ToolkitUiState())
     val uiState: StateFlow<ToolkitUiState> = _uiState.asStateFlow()
 
     init {
+        applyToolkitSnapshot(
+            toolkitPreferences.load(settingsPreferences.load().onboardingCompleted),
+        )
+        viewModelScope.launch {
+            toolkitPreferences.snapshot.collect { snapshot ->
+                applyToolkitSnapshot(snapshot)
+            }
+        }
         viewModelScope.launch {
             logRepository.observeEntries(ToolkitLogType.THOUGHT_DUMP).collect { entries ->
                 _uiState.update { it.copy(thoughtDumpEntries = entries) }
@@ -70,6 +85,53 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             futureSelfRepository.observeAll().collect { entries ->
                 _uiState.update { it.copy(futureSelfEntries = entries) }
             }
+        }
+    }
+
+    fun toggleToolEnabled(toolId: ToolkitToolId) {
+        val current = _uiState.value.enabledToolIds
+        val next = if (toolId in current) {
+            current - toolId
+        } else {
+            current + toolId
+        }
+        _uiState.update { it.copy(enabledToolIds = next) }
+    }
+
+    fun saveToolkitConfiguration() {
+        toolkitPreferences.saveConfiguration(_uiState.value.enabledToolIds)
+    }
+
+    fun reorderProactiveTool(fromIndex: Int, toIndex: Int) {
+        val currentOrder = _uiState.value.proactiveTools.map { it.id }
+        val reordered = ToolkitLayout.reorder(currentOrder, fromIndex, toIndex)
+        toolkitPreferences.saveProactiveOrder(reordered)
+    }
+
+    fun reorderReactiveTool(fromIndex: Int, toIndex: Int) {
+        val currentOrder = _uiState.value.reactiveTools.map { it.id }
+        val reordered = ToolkitLayout.reorder(currentOrder, fromIndex, toIndex)
+        toolkitPreferences.saveReactiveOrder(reordered)
+    }
+
+    private fun applyToolkitSnapshot(snapshot: com.example.meditationparticles.data.ToolkitPrefsSnapshot) {
+        _uiState.update { state ->
+            state.copy(
+                toolkitConfigured = snapshot.configured,
+                enabledToolIds = snapshot.enabledToolIds,
+                proactiveTools = ToolkitLayout.orderedTools(
+                    category = ToolkitCategory.Proactive,
+                    enabledIds = snapshot.enabledToolIds,
+                    savedOrder = snapshot.proactiveOrder,
+                ),
+                reactiveTools = ToolkitLayout.orderedTools(
+                    category = ToolkitCategory.Reactive,
+                    enabledIds = snapshot.enabledToolIds,
+                    savedOrder = snapshot.reactiveOrder,
+                ),
+                selectionProactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
+                selectionReactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
+            )
         }
     }
 
@@ -321,7 +383,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _uiState.update { it.copy(randomToolState = RandomToolState.Finding, randomSelectedTool = null) }
             delay(800)
-            val tool = ToolkitCatalog.randomReactive()
+            val tool = ToolkitLayout.randomReactive(_uiState.value.enabledToolIds)
             _uiState.update {
                 it.copy(randomToolState = RandomToolState.Selected, randomSelectedTool = tool)
             }

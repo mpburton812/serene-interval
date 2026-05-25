@@ -11,6 +11,8 @@ object AppGraph {
     @Volatile
     private var settingsPreferences: SettingsPreferences? = null
     @Volatile
+    private var toolkitPreferences: ToolkitPreferences? = null
+    @Volatile
     private var sessionRepository: SessionRepository? = null
 
     @Volatile
@@ -34,6 +36,12 @@ object AppGraph {
         settingsPreferences ?: synchronized(this) {
             settingsPreferences ?: SettingsPreferences(context.applicationContext)
                 .also { settingsPreferences = it }
+        }
+
+    fun toolkit(context: Context): ToolkitPreferences =
+        toolkitPreferences ?: synchronized(this) {
+            toolkitPreferences ?: ToolkitPreferences(context.applicationContext)
+                .also { toolkitPreferences = it }
         }
 
     fun sessions(context: Context): SessionRepository =
