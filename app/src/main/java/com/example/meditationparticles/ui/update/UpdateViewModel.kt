@@ -146,6 +146,13 @@ class UpdateViewModel(
                     return@launch
                 }
                 context.startActivity(ApkInstallIntent.buildInstallIntent(context, downloadedApk))
+                _uiState.update {
+                    it.copy(
+                        statusMessage = "Follow the system install prompt. If you see \"App not installed\", " +
+                            "uninstall Serene Interval first (signature mismatch from an older install), " +
+                            "then install again from GitHub Releases or Settings → Check for updates.",
+                    )
+                }
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(

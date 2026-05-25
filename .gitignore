@@ -17,3 +17,4 @@ local.properties
 .kotlin
 *.apk
 *.aab
+# keystore/sideload.jks and keystore/sideload.properties are committed for sideload updates
