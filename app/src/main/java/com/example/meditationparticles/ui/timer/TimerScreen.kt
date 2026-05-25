@@ -270,27 +270,14 @@ fun TimerScreen(
                     }
                 }
 
-                Row(
+                TimerStatCard(
+                    label = "DURATION",
+                    value = "${state.targetMinutes}",
+                    unit = "MIN",
+                    onClick = { viewModel.cycleTargetMinutes() },
+                    enabled = !state.isRunning,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
-                ) {
-                    TimerStatCard(
-                        label = "DURATION",
-                        value = "${state.targetMinutes}",
-                        unit = "MIN",
-                        onClick = { viewModel.cycleTargetMinutes() },
-                        enabled = !state.isRunning,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TimerStatCard(
-                        label = "",
-                        value = state.remainingFormatted,
-                        unit = "",
-                        onClick = {},
-                        enabled = false,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                )
 
                 ControlSection(title = "AMBIENT SOUND") {
                     Row(

@@ -12,7 +12,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -32,8 +31,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color as AndroidColor
 import com.example.meditationparticles.R
-import com.example.meditationparticles.ui.theme.SerenePrimaryContainer
-import com.example.meditationparticles.ui.theme.SereneSecondaryContainer
 import com.example.meditationparticles.ui.theme.SereneTertiary
 import kotlinx.coroutines.isActive
 import kotlin.math.min
@@ -120,9 +117,6 @@ fun HourglassCanvas(
             imageHeight = fitRect.height,
             topSandBaseYNorm = maskData.topSandBaseYNorm,
         )
-
-        drawHourglassShadow(fitRect.center.x, fitRect.bottom - fitRect.height * 0.04f, fitRect.width)
-        drawAtmosphericGlow(fitRect.center.x, fitRect.center.y)
 
         withTransform({ translate(fitRect.left, fitRect.top) }) {
             with(backPainter) {
@@ -345,34 +339,6 @@ private fun bulbPath(
         path.close()
     }
     return path
-}
-
-private fun DrawScope.drawHourglassShadow(cx: Float, baseY: Float, width: Float) {
-    drawOval(
-        brush = Brush.radialGradient(
-            colors = listOf(Color.Black.copy(alpha = 0.28f), Color.Transparent),
-            center = Offset(cx, baseY),
-            radius = width * 0.55f,
-        ),
-        topLeft = Offset(cx - width * 0.48f, baseY - width * 0.06f),
-        size = Size(width * 0.96f, width * 0.14f),
-    )
-}
-
-private fun DrawScope.drawAtmosphericGlow(cx: Float, cy: Float) {
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(
-                SereneSecondaryContainer.copy(alpha = 0.18f),
-                SerenePrimaryContainer.copy(alpha = 0.06f),
-                Color.Transparent,
-            ),
-            center = Offset(cx, cy),
-            radius = size.width * 0.42f,
-        ),
-        radius = size.width * 0.42f,
-        center = Offset(cx, cy),
-    )
 }
 
 private fun DrawScope.drawSandPile(
