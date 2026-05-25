@@ -9,7 +9,7 @@ import com.example.meditationparticles.domain.visualizations.CalmingVisualizatio
 data class OnboardingDraft(
     val preferredName: String = "",
     val sanctuaryName: String = "",
-    val themeMode: ThemeMode = ThemeMode.TimeResponsive,
+    val themeMode: ThemeMode = ThemeMode.Light,
     val enableBreathing: Boolean = true,
     val enableTimer: Boolean = true,
     val enableAffirmations: Boolean = true,
@@ -50,7 +50,13 @@ data class OnboardingDraft(
         fun from(settings: ExperienceSettings): OnboardingDraft = OnboardingDraft(
             preferredName = settings.preferredName,
             sanctuaryName = settings.sanctuaryName,
-            themeMode = settings.themeMode,
+            themeMode = if (
+                !settings.onboardingCompleted && settings.themeMode == ThemeMode.TimeResponsive
+            ) {
+                ThemeMode.Light
+            } else {
+                settings.themeMode
+            },
             enableBreathing = settings.enableBreathing,
             enableTimer = settings.enableTimer,
             enableAffirmations = settings.enableAffirmations,
