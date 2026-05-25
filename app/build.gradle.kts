@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -25,9 +27,27 @@ val buildEnvironment = buildEnvOverride ?: when {
 }
 val gitShortSha = gitOutput("rev-parse", "--short", "HEAD").ifBlank { "local" }
 
+val sideloadPropertiesFile = rootProject.file("keystore/sideload.properties")
+val sideloadProperties = Properties().apply {
+    if (sideloadPropertiesFile.exists()) {
+        sideloadPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
 android {
     namespace = "com.example.meditationparticles"
     compileSdk = 35
+
+    signingConfigs {
+        create("sideload") {
+            storeFile = rootProject.file(
+                sideloadProperties.getProperty("storeFile") ?: "keystore/sideload.jks",
+            )
+            storePassword = sideloadProperties.getProperty("storePassword")
+            keyAlias = sideloadProperties.getProperty("keyAlias")
+            keyPassword = sideloadProperties.getProperty("keyPassword")
+        }
+    }
 
     defaultConfig {
         applicationId = "com.example.meditationparticles"
@@ -49,12 +69,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Shared sideload key so installDebug and GitHub update APKs match.
+            signingConfig = signingConfigs.getByName("sideload")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("sideload")
         }
     }
 
