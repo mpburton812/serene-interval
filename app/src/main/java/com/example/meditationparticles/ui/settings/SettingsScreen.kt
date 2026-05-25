@@ -1,5 +1,8 @@
 package com.example.meditationparticles.ui.settings
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,11 +27,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.update.UpdateViewModel
 
@@ -42,7 +48,43 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val settings by viewModel.settings.collectAsState()
+    val settingsUiState by viewModel.uiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri: Uri? ->
+        val json = settingsUiState.pendingExportJson
+        if (uri == null || json == null) {
+            viewModel.clearPendingExport()
+            if (uri == null && json != null) {
+                viewModel.onExportFinished(success = false, message = "Export cancelled.")
+            }
+            return@rememberLauncherForActivityResult
+        }
+
+        val result = runCatching {
+            context.contentResolver.openOutputStream(uri)?.use { output ->
+                output.write(json.toByteArray(Charsets.UTF_8))
+            } ?: error("Could not open destination file.")
+        }
+        viewModel.clearPendingExport()
+        result.onSuccess {
+            viewModel.onExportFinished(success = true)
+        }.onFailure { error ->
+            viewModel.onExportFinished(
+                success = false,
+                message = error.message ?: "Could not save export.",
+            )
+        }
+    }
+
+    LaunchedEffect(settingsUiState.pendingExportJson) {
+        if (settingsUiState.pendingExportJson != null) {
+            exportLauncher.launch(AppDataExporter.DEFAULT_FILENAME)
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -112,6 +154,58 @@ fun SettingsScreen(
                     enabledScenes = settings.enabledScenes,
                     onToggleScene = viewModel::toggleScene,
                 )
+            }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
+            ) {
+                Text(
+                    text = "Your data",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Download a JSON backup of your settings and journal entries. " +
+                        "Audio recordings are referenced by path only and are not included.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(
+                    onClick = viewModel::prepareExport,
+                    enabled = !settingsUiState.isExporting,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(999.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                    if (settingsUiState.isExporting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text(
+                            text = "Download configuration & entries",
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
+                    }
+                }
+                settingsUiState.exportMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                settingsUiState.exportError?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
 
             Column(

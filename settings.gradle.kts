@@ -15,5 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "MeditationParticles"
 include(":app")
-include(":app")
  

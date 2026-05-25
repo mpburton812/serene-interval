@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -186,6 +187,7 @@ private fun VisualizationGalleryCard(
 fun VisualizationPlayerScreen(
     visualization: CalmingVisualization,
     onClose: () -> Unit,
+    onPlayerActiveChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val sessionRepository = remember { AppGraph.sessions(context) }
@@ -201,6 +203,10 @@ fun VisualizationPlayerScreen(
         )
     }
 
+    SideEffect {
+        onPlayerActiveChange(isPlaying)
+    }
+
     LaunchedEffect(isPlaying, controlsVisible) {
         if (isPlaying && controlsVisible) {
             delay(3_000)
@@ -212,6 +218,7 @@ fun VisualizationPlayerScreen(
         val sessionStartMs = System.currentTimeMillis()
         onDispose {
             audioPlayer.release()
+            onPlayerActiveChange(false)
             val durationSeconds = ((System.currentTimeMillis() - sessionStartMs) / 1000L).toInt()
             CoroutineScope(Dispatchers.IO).launch {
                 sessionRepository.logVisualization(visualization.title, durationSeconds)

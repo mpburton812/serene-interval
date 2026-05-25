@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.update.ApkDownloader
+import com.example.meditationparticles.data.update.ApkSha256Verifier
 import com.example.meditationparticles.data.update.ApkInstallIntent
 import com.example.meditationparticles.data.update.UpdateManifestClient
 import com.example.meditationparticles.data.update.readInstalledAppVersion
@@ -129,6 +130,9 @@ class UpdateViewModel(
                         _uiState.update { state ->
                             state.copy(downloadProgress = progress)
                         }
+                    }
+                    manifest.expectedSha256?.let { expected ->
+                        ApkSha256Verifier.verify(apkFile, expected)
                     }
                     apkFile
                 }

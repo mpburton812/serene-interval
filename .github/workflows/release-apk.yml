@@ -21,16 +21,26 @@ jobs:
       - name: Build debug APK (sideload-signed)
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: Rename APK for release
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/meditation_app.apk
+
+      - name: Compute APK SHA256
+        id: apk_hash
+        run: |
+          SHA256=$(sha256sum app/build/outputs/apk/debug/meditation_app.apk | awk '{print $1}')
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "APK SHA256: $SHA256"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: meditation_app
+          path: app/build/outputs/apk/debug/meditation_app.apk
 
       - name: Attach to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: app/build/outputs/apk/debug/meditation_app.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

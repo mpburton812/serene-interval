@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RefactoringEntryDao {
     @Query("SELECT * FROM refactoring_entries ORDER BY createdAt DESC")
+    suspend fun getAll(): List<RefactoringEntryEntity>
+
+    @Query("SELECT * FROM refactoring_entries ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<RefactoringEntryEntity>>
 
     @Insert

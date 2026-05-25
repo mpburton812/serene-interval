@@ -39,4 +39,39 @@ class ReleaseManifestParserTest {
 
         assertEquals(3, manifest.minVersionCode)
     }
+
+    @Test
+    fun parsesOptionalExpectedSha256() {
+        val json = """
+            {
+              "versionCode": 5,
+              "versionName": "1.0.4",
+              "apkUrl": "https://example.com/app.apk",
+              "expectedSha256": "ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab"
+            }
+        """.trimIndent()
+
+        val manifest = ReleaseManifestParser.parse(json)
+
+        assertEquals(
+            "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab",
+            manifest.expectedSha256?.lowercase(),
+        )
+    }
+
+    @Test
+    fun omitsBlankExpectedSha256() {
+        val json = """
+            {
+              "versionCode": 5,
+              "versionName": "1.0.4",
+              "apkUrl": "https://example.com/app.apk",
+              "expectedSha256": "   "
+            }
+        """.trimIndent()
+
+        val manifest = ReleaseManifestParser.parse(json)
+
+        assertEquals(null, manifest.expectedSha256)
+    }
 }

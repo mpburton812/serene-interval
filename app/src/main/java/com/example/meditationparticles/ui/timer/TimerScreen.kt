@@ -49,6 +49,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +82,7 @@ private val FabClearance = 72.dp
 fun TimerScreen(
     modifier: Modifier = Modifier,
     viewModel: TimerViewModel = viewModel(),
+    onSessionActiveChange: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.sessionState.collectAsState()
     val context = LocalContext.current
@@ -89,6 +91,7 @@ fun TimerScreen(
     val audioPlayer = remember { TimerAudioPlayer(context) }
     var controlsVisible by remember { mutableStateOf(true) }
     val immersive = state.isRunning && state.phase != TimerPhase.Complete
+    val sessionActive = state.isRunning && state.phase != TimerPhase.Complete
     val showStatusHeader = state.phase == TimerPhase.Idle ||
         state.phase == TimerPhase.Complete ||
         (controlsVisible && state.phase != TimerPhase.Prepare)
@@ -154,8 +157,15 @@ fun TimerScreen(
         }
     }
 
+    SideEffect {
+        onSessionActiveChange(sessionActive)
+    }
+
     DisposableEffect(Unit) {
-        onDispose { audioPlayer.release() }
+        onDispose {
+            audioPlayer.release()
+            onSessionActiveChange(false)
+        }
     }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(

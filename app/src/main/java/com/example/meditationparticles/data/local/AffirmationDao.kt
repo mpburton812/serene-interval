@@ -13,6 +13,9 @@ interface AffirmationDao {
     @Query("SELECT * FROM affirmations ORDER BY sortOrder ASC, createdAt DESC")
     fun observeAll(): Flow<List<AffirmationEntity>>
 
+    @Query("SELECT * FROM affirmations ORDER BY sortOrder ASC, createdAt DESC")
+    suspend fun getAll(): List<AffirmationEntity>
+
     @Query("SELECT COUNT(*) FROM affirmations")
     suspend fun count(): Int
 
