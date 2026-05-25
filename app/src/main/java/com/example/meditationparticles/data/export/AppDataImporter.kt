@@ -243,7 +243,8 @@ class AppDataImporter(
             }
         val sound = json.optString("sound", current.sound.name)
             .let { name ->
-                runCatching { TimerSoundOption.valueOf(name) }.getOrDefault(current.sound)
+                val normalized = if (name == "Ocean") TimerSoundOption.Waves.name else name
+                runCatching { TimerSoundOption.valueOf(normalized) }.getOrDefault(current.sound)
             }
 
         val exportedCustomUri = json.optionalString("customSoundUri")

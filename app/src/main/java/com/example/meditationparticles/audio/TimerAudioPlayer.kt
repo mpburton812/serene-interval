@@ -34,7 +34,7 @@ class TimerAudioPlayer(private val context: Context) {
                 createLoopingAmbientPlayer(uri)
             }
             TimerSoundOption.Rain -> createLoopingAmbientPlayer(R.raw.timer_rain)
-            TimerSoundOption.Ocean -> createLoopingAmbientPlayer(R.raw.timer_ocean)
+            TimerSoundOption.Waves -> createLoopingAmbientPlayer(R.raw.timer_waves)
             TimerSoundOption.Forest -> createLoopingAmbientPlayer(R.raw.timer_forest)
             TimerSoundOption.Wind -> createLoopingAmbientPlayer(R.raw.timer_wind)
             TimerSoundOption.Bell -> createLoopingAmbientPlayer(R.raw.timer_bell)
