@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.BuildConfig
+import com.example.meditationparticles.R
 import com.example.meditationparticles.data.update.ApkDownloader
 import com.example.meditationparticles.data.update.ApkSha256Verifier
 import com.example.meditationparticles.data.update.ApkInstallIntent
@@ -153,7 +154,7 @@ class UpdateViewModel(
                 _uiState.update {
                     it.copy(
                         statusMessage = "Follow the system install prompt. If you see \"App not installed\", " +
-                            "uninstall Serene Interval first (signature mismatch from an older install), " +
+                            "uninstall ${context.getString(R.string.app_name)} first (signature mismatch from an older install), " +
                             "then install again from GitHub Releases or Settings → Check for updates.",
                     )
                 }

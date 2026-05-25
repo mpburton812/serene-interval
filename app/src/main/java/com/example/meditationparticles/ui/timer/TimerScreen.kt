@@ -158,7 +158,8 @@ fun TimerScreen(
     }
 
     SideEffect {
-        onSessionActiveChange(sessionActive)
+        val keepScreenOn = sessionActive && state.displayMode != TimerDisplayMode.Blank
+        onSessionActiveChange(keepScreenOn)
     }
 
     DisposableEffect(Unit) {
@@ -439,23 +440,15 @@ private fun TimerDisplay(
                 modifier = modifier.padding(bottom = FabClearance),
                 contentAlignment = Alignment.Center,
             ) {
-                AnimatedContent(
-                    targetState = state.remainingFormatted,
-                    transitionSpec = {
-                        fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-                    },
-                    label = "digital_countdown",
-                ) { time ->
-                    Text(
-                        text = time,
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 72.sp,
-                            letterSpacing = 2.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                Text(
+                    text = state.remainingFormatted,
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 72.sp,
+                        letterSpacing = 2.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
         TimerDisplayMode.Blank -> {
