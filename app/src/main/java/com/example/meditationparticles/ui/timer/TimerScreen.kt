@@ -302,12 +302,16 @@ fun TimerScreen(
                     .padding(bottom = SereneSpacing.stackMd),
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
             ) {
-                ControlSection(title = "DISPLAY MODE") {
+                ControlSection(
+                    title = "Display Mode",
+                    subtitle = "How time is shown during meditation",
+                ) {
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                             .padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     ) {
                         TimerDisplayMode.entries.forEach { mode ->
                             FilterChip(
@@ -324,21 +328,43 @@ fun TimerScreen(
                     }
                 }
 
-                TimerStatCard(
-                    label = "DURATION",
-                    value = "${state.targetMinutes}",
-                    unit = "MIN",
-                    onClick = { viewModel.cycleTargetMinutes() },
-                    enabled = !state.isRunning,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                ControlSection(title = "AMBIENT SOUND") {
+                ControlSection(
+                    title = "Duration",
+                    subtitle = "Tap to change session length",
+                ) {
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(enabled = !state.isRunning) { viewModel.cycleTargetMinutes() }
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Text(
+                            text = "${state.targetMinutes}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "MIN",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                        )
+                    }
+                }
+
+                ControlSection(
+                    title = "Ambient Sound",
+                    subtitle = "Background audio while the timer runs",
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                             .padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     ) {
                         TimerSoundOption.entries.forEach { sound ->
                             FilterChip(
@@ -355,12 +381,16 @@ fun TimerScreen(
                     }
                 }
 
-                ControlSection(title = "BELL SOUND") {
+                ControlSection(
+                    title = "Bell Sound",
+                    subtitle = "Plays when your session starts and ends",
+                ) {
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                             .padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     ) {
                         FilterChip(
                             selected = state.bellSound == TimerBellSoundChoice.Default,
@@ -679,67 +709,26 @@ private fun TimerStatusHeader(state: TimerSessionState) {
 @Composable
 private fun ControlSection(
     title: String,
+    subtitle: String? = null,
     content: @Composable () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(start = 8.dp),
         )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
         GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
             content()
-        }
-    }
-}
-
-@Composable
-private fun TimerStatCard(
-    label: String,
-    value: String,
-    unit: String,
-    onClick: () -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    GlassCard(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, onClick = onClick),
-        cornerRadius = 12.dp,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (label.isNotEmpty()) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                )
-            }
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                if (unit.isNotEmpty()) {
-                    Text(
-                        text = unit,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 2.dp),
-                    )
-                }
-            }
         }
     }
 }

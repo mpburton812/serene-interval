@@ -3,7 +3,8 @@ package com.example.meditationparticles.data
 import android.content.Context
 import com.example.meditationparticles.R
 import com.example.meditationparticles.domain.settings.BackgroundPeriod
-import com.example.meditationparticles.domain.settings.backgroundPeriod
+import com.example.meditationparticles.domain.settings.ThemeMode
+import com.example.meditationparticles.domain.settings.backgroundPeriodForTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,9 +31,12 @@ class TabBackgroundRotation(context: Context) {
     private val _currentDrawable = MutableStateFlow(readCurrentDrawable())
     val currentDrawable: StateFlow<Int> = _currentDrawable.asStateFlow()
 
-    fun advance() {
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val period = backgroundPeriod(hour)
+    fun sync(themeMode: ThemeMode, isSystemDark: Boolean = false) {
+        _currentDrawable.value = readCurrentDrawable(themeMode, isSystemDark)
+    }
+
+    fun advance(themeMode: ThemeMode, isSystemDark: Boolean = false) {
+        val period = resolvePeriod(themeMode, isSystemDark)
         val drawables = drawablesFor(period)
         if (drawables.isEmpty()) {
             _currentDrawable.value = fallbackDrawable
@@ -51,15 +55,22 @@ class TabBackgroundRotation(context: Context) {
             .apply()
     }
 
-    private fun readCurrentDrawable(): Int {
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val period = backgroundPeriod(hour)
+    private fun readCurrentDrawable(
+        themeMode: ThemeMode = ThemeMode.TimeResponsive,
+        isSystemDark: Boolean = false,
+    ): Int {
+        val period = resolvePeriod(themeMode, isSystemDark)
         val drawables = drawablesFor(period)
         if (drawables.isEmpty()) return fallbackDrawable
 
         val indexKey = indexKeyFor(period)
         val index = prefs.getInt(indexKey, 0).coerceIn(0, drawables.lastIndex)
         return drawables[index]
+    }
+
+    private fun resolvePeriod(themeMode: ThemeMode, isSystemDark: Boolean): BackgroundPeriod {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        return backgroundPeriodForTheme(themeMode, hour, isSystemDark)
     }
 
     private fun drawablesFor(period: BackgroundPeriod): List<Int> = when (period) {

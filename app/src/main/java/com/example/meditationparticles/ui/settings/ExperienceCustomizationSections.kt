@@ -50,6 +50,34 @@ import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Calendar
 
 @Composable
+fun NamingSection(
+    sanctuaryName: String,
+    onSanctuaryNameChange: (String) -> Unit,
+    preferredName: String,
+    onPreferredNameChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+    ) {
+        Text(
+            text = "Naming",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        SanctuaryNameField(
+            value = sanctuaryName,
+            onValueChange = onSanctuaryNameChange,
+        )
+        PreferredNameField(
+            value = preferredName,
+            onValueChange = onPreferredNameChange,
+        )
+    }
+}
+
+@Composable
 fun SanctuaryNameField(
     value: String,
     onValueChange: (String) -> Unit,
