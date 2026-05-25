@@ -1,8 +1,8 @@
 {
-  "versionCode": 6,
-  "versionName": "1.0.5",
+  "versionCode": 7,
+  "versionName": "1.0.6",
   "apkUrl": "https://github.com/mpburton812/serene-interval/releases/latest/download/sway_meditation.apk",
-  "expectedSha256": "30e8214ebe1d12169c3c37fb65a1bf4cce17c5ee51f07e9b18b6294e2fe08a1f",
-  "releaseNotes": "• Phase 1 cleanup: remove sand test scaffold and stale template code\n• Settings: export all app data as JSON for backup\n• Updates: SHA256 verification before install; release APK renamed to meditation_app.apk\n• Keep screen on during breathing, timer, and visualization sessions\n• CI workflow for unit tests and lint on dev/test/main",
+  "expectedSha256": "64d786b22b0ddc82b70f3c3d005a80c16d029f9eac8cb88c61453e319b5d43d5",
+  "releaseNotes": "• Renamed to Sway Meditation; release APK is sway_meditation.apk\n• Rain, Waves, and Forest ambient sounds with full stream volume fix\n• Hourglass mask_2, layout fixes, and 5-second pre-countdown\n• JSON import/export for full app data backup\n• Day and night tab backgrounds with rotation\n• Blank screen-off option and instant digital timer ticks",
   "minVersionCode": 1
 }
