@@ -91,7 +91,7 @@ fun HourglassCanvas(
         parseHourglassMask(
             BitmapFactory.decodeResource(
                 context.resources,
-                R.drawable.hourglass_mask_and_yellow_fill_point,
+                R.drawable.hourglass_mask_2,
             ),
         )
     }
@@ -205,13 +205,42 @@ private fun isSandMaskRed(r: Int, g: Int, b: Int, a: Int): Boolean =
 private fun isSandMaskYellow(r: Int, g: Int, b: Int, a: Int): Boolean =
     a > 128 && r > 180 && g > 180 && b in 80..160
 
+private fun findNeckYFromMask(
+    width: Int,
+    height: Int,
+    isRedAt: (Int, Int) -> Boolean,
+): Int {
+    val searchStart = (height * 0.35f).roundToInt()
+    val searchEnd = (height * 0.55f).roundToInt()
+    var minSpan = Int.MAX_VALUE
+    var neckY = -1
+    for (y in searchStart..searchEnd) {
+        var minX = width
+        var maxX = -1
+        for (x in 0 until width) {
+            if (isRedAt(x, y)) {
+                if (x < minX) minX = x
+                if (x > maxX) maxX = x
+            }
+        }
+        if (maxX >= minX) {
+            val span = maxX - minX + 1
+            if (span < minSpan) {
+                minSpan = span
+                neckY = y
+            }
+        }
+    }
+    return neckY
+}
+
 private fun parseHourglassMask(source: Bitmap): HourglassMaskData {
     val width = source.width
     val height = source.height
     val pixels = IntArray(width * height)
     source.getPixels(pixels, 0, width, 0, 0, width, height)
 
-    var yellowBottomY = -1
+    val redAt = BooleanArray(width * height)
     val maskPixels = IntArray(width * height)
     for (y in 0 until height) {
         for (x in 0 until width) {
@@ -222,9 +251,7 @@ private fun parseHourglassMask(source: Bitmap): HourglassMaskData {
             val b = AndroidColor.blue(pixel)
             val isRed = isSandMaskRed(r, g, b, a)
             val isYellow = isSandMaskYellow(r, g, b, a)
-            if (isYellow && y > yellowBottomY) {
-                yellowBottomY = y
-            }
+            redAt[y * width + x] = isRed
             maskPixels[y * width + x] = if (isRed || isYellow) {
                 AndroidColor.WHITE
             } else {
@@ -235,10 +262,11 @@ private fun parseHourglassMask(source: Bitmap): HourglassMaskData {
 
     val maskBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     maskBitmap.setPixels(maskPixels, 0, width, 0, 0, width, height)
-    val topSandBaseYNorm = if (yellowBottomY >= 0) {
-        (yellowBottomY + 1).toFloat() / height.toFloat()
+    val neckY = findNeckYFromMask(width, height) { x, y -> redAt[y * width + x] }
+    val topSandBaseYNorm = if (neckY >= 0) {
+        (neckY + 1).toFloat() / height.toFloat()
     } else {
-        0.43f
+        0.50f
     }
     return HourglassMaskData(
         sandMask = maskBitmap.asImageBitmap(),
@@ -258,15 +286,17 @@ private fun buildSandGeometry(
     val neckW = imageWidth * 0.14f
     val neckH = imageHeight * 0.06f
     val top = frameInset * 0.85f
+    val topSandBaseY = imageHeight * topSandBaseYNorm
+    val topBulbH = (topSandBaseY - top).coerceAtLeast(bulbH * 0.55f)
 
     val topBulb = bulbPath(
         left = cx - bulbW / 2f,
         top = top,
         width = bulbW,
-        height = bulbH,
+        height = topBulbH,
         taperBottom = true,
     )
-    val bottomTop = top + bulbH + neckH
+    val bottomTop = topSandBaseY + neckH
     val bottomBulb = bulbPath(
         left = cx - bulbW / 2f,
         top = bottomTop,
@@ -276,9 +306,9 @@ private fun buildSandGeometry(
     )
     val neckRect = Rect(
         left = cx - neckW / 2f,
-        top = top + bulbH,
+        top = topSandBaseY,
         right = cx + neckW / 2f,
-        bottom = top + bulbH + neckH,
+        bottom = topSandBaseY + neckH,
     )
     return HourglassGeometry(
         topBulb = topBulb,
@@ -287,7 +317,7 @@ private fun buildSandGeometry(
         neckCenter = Offset(cx, neckRect.center.y),
         sandColor = SereneTertiary,
         bulbH = bulbH,
-        topSandBaseY = imageHeight * topSandBaseYNorm,
+        topSandBaseY = topSandBaseY,
     )
 }
 
