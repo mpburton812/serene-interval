@@ -24,6 +24,8 @@ class AffirmationRepository(
 
     suspend fun randomAffirmation(): AffirmationEntity? = dao.random()
 
+    suspend fun randomFavoriteAffirmation(): AffirmationEntity? = dao.randomFavorite()
+
     suspend fun add(text: String) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return

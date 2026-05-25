@@ -19,6 +19,9 @@ interface AffirmationDao {
     @Query("SELECT * FROM affirmations ORDER BY RANDOM() LIMIT 1")
     suspend fun random(): AffirmationEntity?
 
+    @Query("SELECT * FROM affirmations WHERE isFavorite = 1 ORDER BY RANDOM() LIMIT 1")
+    suspend fun randomFavorite(): AffirmationEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: AffirmationEntity): Long
 

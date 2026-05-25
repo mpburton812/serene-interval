@@ -1,7 +1,9 @@
 package com.example.meditationparticles.ui.components
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -34,7 +36,8 @@ fun SereneBottomBar(
     val scheme = MaterialTheme.colorScheme
     val isDark = isDarkScheme(scheme)
     NavigationBar(
-        modifier = modifier,
+        modifier = modifier.height(56.dp),
+        windowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = if (isDark) {
             scheme.surface.copy(alpha = 0.92f)
         } else {

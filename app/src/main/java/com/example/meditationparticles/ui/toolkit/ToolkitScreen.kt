@@ -1,6 +1,5 @@
 package com.example.meditationparticles.ui.toolkit
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,30 +9,39 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.navigation.PendingToolkitNavigation
+import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 @Composable
 fun ToolkitScreen(
     pendingNavigation: PendingToolkitNavigation? = null,
+    resetSignal: Int = 0,
     onNavigateToBreathe: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ToolkitViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(SereneSpacing.containerMargin),
-        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
-    ) {
+    LaunchedEffect(resetSignal) {
+        if (resetSignal > 0) {
+            viewModel.closeTool()
+        }
+    }
+
+    SereneTabBackground(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+        ) {
         Text(
             text = "Toolkit",
             style = MaterialTheme.typography.headlineMedium,
@@ -59,5 +67,6 @@ fun ToolkitScreen(
                 )
             }
         }
+    }
     }
 }

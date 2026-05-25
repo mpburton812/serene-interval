@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,6 +39,7 @@ import com.example.meditationparticles.navigation.SereneDestination.ToolkitTab
 import com.example.meditationparticles.ui.breathing.BreathingScreen
 import com.example.meditationparticles.ui.components.BottomNavItem
 import com.example.meditationparticles.ui.components.BuildInfoFooter
+import com.example.meditationparticles.ui.components.SereneAppBanner
 import com.example.meditationparticles.ui.components.SereneBottomBar
 import com.example.meditationparticles.ui.home.FutureSelfNotificationOverlay
 import com.example.meditationparticles.ui.home.HomeScreen
@@ -78,6 +80,7 @@ fun SereneNavHost(
     val settings = LocalExperienceSettings.current
     var breathingSessionActive by remember { mutableStateOf(false) }
     var activeFutureSelfMessageId by remember { mutableStateOf<Long?>(null) }
+    var toolkitResetSignal by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(pendingFutureSelfMessageId, settings.onboardingCompleted) {
         val messageId = pendingFutureSelfMessageId ?: return@LaunchedEffect
@@ -123,6 +126,10 @@ fun SereneNavHost(
         currentRoute?.startsWith("visualizations/player") != true &&
         !breathingSessionActive
 
+    val showAppBanner = currentRoute != SereneDestination.Settings.route &&
+        currentRoute != SereneDestination.Onboarding.route &&
+        currentRoute?.startsWith("visualizations/player") != true
+
     val showBuildFooter = currentRoute?.startsWith("visualizations/player") != true &&
         !breathingSessionActive
 
@@ -164,6 +171,11 @@ fun SereneNavHost(
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            if (showAppBanner) {
+                SereneAppBanner()
+            }
+        },
         bottomBar = {
             if (showBuildFooter) {
                 Column {
@@ -172,12 +184,23 @@ fun SereneNavHost(
                             items = bottomNavItems,
                             currentRoute = currentRoute,
                             onNavigate = { destination ->
+                                if (destination == SereneDestination.Toolkit) {
+                                    toolkitResetSignal++
+                                }
+                                if (destination == SereneDestination.Visualizations &&
+                                    currentRoute?.startsWith("visualizations/player") == true
+                                ) {
+                                    navController.popBackStack(
+                                        SereneDestination.Visualizations.route,
+                                        inclusive = false,
+                                    )
+                                }
                                 navController.navigate(destination.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
                                     launchSingleTop = true
-                                    restoreState = true
+                                    restoreState = false
                                 }
                             },
                         )
@@ -255,6 +278,7 @@ fun SereneNavHost(
             composable(SereneDestination.Toolkit.route) {
                 ToolkitScreen(
                     pendingNavigation = pendingNavigation,
+                    resetSignal = toolkitResetSignal,
                     onNavigateToBreathe = {
                         navController.navigate(SereneDestination.Breathe.route) {
                             popUpTo(navController.graph.findStartDestination().id) {

@@ -655,14 +655,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 savedId,
                 state.futureSelfScheduledAtMillis,
             )
-            _uiState.update {
-                it.copy(
-                    futureSelfText = "",
-                    pendingAudioPath = null,
-                    futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
-                    editingFutureSelfId = null,
-                )
-            }
+            closeTool()
         }
     }
 
