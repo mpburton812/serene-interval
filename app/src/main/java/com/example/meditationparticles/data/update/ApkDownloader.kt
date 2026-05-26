@@ -17,7 +17,11 @@ class ApkDownloader(
             destination.delete()
         }
 
-        val request = Request.Builder().url(apkUrl).get().build()
+        val request = Request.Builder()
+            .url(apkUrl)
+            .get()
+            .header("Cache-Control", "no-cache")
+            .build()
         httpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 error("Download failed (${response.code})")
