@@ -31,6 +31,18 @@ Gradle still outputs `app/build/outputs/apk/debug/app-debug.apk` locally. For Gi
 
 **Order matters for in-app updates:** publish the GitHub release first, then update `release/version.json` on `main`. Use a version-pinned `apkUrl` (`/releases/download/vX.Y.Z/sway_meditation.apk`), not `/releases/latest/download/`, so the manifest never points at a newer hash while GitHub still serves the previous release. List the correct `versionCode`, `versionName`, and `expectedSha256` (hash the uploaded APK before committing).
 
+Before opening a PR that changes `release/version.json`, run the manifest verifier (CI runs the same checks):
+
+```powershell
+.\release\verify-manifest.ps1
+```
+
+Or after building locally, compare against the APK on disk:
+
+```powershell
+.\release\verify-manifest.ps1 -LocalApk app\build\outputs\apk\debug\app-debug.apk
+```
+
 Verify signing before upload:
 
 ```powershell
