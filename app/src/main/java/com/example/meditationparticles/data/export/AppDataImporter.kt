@@ -7,6 +7,7 @@ import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -314,6 +315,13 @@ class AppDataImporter(
                 skips = skips,
             ),
         )
+        updated = updated.copy(
+            nvcEntries = importNvcEntries(
+                array = entries.optJSONArray("nvcEntries"),
+                dao = db.nvcEntryDao(),
+                skips = skips,
+            ),
+        )
 
         return updated
     }
@@ -580,6 +588,74 @@ class AppDataImporter(
                     thoughtsAndFeelingsAudioPath = thoughtsAudio.first,
                     bodyAndNeeds = bodyAndNeeds,
                     bodyAndNeedsAudioPath = bodyAudio.first,
+                    createdAt = createdAt,
+                ),
+            )
+            imported++
+        }
+        return imported
+    }
+
+    private suspend fun importNvcEntries(
+        array: JSONArray?,
+        dao: com.example.meditationparticles.data.local.NvcEntryDao,
+        skips: MutableList<ImportSkip>,
+    ): Int {
+        if (array == null || array.length() == 0) return 0
+        val existing = dao.getAll()
+        var imported = 0
+
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val observation = item.optString("observation", "").trim()
+            val feeling = item.optString("feeling", "").trim()
+            val need = item.optString("need", "").trim()
+            val request = item.optString("request", "").trim()
+            if (observation.isEmpty() && feeling.isEmpty() && need.isEmpty() && request.isEmpty()) {
+                skips += ImportSkip("NVC entry", "missing content")
+                continue
+            }
+            val createdAt = item.optLong("createdAt", System.currentTimeMillis())
+            if (existing.any {
+                    it.observation == observation &&
+                        it.feeling == feeling &&
+                        it.need == need &&
+                        it.request == request &&
+                        it.createdAt == createdAt
+                }
+            ) {
+                skips += ImportSkip("NVC entry", "duplicate")
+                continue
+            }
+
+            val observationAudio = resolveAudioPath(
+                item.optionalString("observationAudioPath"),
+                "NVC entry",
+            )
+            val feelingAudio = resolveAudioPath(
+                item.optionalString("feelingAudioPath"),
+                "NVC entry",
+            )
+            val needAudio = resolveAudioPath(
+                item.optionalString("needAudioPath"),
+                "NVC entry",
+            )
+            val requestAudio = resolveAudioPath(
+                item.optionalString("requestAudioPath"),
+                "NVC entry",
+            )
+            skips += observationAudio.second + feelingAudio.second + needAudio.second + requestAudio.second
+
+            dao.insert(
+                NvcEntryEntity(
+                    observation = observation,
+                    observationAudioPath = observationAudio.first,
+                    feeling = feeling,
+                    feelingAudioPath = feelingAudio.first,
+                    need = need,
+                    needAudioPath = needAudio.first,
+                    request = request,
+                    requestAudioPath = requestAudio.first,
                     createdAt = createdAt,
                 ),
             )

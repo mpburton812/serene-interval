@@ -8,6 +8,7 @@ import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -34,6 +35,7 @@ class AppDataExporter(
         val futureSelfMessages = db.futureSelfMessageDao().getAll()
         val refactoringEntries = db.refactoringEntryDao().getAll()
         val centerOfGravityEntries = db.centerOfGravityEntryDao().getAll()
+        val nvcEntries = db.nvcEntryDao().getAll()
 
         JSONObject().apply {
             put("exportVersion", EXPORT_VERSION)
@@ -47,6 +49,7 @@ class AppDataExporter(
                 futureSelfMessages = futureSelfMessages,
                 refactoringEntries = refactoringEntries,
                 centerOfGravityEntries = centerOfGravityEntries,
+                nvcEntries = nvcEntries,
             ))
         }.toString(2)
     }
@@ -101,6 +104,7 @@ class AppDataExporter(
         futureSelfMessages: List<FutureSelfMessageEntity>,
         refactoringEntries: List<RefactoringEntryEntity>,
         centerOfGravityEntries: List<CenterOfGravityEntryEntity>,
+        nvcEntries: List<NvcEntryEntity>,
     ): JSONObject = JSONObject().apply {
         put("affirmations", JSONArray().apply {
             affirmations.forEach { put(it.toJson()) }
@@ -123,6 +127,9 @@ class AppDataExporter(
         })
         put("centerOfGravityEntries", JSONArray().apply {
             centerOfGravityEntries.forEach { put(it.toJson()) }
+        })
+        put("nvcEntries", JSONArray().apply {
+            nvcEntries.forEach { put(it.toJson()) }
         })
     }
 
@@ -172,6 +179,19 @@ class AppDataExporter(
         put("thoughtsAndFeelingsAudioPath", thoughtsAndFeelingsAudioPath)
         put("bodyAndNeeds", bodyAndNeeds)
         put("bodyAndNeedsAudioPath", bodyAndNeedsAudioPath)
+        put("createdAt", createdAt)
+    }
+
+    private fun NvcEntryEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("observation", observation)
+        put("observationAudioPath", observationAudioPath)
+        put("feeling", feeling)
+        put("feelingAudioPath", feelingAudioPath)
+        put("need", need)
+        put("needAudioPath", needAudioPath)
+        put("request", request)
+        put("requestAudioPath", requestAudioPath)
         put("createdAt", createdAt)
     }
 

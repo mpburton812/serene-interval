@@ -15,8 +15,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FutureSelfMessageEntity::class,
         RefactoringEntryEntity::class,
         CenterOfGravityEntryEntity::class,
+        NvcEntryEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -26,6 +27,7 @@ abstract class SereneDatabase : RoomDatabase() {
     abstract fun futureSelfMessageDao(): FutureSelfMessageDao
     abstract fun refactoringEntryDao(): RefactoringEntryDao
     abstract fun centerOfGravityEntryDao(): CenterOfGravityEntryDao
+    abstract fun nvcEntryDao(): NvcEntryDao
 
     companion object {
         @Volatile
@@ -134,6 +136,27 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS nvc_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        observation TEXT NOT NULL,
+                        observationAudioPath TEXT,
+                        feeling TEXT NOT NULL,
+                        feelingAudioPath TEXT,
+                        need TEXT NOT NULL,
+                        needAudioPath TEXT,
+                        request TEXT NOT NULL,
+                        requestAudioPath TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -148,6 +171,7 @@ abstract class SereneDatabase : RoomDatabase() {
                         MIGRATION_4_5,
                         MIGRATION_5_6,
                         MIGRATION_6_7,
+                        MIGRATION_7_8,
                     )
                     .build()
                     .also { instance = it }
