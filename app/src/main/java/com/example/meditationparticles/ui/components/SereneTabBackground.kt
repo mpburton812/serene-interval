@@ -2,11 +2,13 @@ package com.example.meditationparticles.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -16,6 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.isDarkScheme
 
 @Composable
@@ -26,7 +29,13 @@ fun SereneTabBackground(
     val context = LocalContext.current
     val rotation = remember { AppGraph.tabBackgroundRotation(context) }
     val backgroundDrawable by rotation.currentDrawable.collectAsState()
+    val settings = LocalExperienceSettings.current
+    val isSystemDark = isSystemInDarkTheme()
     val isDark = isDarkScheme(MaterialTheme.colorScheme)
+
+    LaunchedEffect(settings.themeMode, isSystemDark) {
+        rotation.sync(settings.themeMode, isSystemDark)
+    }
     val scrimTopAlpha = if (isDark) 0.78f else 0.58f
     val scrimBottomAlpha = if (isDark) 0.88f else 0.72f
 

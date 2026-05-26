@@ -1,5 +1,6 @@
 package com.example.meditationparticles.navigation
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -100,6 +101,7 @@ fun SereneNavHost(
     val lifecycleOwner = LocalLifecycleOwner.current
     var resumeCount by remember { mutableIntStateOf(0) }
     val settings = LocalExperienceSettings.current
+    val isSystemDark = isSystemInDarkTheme()
     var breathingSessionActive by remember { mutableStateOf(false) }
     var timerSessionActive by remember { mutableStateOf(false) }
     var visualizationPlayerActive by remember { mutableStateOf(false) }
@@ -116,15 +118,15 @@ fun SereneNavHost(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(currentRoute) {
+    LaunchedEffect(currentRoute, settings.themeMode, isSystemDark) {
         if (isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance()
+            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
         }
     }
 
-    LaunchedEffect(resumeCount) {
+    LaunchedEffect(resumeCount, settings.themeMode, isSystemDark) {
         if (resumeCount > 1 && isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance()
+            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
         }
     }
 

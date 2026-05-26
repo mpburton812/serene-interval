@@ -46,20 +46,15 @@ class TimerEngine {
 
     fun setSound(sound: TimerSoundOption) {
         if (_state.value.isRunning) return
-        _state.update {
-            it.copy(
-                sound = sound,
-                customSoundUri = if (sound != TimerSoundOption.Custom) null else it.customSoundUri,
-            )
-        }
+        _state.update { it.copy(sound = sound) }
     }
 
-    fun setCustomSoundUri(uri: String?) {
+    fun setBellSound(choice: TimerBellSoundChoice, systemUri: String? = null) {
         if (_state.value.isRunning) return
         _state.update {
             it.copy(
-                sound = TimerSoundOption.Custom,
-                customSoundUri = uri,
+                bellSound = choice,
+                bellSystemUri = if (choice == TimerBellSoundChoice.SystemUri) systemUri else null,
             )
         }
     }
@@ -132,7 +127,8 @@ class TimerEngine {
                 displayMode = it.displayMode,
                 targetMinutes = it.targetMinutes,
                 sound = it.sound,
-                customSoundUri = it.customSoundUri,
+                bellSound = it.bellSound,
+                bellSystemUri = it.bellSystemUri,
                 reminderEnabled = it.reminderEnabled,
                 reminderHour = it.reminderHour,
                 reminderMinute = it.reminderMinute,
@@ -144,7 +140,8 @@ class TimerEngine {
         displayMode: TimerDisplayMode,
         targetMinutes: Int,
         sound: TimerSoundOption,
-        customSoundUri: String?,
+        bellSound: TimerBellSoundChoice,
+        bellSystemUri: String?,
         reminderEnabled: Boolean,
         reminderHour: Int,
         reminderMinute: Int,
@@ -155,7 +152,8 @@ class TimerEngine {
                 displayMode = displayMode,
                 targetMinutes = targetMinutes,
                 sound = sound,
-                customSoundUri = customSoundUri,
+                bellSound = bellSound,
+                bellSystemUri = bellSystemUri,
                 reminderEnabled = reminderEnabled,
                 reminderHour = reminderHour,
                 reminderMinute = reminderMinute,

@@ -340,7 +340,7 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
                 Text(
-                    text = "Onboarding",
+                    text = "Rebuild Your Sanctuary",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -361,7 +361,7 @@ fun SettingsScreen(
                     ),
                 ) {
                     Text(
-                        text = "Reset Onboarding",
+                        text = "Rebuild!",
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )

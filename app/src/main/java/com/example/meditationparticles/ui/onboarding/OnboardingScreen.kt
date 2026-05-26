@@ -45,8 +45,7 @@ import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
-import com.example.meditationparticles.ui.settings.PreferredNameField
-import com.example.meditationparticles.ui.settings.SanctuaryNameField
+import com.example.meditationparticles.ui.settings.NamingSection
 import com.example.meditationparticles.ui.settings.ThemeSection
 import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
@@ -134,7 +133,7 @@ fun OnboardingScreen(
 private fun OnboardingHeader(step: OnboardingStep) {
     val appName = stringResource(R.string.app_name)
     val (title, subtitle) = when (step) {
-        OnboardingStep.Customization -> "Create Your Sanctuary" to
+        OnboardingStep.Customization -> "Let's Build Your Sanctuary" to
             "Let's shape a space that feels uniquely yours."
         OnboardingStep.ExactAlarms -> "Alarms & Reminders" to
             "Scheduled features need permission to deliver on time."
@@ -169,29 +168,27 @@ private fun OnboardingCustomizationStep(
     viewModel: OnboardingViewModel,
     onContinue: () -> Unit,
 ) {
-    GlassCard(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 24.dp,
+        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
     ) {
-        Column(
-            modifier = Modifier.padding(SereneSpacing.containerMargin),
-            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
-        ) {
-            SanctuaryNameField(
-                value = draft.sanctuaryName,
-                onValueChange = viewModel::setSanctuaryName,
+        OnboardingSectionCard {
+            NamingSection(
+                sanctuaryName = draft.sanctuaryName,
+                onSanctuaryNameChange = viewModel::setSanctuaryName,
+                preferredName = draft.preferredName,
+                onPreferredNameChange = viewModel::setPreferredName,
             )
+        }
 
-            PreferredNameField(
-                value = draft.preferredName,
-                onValueChange = viewModel::setPreferredName,
-            )
-
+        OnboardingSectionCard {
             ThemeSection(
                 settings = settingsPreview,
                 onThemeModeSelected = viewModel::setThemeMode,
             )
+        }
 
+        OnboardingSectionCard {
             ExperienceSection(
                 settings = settingsPreview,
                 onBreathingChanged = viewModel::setEnableBreathing,
@@ -200,21 +197,24 @@ private fun OnboardingCustomizationStep(
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onVisualsChanged = viewModel::setEnableVisuals,
             )
+        }
 
-            if (draft.enableVisuals) {
+        if (draft.enableVisuals) {
+            OnboardingSectionCard {
                 VisualSanctuarySection(
                     enabledScenes = draft.enabledScenes,
                     onToggleScene = viewModel::toggleScene,
                 )
             }
+        }
 
-            if (draft.enableToolkit) {
+        if (draft.enableToolkit) {
+            OnboardingSectionCard {
                 ToolkitToolSelectionContent(
                     proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
                     reactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
                     enabledToolIds = draft.enabledToolkitTools,
                     onToggleTool = viewModel::toggleToolkitTool,
-                    showHeader = false,
                 )
             }
         }
@@ -372,6 +372,23 @@ private fun OnboardingNotificationsStep(
         enabled = true,
         onClick = onContinue,
     )
+}
+
+@Composable
+private fun OnboardingSectionCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+            content = { content() },
+        )
+    }
 }
 
 @Composable

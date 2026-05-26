@@ -12,6 +12,7 @@ import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
+import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
 import com.example.meditationparticles.domain.timer.TimerSoundOption
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
@@ -241,31 +242,18 @@ class AppDataImporter(
             .let { name ->
                 runCatching { TimerDisplayMode.valueOf(name) }.getOrDefault(current.displayMode)
             }
-        val sound = json.optString("sound", current.sound.name)
-            .let { name ->
-                val normalized = if (name == "Ocean") TimerSoundOption.Waves.name else name
-                runCatching { TimerSoundOption.valueOf(normalized) }.getOrDefault(current.sound)
-            }
-
-        val exportedCustomUri = json.optionalString("customSoundUri")
-        val customSoundUri = when {
-            exportedCustomUri == null -> current.customSoundUri
-            exportedCustomUri.startsWith("content://") || exportedCustomUri.startsWith("file://") -> {
-                skips += ImportSkip(
-                    category = "timer custom sound",
-                    reason = "URI not portable to this device",
-                    detail = exportedCustomUri,
-                )
-                current.customSoundUri
-            }
-            else -> exportedCustomUri
-        }
+        val sound = TimerSoundOption.fromStoredName(json.optString("sound", current.sound.name))
+        val bellSound = TimerBellSoundChoice.fromStoredName(
+            json.optString("bellSound", current.bellSound.name),
+        )
+        val bellSystemUri = json.optString("bellSystemUri").takeIf { it.isNotBlank() }
 
         return TimerPreferences.TimerPrefsSnapshot(
             displayMode = displayMode,
             targetMinutes = json.optInt("targetMinutes", current.targetMinutes),
             sound = sound,
-            customSoundUri = customSoundUri,
+            bellSound = bellSound,
+            bellSystemUri = bellSystemUri,
             reminderEnabled = json.optBoolean("reminderEnabled", current.reminderEnabled),
             reminderHour = json.optInt("reminderHour", current.reminderHour),
             reminderMinute = json.optInt("reminderMinute", current.reminderMinute),
