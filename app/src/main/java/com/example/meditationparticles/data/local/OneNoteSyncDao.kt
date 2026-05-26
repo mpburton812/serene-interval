@@ -32,6 +32,12 @@ interface OneNoteSyncDao {
     @Query("DELETE FROM one_note_sync_mappings")
     suspend fun clearMappings()
 
+    @Query("DELETE FROM one_note_sync_mappings WHERE localEntryId = :localEntryId AND entryType = :entryType")
+    suspend fun deleteMapping(localEntryId: Long, entryType: String)
+
+    @Query("DELETE FROM one_note_sync_queue WHERE localEntryId = :localEntryId AND entryType = :entryType")
+    suspend fun deleteQueueItemsForEntry(localEntryId: Long, entryType: String)
+
     @Query("SELECT COUNT(*) FROM one_note_sync_queue")
     suspend fun pendingQueueCount(): Int
 }

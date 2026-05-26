@@ -60,11 +60,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
+import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -189,6 +191,8 @@ fun AnxietyToolkitTab(
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
             onNavigateToBreathe = onNavigateToBreathe,
+            showOneNoteSync = BuildConfig.ONENOTE_SYNC_AVAILABLE && state.oneNoteConnected,
+            onSyncEntryToOneNote = viewModel::syncEntryToOneNote,
         )
         return
     }
@@ -513,6 +517,8 @@ private fun ToolDetailScreen(
     onPrevious: () -> Unit,
     onClose: () -> Unit,
     onNavigateToBreathe: () -> Unit,
+    showOneNoteSync: Boolean,
+    onSyncEntryToOneNote: (OneNoteEntryType, Long) -> Unit,
 ) {
     val context = LocalContext.current
     val futureSelfSchedulingAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
@@ -556,6 +562,10 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenLogEntry,
                     onDeleteEntry = onDeleteLogEntry,
                     onCloseEntry = onCloseLogEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.THOUGHT_DUMP, entry.id)
+                    },
                 )
             }
             ToolkitToolId.AnxietyLog -> {
@@ -574,6 +584,10 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenLogEntry,
                     onDeleteEntry = onDeleteLogEntry,
                     onCloseEntry = onCloseLogEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.ANXIETY_LOG, entry.id)
+                    },
                 )
             }
             ToolkitToolId.FutureSelfMessage -> {
@@ -595,6 +609,10 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenFutureSelfEntry,
                     onCloseEntry = onCloseFutureSelfEntry,
                     schedulingAvailable = futureSelfSchedulingAvailable,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.FUTURE_SELF, entry.id)
+                    },
                 )
             }
             ToolkitToolId.Refactoring -> {
@@ -623,6 +641,10 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenRefactoringEntry,
                     onDeleteEntry = onDeleteRefactoringEntry,
                     onCloseEntry = onCloseRefactoringEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.REFACTORING, entry.id)
+                    },
                 )
             }
             ToolkitToolId.RelocateCenterOfGravity -> {
@@ -644,6 +666,10 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenCenterOfGravityEntry,
                     onDeleteEntry = onDeleteCenterOfGravityEntry,
                     onCloseEntry = onCloseCenterOfGravityEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.CENTER_OF_GRAVITY, entry.id)
+                    },
                 )
             }
             ToolkitToolId.NonViolentCommunication -> {
@@ -670,6 +696,10 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenNvcEntry,
                     onDeleteEntry = onDeleteNvcEntry,
                     onCloseEntry = onCloseNvcEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.NVC, entry.id)
+                    },
                 )
             }
             else -> {

@@ -79,6 +79,8 @@ fun FutureSelfMessageContent(
     onOpenEntry: (FutureSelfMessageEntity) -> Unit,
     onCloseEntry: () -> Unit,
     schedulingAvailable: Boolean = true,
+    showOneNoteSync: Boolean = false,
+    onSyncEntryToOneNote: (FutureSelfMessageEntity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val appName = stringResource(R.string.app_name)
@@ -379,6 +381,8 @@ fun FutureSelfMessageContent(
         FutureSelfEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
+            showOneNoteSync = showOneNoteSync,
+            onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
         )
     }
@@ -503,6 +507,8 @@ private fun FutureSelfEntryRow(
 private fun FutureSelfEntryDetailDialog(
     entry: FutureSelfMessageEntity,
     audioPlayer: ToolkitAudioPlayer,
+    showOneNoteSync: Boolean,
+    onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var isPlaying by remember(entry.id) { mutableStateOf(false) }
@@ -548,6 +554,9 @@ private fun FutureSelfEntryDetailDialog(
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
+                }
+                if (showOneNoteSync) {
+                    OneNoteEntrySyncButton(onClick = onSyncToOneNote)
                 }
             }
         },

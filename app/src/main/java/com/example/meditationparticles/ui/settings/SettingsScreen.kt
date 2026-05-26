@@ -297,6 +297,10 @@ fun SettingsScreen(
                 onDisconnect = viewModel::disconnectOneNote,
                 onSyncEnabledChange = viewModel::setOneNoteSyncEnabled,
                 onSyncNow = viewModel::syncOneNoteNow,
+                onSyncExistingEntries = viewModel::backfillOneNoteExistingEntries,
+                onEntryTypeSyncChange = viewModel::setOneNoteEntryTypeSyncEnabled,
+                onSelectNotebook = viewModel::selectOneNoteNotebook,
+                onSelectSection = viewModel::selectOneNoteSection,
             )
 
             Column(

@@ -79,6 +79,7 @@ data class ToolkitUiState(
     val openedNvcEntry: NvcEntryEntity? = null,
     val randomToolState: RandomToolState = RandomToolState.Idle,
     val randomSelectedTool: ToolkitTool? = null,
+    val oneNoteConnected: Boolean = false,
 ) {
     val currentStep: String?
         get() = selectedTool?.steps?.getOrNull(stepIndex)
@@ -95,6 +96,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     private val nvcRepository = AppGraph.nvcEntries(application)
     private val toolkitPreferences = AppGraph.toolkit(application)
     private val settingsPreferences = AppGraph.settings(application)
+    private val oneNotePreferences = AppGraph.oneNotePreferences(application)
     private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val appContext = application.applicationContext
 
@@ -138,6 +140,13 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             nvcRepository.observeAll().collect { entries ->
                 _uiState.update { it.copy(nvcEntries = entries) }
+            }
+        }
+        viewModelScope.launch {
+            oneNotePreferences.snapshot.collect { prefs ->
+                _uiState.update {
+                    it.copy(oneNoteConnected = !prefs.accountEmail.isNullOrBlank())
+                }
             }
         }
     }
@@ -517,6 +526,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteRefactoringEntry(entry: RefactoringEntryEntity) {
         viewModelScope.launch {
+            oneNoteSync.deleteForEntry(OneNoteEntryType.REFACTORING, entry.id)
             refactoringRepository.deleteEntry(entry.id)
             if (_uiState.value.openedRefactoringEntry?.id == entry.id) {
                 _uiState.update { it.copy(openedRefactoringEntry = null) }
@@ -631,6 +641,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteCenterOfGravityEntry(entry: CenterOfGravityEntryEntity) {
         viewModelScope.launch {
+            oneNoteSync.deleteForEntry(OneNoteEntryType.CENTER_OF_GRAVITY, entry.id)
             centerOfGravityRepository.deleteEntry(entry.id)
             if (_uiState.value.openedCenterOfGravityEntry?.id == entry.id) {
                 _uiState.update { it.copy(openedCenterOfGravityEntry = null) }
@@ -776,6 +787,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteNvcEntry(entry: NvcEntryEntity) {
         viewModelScope.launch {
+            oneNoteSync.deleteForEntry(OneNoteEntryType.NVC, entry.id)
             nvcRepository.deleteEntry(entry.id)
             if (_uiState.value.openedNvcEntry?.id == entry.id) {
                 _uiState.update { it.copy(openedNvcEntry = null) }
@@ -906,6 +918,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteLogEntry(entry: ThoughtDumpEntity) {
         viewModelScope.launch {
+            val entryType = when (entry.logType) {
+                ToolkitLogType.ANXIETY_LOG.name -> OneNoteEntryType.ANXIETY_LOG
+                else -> OneNoteEntryType.THOUGHT_DUMP
+            }
+            oneNoteSync.deleteForEntry(entryType, entry.id)
             logRepository.deleteEntry(entry.id)
             if (_uiState.value.openedLogEntry?.id == entry.id) {
                 _uiState.update { it.copy(openedLogEntry = null) }
@@ -936,6 +953,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     fun deleteFutureSelfEntry(entry: FutureSelfMessageEntity) {
         viewModelScope.launch {
             FutureSelfMessageScheduler.cancel(appContext, entry.id)
+            oneNoteSync.deleteForEntry(OneNoteEntryType.FUTURE_SELF, entry.id)
             futureSelfRepository.delete(entry.id)
             if (_uiState.value.openedFutureSelfEntry?.id == entry.id) {
                 _uiState.update { it.copy(openedFutureSelfEntry = null) }
@@ -982,6 +1000,12 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             tool?.id == ToolkitToolId.Refactoring ||
             tool?.id == ToolkitToolId.NonViolentCommunication ||
             tool?.id == ToolkitToolId.RelocateCenterOfGravity
+
+    fun syncEntryToOneNote(entryType: OneNoteEntryType, localEntryId: Long) {
+        viewModelScope.launch {
+            oneNoteSync.enqueueSync(entryType, localEntryId, manual = true)
+        }
+    }
 
     private fun enqueueOneNoteSync(entryType: OneNoteEntryType, localEntryId: Long) {
         viewModelScope.launch {

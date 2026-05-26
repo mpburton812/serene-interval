@@ -34,6 +34,47 @@ class OneNoteGraphClient(
         }
     }
 
+    suspend fun updatePageContent(
+        accessToken: String,
+        pageId: String,
+        html: String,
+    ) {
+        val commands = JSONArray().put(
+            JSONObject()
+                .put("target", "body")
+                .put("action", "replace")
+                .put("content", html),
+        )
+        val request = Request.Builder()
+            .url("$GRAPH_BASE/me/onenote/pages/$pageId/content")
+            .addHeader("Authorization", "Bearer $accessToken")
+            .patch(commands.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        val response = httpClient.newCall(request).execute()
+        response.use {
+            val body = it.body?.string().orEmpty()
+            if (!it.isSuccessful) {
+                throw IOException("Update page failed (${it.code}): $body")
+            }
+        }
+    }
+
+    suspend fun deletePage(accessToken: String, pageId: String) {
+        val request = Request.Builder()
+            .url("$GRAPH_BASE/me/onenote/pages/$pageId")
+            .addHeader("Authorization", "Bearer $accessToken")
+            .delete()
+            .build()
+        val response = httpClient.newCall(request).execute()
+        response.use {
+            if (it.code == 404) return
+            val body = it.body?.string().orEmpty()
+            if (!it.isSuccessful) {
+                throw IOException("Delete page failed (${it.code}): $body")
+            }
+        }
+    }
+
     suspend fun ensureSereneIntervalSection(accessToken: String): String {
         val notebookId = listNotebooks(accessToken).firstOrNull()?.id
             ?: throw IOException("No OneNote notebooks found for this account")
@@ -43,23 +84,7 @@ class OneNoteGraphClient(
         return createSection(accessToken, notebookId, SECTION_NAME)
     }
 
-    suspend fun listSections(accessToken: String, notebookId: String): List<OneNoteSection> {
-        val request = Request.Builder()
-            .url("$GRAPH_BASE/me/onenote/notebooks/$notebookId/sections")
-            .addHeader("Authorization", "Bearer $accessToken")
-            .get()
-            .build()
-        val response = httpClient.newCall(request).execute()
-        response.use {
-            val body = it.body?.string().orEmpty()
-            if (!it.isSuccessful) {
-                throw IOException("List sections failed (${it.code}): $body")
-            }
-            return parseSectionList(JSONObject(body))
-        }
-    }
-
-    private suspend fun listNotebooks(accessToken: String): List<OneNoteNotebook> {
+    suspend fun listNotebooks(accessToken: String): List<OneNoteNotebook> {
         val request = Request.Builder()
             .url("$GRAPH_BASE/me/onenote/notebooks")
             .addHeader("Authorization", "Bearer $accessToken")
@@ -89,7 +114,23 @@ class OneNoteGraphClient(
         }
     }
 
-    private suspend fun createSection(
+    suspend fun listSections(accessToken: String, notebookId: String): List<OneNoteSection> {
+        val request = Request.Builder()
+            .url("$GRAPH_BASE/me/onenote/notebooks/$notebookId/sections")
+            .addHeader("Authorization", "Bearer $accessToken")
+            .get()
+            .build()
+        val response = httpClient.newCall(request).execute()
+        response.use {
+            val body = it.body?.string().orEmpty()
+            if (!it.isSuccessful) {
+                throw IOException("List sections failed (${it.code}): $body")
+            }
+            return parseSectionList(JSONObject(body))
+        }
+    }
+
+    suspend fun createSection(
         accessToken: String,
         notebookId: String,
         displayName: String,

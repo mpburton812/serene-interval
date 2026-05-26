@@ -83,6 +83,8 @@ fun RefactoringContent(
     onOpenEntry: (RefactoringEntryEntity) -> Unit,
     onDeleteEntry: (RefactoringEntryEntity) -> Unit,
     onCloseEntry: () -> Unit,
+    showOneNoteSync: Boolean = false,
+    onSyncEntryToOneNote: (RefactoringEntryEntity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
@@ -323,6 +325,8 @@ fun RefactoringContent(
         RefactoringEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
+            showOneNoteSync = showOneNoteSync,
+            onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
         )
     }
@@ -423,6 +427,8 @@ private fun RefactoringEntryRow(
 private fun RefactoringEntryDetailDialog(
     entry: RefactoringEntryEntity,
     audioPlayer: ToolkitAudioPlayer,
+    showOneNoteSync: Boolean,
+    onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var playingPath by remember(entry.id) { mutableStateOf<String?>(null) }
@@ -514,6 +520,9 @@ private fun RefactoringEntryDetailDialog(
                         }
                     },
                 )
+                if (showOneNoteSync) {
+                    OneNoteEntrySyncButton(onClick = onSyncToOneNote)
+                }
             }
         },
         confirmButton = {

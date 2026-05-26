@@ -64,6 +64,8 @@ fun ToolkitLogContent(
     onOpenEntry: (ThoughtDumpEntity) -> Unit,
     onDeleteEntry: (ThoughtDumpEntity) -> Unit,
     onCloseEntry: () -> Unit,
+    showOneNoteSync: Boolean = false,
+    onSyncEntryToOneNote: (ThoughtDumpEntity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
@@ -228,6 +230,8 @@ fun ToolkitLogContent(
         LogEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
+            showOneNoteSync = showOneNoteSync,
+            onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
         )
     }
@@ -280,6 +284,8 @@ private fun LogEntryRow(
 private fun LogEntryDetailDialog(
     entry: ThoughtDumpEntity,
     audioPlayer: ToolkitAudioPlayer,
+    showOneNoteSync: Boolean,
+    onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var isPlaying by remember(entry.id) { mutableStateOf(false) }
@@ -325,6 +331,9 @@ private fun LogEntryDetailDialog(
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
+                }
+                if (showOneNoteSync) {
+                    OneNoteEntrySyncButton(onClick = onSyncToOneNote)
                 }
             }
         },

@@ -76,6 +76,8 @@ fun CenterOfGravityContent(
     onOpenEntry: (CenterOfGravityEntryEntity) -> Unit,
     onDeleteEntry: (CenterOfGravityEntryEntity) -> Unit,
     onCloseEntry: () -> Unit,
+    showOneNoteSync: Boolean = false,
+    onSyncEntryToOneNote: (CenterOfGravityEntryEntity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
@@ -277,6 +279,8 @@ fun CenterOfGravityContent(
         CenterOfGravityEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
+            showOneNoteSync = showOneNoteSync,
+            onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
         )
     }
@@ -375,6 +379,8 @@ private fun CenterOfGravityEntryRow(
 private fun CenterOfGravityEntryDetailDialog(
     entry: CenterOfGravityEntryEntity,
     audioPlayer: ToolkitAudioPlayer,
+    showOneNoteSync: Boolean,
+    onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var playingPath by remember(entry.id) { mutableStateOf<String?>(null) }
@@ -421,6 +427,9 @@ private fun CenterOfGravityEntryDetailDialog(
                         }
                     },
                 )
+                if (showOneNoteSync) {
+                    OneNoteEntrySyncButton(onClick = onSyncToOneNote)
+                }
             }
         },
         confirmButton = {

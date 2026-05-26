@@ -80,6 +80,8 @@ fun NvcContent(
     onOpenEntry: (NvcEntryEntity) -> Unit,
     onDeleteEntry: (NvcEntryEntity) -> Unit,
     onCloseEntry: () -> Unit,
+    showOneNoteSync: Boolean = false,
+    onSyncEntryToOneNote: (NvcEntryEntity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
@@ -303,6 +305,8 @@ fun NvcContent(
         NvcEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
+            showOneNoteSync = showOneNoteSync,
+            onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
         )
     }
@@ -405,6 +409,8 @@ private fun NvcEntryRow(
 private fun NvcEntryDetailDialog(
     entry: NvcEntryEntity,
     audioPlayer: ToolkitAudioPlayer,
+    showOneNoteSync: Boolean,
+    onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var playingPath by remember(entry.id) { mutableStateOf<String?>(null) }
@@ -481,6 +487,9 @@ private fun NvcEntryDetailDialog(
                         }
                     },
                 )
+                if (showOneNoteSync) {
+                    OneNoteEntrySyncButton(onClick = onSyncToOneNote)
+                }
             }
         },
         confirmButton = {

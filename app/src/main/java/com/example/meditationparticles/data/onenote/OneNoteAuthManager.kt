@@ -10,7 +10,9 @@ import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.IAuthenticationResult
 import com.microsoft.identity.client.IPublicClientApplication
 import com.microsoft.identity.client.ISingleAccountPublicClientApplication
+import com.microsoft.identity.client.Prompt
 import com.microsoft.identity.client.PublicClientApplication
+import com.microsoft.identity.client.exception.MsalClientException
 import com.microsoft.identity.client.exception.MsalException
 import com.microsoft.identity.client.exception.MsalUiRequiredException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -39,40 +41,29 @@ class OneNoteAuthManager(
         }
     }
 
+    /**
+     * Aligns MSAL cache with app preferences. SINGLE-account MSAL can retain a session after
+     * prefs were cleared, which causes "signed in account does not match" on the next connect.
+     */
+    suspend fun reconcileConnectionState(preferences: OneNotePreferences) {
+        if (!isAvailable) return
+        initialize().getOrElse { return }
+        val prefs = preferences.load()
+        val msalEmail = currentAccountEmail()
+        when {
+            msalEmail == null && !prefs.accountEmail.isNullOrBlank() -> {
+                preferences.clearConnection()
+            }
+            msalEmail != null && prefs.accountEmail.isNullOrBlank() -> {
+                clearMsalSession()
+            }
+        }
+    }
+
     suspend fun signIn(activity: Activity): OneNoteAuthResult {
         initialize().getOrElse { return OneNoteAuthResult.failure(it.message ?: "Not configured") }
-        val app = clientApplication ?: return OneNoteAuthResult.failure("MSAL not initialized")
-        return suspendCancellableCoroutine { continuation ->
-            app.acquireToken(
-                AcquireTokenParameters.Builder()
-                    .startAuthorizationFromActivity(activity)
-                    .withScopes(SCOPES.toList())
-                    .withCallback(object : com.microsoft.identity.client.AuthenticationCallback {
-                        override fun onSuccess(authenticationResult: IAuthenticationResult?) {
-                            val result = authenticationResult
-                                ?: return continuation.resume(
-                                    OneNoteAuthResult.failure("Sign in returned no account"),
-                                )
-                            continuation.resume(
-                                OneNoteAuthResult.success(
-                                    email = result.account.username,
-                                ),
-                            )
-                        }
-
-                        override fun onError(exception: MsalException) {
-                            continuation.resume(
-                                OneNoteAuthResult.failure(exception.message ?: "Sign in failed"),
-                            )
-                        }
-
-                        override fun onCancel() {
-                            continuation.resume(OneNoteAuthResult.cancelled())
-                        }
-                    })
-                    .build(),
-            )
-        }
+        clearMsalSession()
+        return acquireTokenInteractive(activity, allowMismatchRetry = true)
     }
 
     suspend fun acquireAccessToken(): String {
@@ -114,6 +105,13 @@ class OneNoteAuthManager(
     suspend fun currentAccountEmail(): String? = getCurrentAccount()?.username
 
     suspend fun signOut() {
+        if (!isAvailable) return
+        clearMsalSession()
+    }
+
+    private suspend fun clearMsalSession() {
+        if (!isAvailable) return
+        initialize().getOrElse { return }
         val app = clientApplication ?: return
         suspendCancellableCoroutine { continuation ->
             app.signOut(object : ISingleAccountPublicClientApplication.SignOutCallback {
@@ -122,10 +120,80 @@ class OneNoteAuthManager(
                 }
 
                 override fun onError(exception: MsalException) {
-                    continuation.resumeWithException(exception)
+                    // Still drop the client so the next sign-in starts from a clean MSAL instance.
+                    clientApplication = null
+                    continuation.resume(Unit)
                 }
             })
         }
+        clientApplication = null
+    }
+
+    private suspend fun acquireTokenInteractive(
+        activity: Activity,
+        allowMismatchRetry: Boolean,
+    ): OneNoteAuthResult {
+        initialize().getOrElse { return OneNoteAuthResult.failure(it.message ?: "Not configured") }
+        val app = clientApplication ?: return OneNoteAuthResult.failure("MSAL not initialized")
+        return suspendCancellableCoroutine { continuation ->
+            app.acquireToken(
+                AcquireTokenParameters.Builder()
+                    .startAuthorizationFromActivity(activity)
+                    .withScopes(SCOPES.toList())
+                    .withPrompt(Prompt.SELECT_ACCOUNT)
+                    .withCallback(object : com.microsoft.identity.client.AuthenticationCallback {
+                        override fun onSuccess(authenticationResult: IAuthenticationResult?) {
+                            val result = authenticationResult
+                                ?: return continuation.resume(
+                                    OneNoteAuthResult.failure("Sign in returned no account"),
+                                )
+                            continuation.resume(
+                                OneNoteAuthResult.success(
+                                    email = result.account.username,
+                                ),
+                            )
+                        }
+
+                        override fun onError(exception: MsalException) {
+                            if (allowMismatchRetry && isAccountMismatch(exception)) {
+                                continuation.resume(OneNoteAuthResult.retryAfterMismatch())
+                            } else {
+                                continuation.resume(
+                                    OneNoteAuthResult.failure(friendlyAuthError(exception)),
+                                )
+                            }
+                        }
+
+                        override fun onCancel() {
+                            continuation.resume(OneNoteAuthResult.cancelled())
+                        }
+                    })
+                    .build(),
+            )
+        }.let { result ->
+            if (result.retryAfterAccountMismatch) {
+                clearMsalSession()
+                acquireTokenInteractive(activity, allowMismatchRetry = false)
+            } else {
+                result
+            }
+        }
+    }
+
+    private fun isAccountMismatch(exception: MsalException): Boolean {
+        if (exception is MsalClientException &&
+            exception.errorCode == MsalClientException.CURRENT_ACCOUNT_MISMATCH
+        ) {
+            return true
+        }
+        return exception.message?.contains("does not match", ignoreCase = true) == true
+    }
+
+    private fun friendlyAuthError(exception: MsalException): String {
+        if (isAccountMismatch(exception)) {
+            return "A different Microsoft account is still signed in. Tap Disconnect, then Connect again."
+        }
+        return exception.message ?: "Sign in failed"
     }
 
     private suspend fun getCurrentAccount(): IAccount? {
@@ -202,11 +270,14 @@ class OneNoteAuthManager(
                 JSONArray().put(
                     JSONObject().apply {
                         put("type", "AAD")
+                        put("default", true)
                         put(
                             "audience",
                             JSONObject().apply {
-                                put("type", "PersonalMicrosoftAccount")
-                                put("tenant_id", "consumers")
+                                // MSAL 6.x enum: AzureADandPersonalMicrosoftAccount (not AzureAdAnd…)
+                                put("type", "AzureADandPersonalMicrosoftAccount")
+                                // Explicit tenant for consumer + work/school sign-in (avoids unauthorized_client)
+                                put("tenant_id", "common")
                             },
                         )
                     },
@@ -216,7 +287,8 @@ class OneNoteAuthManager(
     }
 
     companion object {
-        val SCOPES = arrayOf("User.Read", "Notes.ReadWrite", "offline_access")
+        // MSAL Android always adds openid, profile, and offline_access — do not include them here.
+        val SCOPES = arrayOf("User.Read", "Notes.ReadWrite")
     }
 }
 
@@ -225,6 +297,7 @@ data class OneNoteAuthResult(
     val email: String? = null,
     val errorMessage: String? = null,
     val cancelled: Boolean = false,
+    val retryAfterAccountMismatch: Boolean = false,
 ) {
     companion object {
         fun success(email: String?) = OneNoteAuthResult(success = true, email = email)
@@ -235,6 +308,11 @@ data class OneNoteAuthResult(
         )
 
         fun cancelled() = OneNoteAuthResult(success = false, cancelled = true)
+
+        fun retryAfterMismatch() = OneNoteAuthResult(
+            success = false,
+            retryAfterAccountMismatch = true,
+        )
     }
 }
 
