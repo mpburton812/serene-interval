@@ -2,6 +2,7 @@ package com.example.meditationparticles.data.onenote
 
 import android.app.Activity
 import android.content.Context
+import android.net.Uri
 import com.example.meditationparticles.BuildConfig
 import com.microsoft.identity.client.AcquireTokenParameters
 import com.microsoft.identity.client.AcquireTokenSilentParameters
@@ -183,8 +184,14 @@ class OneNoteAuthManager(
     }
 
     private fun buildMsalConfig(): JSONObject {
-        val redirectUri =
-            "msauth://${appContext.packageName}/${BuildConfig.ONENOTE_REDIRECT_SIGNATURE_HASH}"
+        // Must match MSAL verifyRedirectUriWithAppSignature(): Uri.Builder scheme/host/appendPath(hash).
+        // Do NOT fully URL-encode (+ and = stay literal); a "/" in the hash becomes %2F only.
+        val redirectUri = Uri.Builder()
+            .scheme("msauth")
+            .authority(appContext.packageName)
+            .appendPath(BuildConfig.ONENOTE_REDIRECT_SIGNATURE_HASH)
+            .build()
+            .toString()
         return JSONObject().apply {
             put("client_id", BuildConfig.ONENOTE_CLIENT_ID)
             put("authorization_user_agent", "DEFAULT")
