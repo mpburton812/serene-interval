@@ -40,6 +40,7 @@ import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import java.io.IOException
+import androidx.activity.ComponentActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,8 +53,11 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     val settingsUiState by viewModel.uiState.collectAsState()
+    val oneNotePrefs by viewModel.oneNotePrefs.collectAsState()
+    val oneNoteUiState by viewModel.oneNoteUiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -283,6 +287,17 @@ fun SettingsScreen(
                     },
                 )
             }
+
+            OneNoteIntegrationSection(
+                prefs = oneNotePrefs,
+                uiState = oneNoteUiState,
+                onConnect = {
+                    activity?.let(viewModel::connectOneNote)
+                },
+                onDisconnect = viewModel::disconnectOneNote,
+                onSyncEnabledChange = viewModel::setOneNoteSyncEnabled,
+                onSyncNow = viewModel::syncOneNoteNow,
+            )
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),

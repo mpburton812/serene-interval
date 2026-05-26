@@ -4,6 +4,7 @@ enum class OnboardingStep {
     Customization,
     ExactAlarms,
     Notifications,
+    OneNoteConnect,
 }
 
 data class OnboardingPermissionState(

@@ -15,6 +15,7 @@ import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
+import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.reminder.FutureSelfMessageScheduler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -94,6 +95,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     private val nvcRepository = AppGraph.nvcEntries(application)
     private val toolkitPreferences = AppGraph.toolkit(application)
     private val settingsPreferences = AppGraph.settings(application)
+    private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val appContext = application.applicationContext
 
     private val _uiState = MutableStateFlow(ToolkitUiState())
@@ -452,7 +454,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             commitPendingRefactoringAudio()
             val state = _uiState.value
-            refactoringRepository.save(
+            val entryId = refactoringRepository.save(
                 RefactoringEntryEntity(
                     interpretation = state.refactoringInterpretation.trim(),
                     interpretationAudioPath = state.refactoringInterpretationAudio,
@@ -466,6 +468,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     explanation3AudioPath = state.refactoringExplanation3Audio,
                 ),
             )
+            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.REFACTORING, it) }
             _uiState.update {
                 it.copy(
                     refactoringStepIndex = 0,
@@ -583,7 +586,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             commitPendingCenterOfGravityAudio()
             val state = _uiState.value
-            centerOfGravityRepository.save(
+            val entryId = centerOfGravityRepository.save(
                 CenterOfGravityEntryEntity(
                     thoughtsAndFeelings = state.centerOfGravityThoughtsAndFeelings.trim(),
                     thoughtsAndFeelingsAudioPath = state.centerOfGravityThoughtsAndFeelingsAudio,
@@ -591,6 +594,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     bodyAndNeedsAudioPath = state.centerOfGravityBodyAndNeedsAudio,
                 ),
             )
+            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.CENTER_OF_GRAVITY, it) }
             _uiState.update {
                 it.copy(
                     centerOfGravityStepIndex = 0,
@@ -715,7 +719,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             commitPendingNvcAudio()
             val state = _uiState.value
-            nvcRepository.save(
+            val entryId = nvcRepository.save(
                 NvcEntryEntity(
                     observation = state.nvcObservation.trim(),
                     observationAudioPath = state.nvcObservationAudio,
@@ -727,6 +731,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     requestAudioPath = state.nvcRequestAudio,
                 ),
             )
+            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.NVC, it) }
             _uiState.update {
                 it.copy(
                     nvcStepIndex = 0,
@@ -807,22 +812,24 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun saveThoughtDump() {
         viewModelScope.launch {
-            logRepository.save(
+            val entryId = logRepository.save(
                 type = ToolkitLogType.THOUGHT_DUMP,
                 content = _uiState.value.thoughtDumpText,
                 audioPath = _uiState.value.pendingAudioPath,
             )
+            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.THOUGHT_DUMP, it) }
             _uiState.update { it.copy(thoughtDumpText = "", pendingAudioPath = null) }
         }
     }
 
     fun saveAnxietyLog() {
         viewModelScope.launch {
-            logRepository.save(
+            val entryId = logRepository.save(
                 type = ToolkitLogType.ANXIETY_LOG,
                 content = _uiState.value.anxietyLogText,
                 audioPath = _uiState.value.pendingAudioPath,
             )
+            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.ANXIETY_LOG, it) }
             _uiState.update { it.copy(anxietyLogText = "", pendingAudioPath = null) }
         }
     }
@@ -846,6 +853,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 savedId,
                 state.futureSelfScheduledAtMillis,
             )
+            enqueueOneNoteSync(OneNoteEntryType.FUTURE_SELF, savedId)
             closeTool()
         }
     }
@@ -974,4 +982,10 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             tool?.id == ToolkitToolId.Refactoring ||
             tool?.id == ToolkitToolId.NonViolentCommunication ||
             tool?.id == ToolkitToolId.RelocateCenterOfGravity
+
+    private fun enqueueOneNoteSync(entryType: OneNoteEntryType, localEntryId: Long) {
+        viewModelScope.launch {
+            oneNoteSync.enqueueSync(entryType, localEntryId)
+        }
+    }
 }

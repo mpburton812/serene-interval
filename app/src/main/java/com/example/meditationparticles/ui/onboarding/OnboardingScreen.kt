@@ -16,7 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.activity.ComponentActivity
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,12 +34,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.R
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
@@ -125,6 +129,24 @@ fun OnboardingScreen(
                     },
                 )
             }
+            OnboardingStep.OneNoteConnect -> {
+                val activity = LocalContext.current as? ComponentActivity
+                OnboardingOneNoteConnectStep(
+                    onConnect = {
+                        activity?.let { host ->
+                            viewModel.connectOneNote(host) { connected ->
+                                if (connected && viewModel.continueFromOneNoteConnect()) {
+                                    onComplete()
+                                }
+                            }
+                        }
+                    },
+                    onSkip = {
+                        viewModel.skipOneNoteConnect()
+                        if (viewModel.continueFromOneNoteConnect()) onComplete()
+                    },
+                )
+            }
         }
     }
 }
@@ -139,6 +161,8 @@ private fun OnboardingHeader(step: OnboardingStep) {
             "Scheduled features need permission to deliver on time."
         OnboardingStep.Notifications -> "Notifications" to
             "Allow $appName to notify you when reminders are due."
+        OnboardingStep.OneNoteConnect -> "Connect OneNote" to
+            "Optionally sync saved journal entries to Microsoft OneNote."
     }
 
     Column(
@@ -368,10 +392,64 @@ private fun OnboardingNotificationsStep(
     }
 
     OnboardingPrimaryButton(
-        text = "Enter Your Sanctuary",
+        text = "Continue",
         enabled = true,
         onClick = onContinue,
     )
+}
+
+@Composable
+private fun OnboardingOneNoteConnectStep(
+    onConnect: () -> Unit,
+    onSkip: () -> Unit,
+) {
+    if (!BuildConfig.ONENOTE_SYNC_AVAILABLE) {
+        OnboardingPrimaryButton(
+            text = "Enter Your Sanctuary",
+            enabled = true,
+            onClick = onSkip,
+        )
+        return
+    }
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+        Column(
+            modifier = Modifier.padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+        ) {
+            Icon(
+                imageVector = Icons.Default.CloudSync,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            Text(
+                text = "When connected, new toolkit journal entries sync to a OneNote section " +
+                    "named \"Serene Interval\". Audio stays in the app only.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(
+                onClick = onConnect,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Connect Microsoft account")
+            }
+        }
+    }
+
+    OnboardingPrimaryButton(
+        text = "Enter Your Sanctuary",
+        enabled = true,
+        onClick = onSkip,
+    )
+
+    OutlinedButton(
+        onClick = onSkip,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text("Skip for now")
+    }
 }
 
 @Composable

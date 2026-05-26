@@ -2,6 +2,10 @@ package com.example.meditationparticles.data
 
 import android.content.Context
 import com.example.meditationparticles.data.local.SereneDatabase
+import com.example.meditationparticles.data.onenote.OneNoteAuthManager
+import com.example.meditationparticles.data.onenote.OneNoteGraphClient
+import com.example.meditationparticles.data.onenote.OneNotePreferences
+import com.example.meditationparticles.data.onenote.OneNoteSyncRepository
 
 object AppGraph {
     @Volatile
@@ -29,6 +33,15 @@ object AppGraph {
 
     @Volatile
     private var tabBackgroundRotation: TabBackgroundRotation? = null
+
+    @Volatile
+    private var oneNotePreferences: OneNotePreferences? = null
+
+    @Volatile
+    private var oneNoteAuthManager: OneNoteAuthManager? = null
+
+    @Volatile
+    private var oneNoteSyncRepository: OneNoteSyncRepository? = null
 
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
@@ -95,5 +108,29 @@ object AppGraph {
         tabBackgroundRotation ?: synchronized(this) {
             tabBackgroundRotation ?: TabBackgroundRotation(context.applicationContext)
                 .also { tabBackgroundRotation = it }
+        }
+
+    fun oneNotePreferences(context: Context): OneNotePreferences =
+        oneNotePreferences ?: synchronized(this) {
+            oneNotePreferences ?: OneNotePreferences(context.applicationContext)
+                .also { oneNotePreferences = it }
+        }
+
+    fun oneNoteAuth(context: Context): OneNoteAuthManager =
+        oneNoteAuthManager ?: synchronized(this) {
+            oneNoteAuthManager ?: OneNoteAuthManager(context.applicationContext)
+                .also { oneNoteAuthManager = it }
+        }
+
+    fun oneNoteSync(context: Context): OneNoteSyncRepository =
+        oneNoteSyncRepository ?: synchronized(this) {
+            oneNoteSyncRepository ?: OneNoteSyncRepository(
+                context = context.applicationContext,
+                preferences = oneNotePreferences(context),
+                authManager = oneNoteAuth(context),
+                graphClient = OneNoteGraphClient(),
+                syncDao = SereneDatabase.getInstance(context.applicationContext).oneNoteSyncDao(),
+                database = SereneDatabase.getInstance(context.applicationContext),
+            ).also { oneNoteSyncRepository = it }
         }
 }

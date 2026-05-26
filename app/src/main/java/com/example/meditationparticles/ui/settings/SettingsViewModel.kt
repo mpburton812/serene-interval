@@ -1,9 +1,11 @@
 package com.example.meditationparticles.ui.settings
 
+import android.app.Activity
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.data.onenote.OneNotePrefsSnapshot
 import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.data.export.AppDataImporter
 import com.example.meditationparticles.data.export.ImportParseException
@@ -30,11 +32,20 @@ data class SettingsUiState(
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppGraph.settings(application)
+    private val oneNotePreferences = AppGraph.oneNotePreferences(application)
+    private val oneNoteAuth = AppGraph.oneNoteAuth(application)
+    private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val exporter = AppDataExporter(application)
     private val importer = AppDataImporter(application)
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private val _oneNoteUiState = MutableStateFlow(OneNoteSettingsUiState())
+    val oneNoteUiState: StateFlow<OneNoteSettingsUiState> = _oneNoteUiState.asStateFlow()
+
+    val oneNotePrefs: StateFlow<OneNotePrefsSnapshot> = oneNotePreferences.snapshot
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OneNotePrefsSnapshot())
 
     val settings: StateFlow<ExperienceSettings> = preferences.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperienceSettings())
@@ -182,5 +193,67 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun clearImportStatus() {
         _uiState.value = _uiState.value.copy(importError = null)
+    }
+
+    fun connectOneNote(activity: Activity) {
+        if (_oneNoteUiState.value.isBusy || !oneNoteAuth.isAvailable) return
+        viewModelScope.launch {
+            _oneNoteUiState.value = OneNoteSettingsUiState(isBusy = true)
+            val authResult = oneNoteAuth.signIn(activity)
+            if (authResult.cancelled) {
+                _oneNoteUiState.value = OneNoteSettingsUiState()
+                return@launch
+            }
+            if (!authResult.success) {
+                _oneNoteUiState.value = OneNoteSettingsUiState(
+                    errorMessage = authResult.errorMessage ?: "Could not connect OneNote.",
+                )
+                return@launch
+            }
+            oneNotePreferences.setAccountEmail(authResult.email ?: oneNoteAuth.currentAccountEmail())
+            oneNotePreferences.setSyncEnabled(true)
+            val sectionResult = oneNoteSync.ensureSection()
+            sectionResult.onFailure { error ->
+                oneNotePreferences.setLastError(error.message)
+            }
+            _oneNoteUiState.value = OneNoteSettingsUiState(
+                statusMessage = "Connected to OneNote.",
+            )
+        }
+    }
+
+    fun disconnectOneNote() {
+        if (_oneNoteUiState.value.isBusy) return
+        viewModelScope.launch {
+            _oneNoteUiState.value = OneNoteSettingsUiState(isBusy = true)
+            runCatching { oneNoteSync.disconnect() }
+            _oneNoteUiState.value = OneNoteSettingsUiState(
+                statusMessage = "Disconnected from OneNote.",
+            )
+        }
+    }
+
+    fun setOneNoteSyncEnabled(enabled: Boolean) {
+        oneNotePreferences.setSyncEnabled(enabled)
+    }
+
+    fun syncOneNoteNow() {
+        if (_oneNoteUiState.value.isBusy) return
+        viewModelScope.launch {
+            _oneNoteUiState.value = OneNoteSettingsUiState(isBusy = true)
+            val result = oneNoteSync.syncNow()
+            _oneNoteUiState.value = OneNoteSettingsUiState(
+                statusMessage = result.message,
+                errorMessage = if (result.syncedCount == 0 && result.failedCount > 0) {
+                    result.message
+                } else {
+                    null
+                },
+            )
+        }
+    }
+
+    fun clearOneNoteStatus() {
+        _oneNoteUiState.value = OneNoteSettingsUiState()
     }
 }
