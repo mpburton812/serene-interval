@@ -201,12 +201,15 @@ class AppDataImporter(
         val reactiveOrder = json.optJSONArray("reactiveOrder")?.toEnumList<ToolkitToolId>()
             ?.let { ToolkitLayout.normalizeOrder(ToolkitCategory.Reactive, it) }
             ?: current.reactiveOrder
+        val usageCounts = json.optJSONObject("usageCounts")?.toUsageCounts()
+            ?: current.usageCounts
 
         return ToolkitImportSnapshot(
             configured = json.optBoolean("configured", current.configured || importedEnabled.isNotEmpty()),
             enabledToolIds = mergedEnabled.ifEmpty { ToolkitLayout.defaultEnabledTools() },
             proactiveOrder = proactiveOrder,
             reactiveOrder = reactiveOrder,
+            usageCounts = usageCounts,
         )
     }
 
@@ -220,6 +223,7 @@ class AppDataImporter(
         }
         toolkit.saveProactiveOrder(snapshot.proactiveOrder)
         toolkit.saveReactiveOrder(snapshot.reactiveOrder)
+        toolkit.saveUsageCounts(snapshot.usageCounts)
         toolkit.refresh(onboardingCompleted)
     }
 
@@ -688,6 +692,7 @@ class AppDataImporter(
         val enabledToolIds: Set<ToolkitToolId>,
         val proactiveOrder: List<ToolkitToolId>,
         val reactiveOrder: List<ToolkitToolId>,
+        val usageCounts: Map<ToolkitToolId, Int>,
     )
 
     companion object {
@@ -736,5 +741,13 @@ private fun JSONArray.toStringSet(): Set<String> = buildSet {
     for (index in 0 until length()) {
         val value = optString(index, "").trim()
         if (value.isNotEmpty()) add(value)
+    }
+}
+
+private fun JSONObject.toUsageCounts(): Map<ToolkitToolId, Int> = buildMap {
+    keys().forEach { key ->
+        val id = runCatching { ToolkitToolId.valueOf(key) }.getOrNull() ?: return@forEach
+        val count = optInt(key, 0).coerceAtLeast(0)
+        if (count > 0) put(id, count)
     }
 }

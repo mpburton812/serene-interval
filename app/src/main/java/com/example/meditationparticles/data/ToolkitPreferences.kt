@@ -14,6 +14,7 @@ data class ToolkitPrefsSnapshot(
     val enabledToolIds: Set<ToolkitToolId>,
     val proactiveOrder: List<ToolkitToolId>,
     val reactiveOrder: List<ToolkitToolId>,
+    val usageCounts: Map<ToolkitToolId, Int> = emptyMap(),
 ) {
     val hasAnyToolEnabled: Boolean get() = enabledToolIds.isNotEmpty()
 }
@@ -37,6 +38,7 @@ class ToolkitPreferences(context: Context) {
                 key = KEY_REACTIVE_ORDER,
                 category = ToolkitCategory.Reactive,
             ),
+            usageCounts = readUsageCounts(),
         )
     }
 
@@ -79,6 +81,19 @@ class ToolkitPreferences(context: Context) {
             .putString(KEY_REACTIVE_ORDER, normalized.joinToString(",") { it.name })
             .apply()
         _snapshot.update { it.copy(reactiveOrder = normalized) }
+    }
+
+    fun incrementUsageCount(toolId: ToolkitToolId) {
+        val current = readUsageCounts().toMutableMap()
+        current[toolId] = (current[toolId] ?: 0) + 1
+        writeUsageCounts(current)
+        _snapshot.update { it.copy(usageCounts = current) }
+    }
+
+    fun saveUsageCounts(counts: Map<ToolkitToolId, Int>) {
+        val normalized = counts.filterValues { it > 0 }
+        writeUsageCounts(normalized)
+        _snapshot.update { it.copy(usageCounts = normalized) }
     }
 
     private fun resolveConfigured(onboardingCompleted: Boolean): Boolean {
@@ -125,11 +140,37 @@ class ToolkitPreferences(context: Context) {
         return ToolkitLayout.normalizeOrder(category, parsed)
     }
 
+    private fun readUsageCounts(): Map<ToolkitToolId, Int> {
+        val raw = prefs.getString(KEY_USAGE_COUNTS, null) ?: return emptyMap()
+        if (raw.isBlank()) return emptyMap()
+        return raw.split(",")
+            .mapNotNull { entry ->
+                val parts = entry.split("=")
+                if (parts.size != 2) return@mapNotNull null
+                val id = runCatching { ToolkitToolId.valueOf(parts[0].trim()) }.getOrNull()
+                    ?: return@mapNotNull null
+                val count = parts[1].trim().toIntOrNull()?.coerceAtLeast(0) ?: return@mapNotNull null
+                if (count == 0) return@mapNotNull null
+                id to count
+            }
+            .toMap()
+    }
+
+    private fun writeUsageCounts(counts: Map<ToolkitToolId, Int>) {
+        val serialized = counts.entries
+            .filter { it.value > 0 }
+            .joinToString(",") { (id, count) -> "${id.name}=$count" }
+        prefs.edit()
+            .putString(KEY_USAGE_COUNTS, serialized)
+            .apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "toolkit_preferences"
         private const val KEY_CONFIGURED = "toolkit_configured"
         private const val KEY_ENABLED_TOOLS = "enabled_tool_ids"
         private const val KEY_PROACTIVE_ORDER = "proactive_order"
         private const val KEY_REACTIVE_ORDER = "reactive_order"
+        private const val KEY_USAGE_COUNTS = "tool_usage_counts"
     }
 }

@@ -175,11 +175,13 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     category = ToolkitCategory.Proactive,
                     enabledIds = snapshot.enabledToolIds,
                     savedOrder = snapshot.proactiveOrder,
+                    usageCounts = snapshot.usageCounts,
                 ),
                 reactiveTools = ToolkitLayout.orderedTools(
                     category = ToolkitCategory.Reactive,
                     enabledIds = snapshot.enabledToolIds,
                     savedOrder = snapshot.reactiveOrder,
+                    usageCounts = snapshot.usageCounts,
                 ),
                 selectionProactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
                 selectionReactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
@@ -188,6 +190,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun openTool(tool: ToolkitTool) {
+        toolkitPreferences.incrementUsageCount(tool.id)
         _uiState.update {
             it.copy(
                 selectedTool = tool,
@@ -237,6 +240,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val message = futureSelfRepository.getById(messageId) ?: return@launch
             val tool = ToolkitCatalog.byId(ToolkitToolId.FutureSelfMessage) ?: return@launch
+            toolkitPreferences.incrementUsageCount(tool.id)
             _uiState.update {
                 it.copy(
                     selectedTool = tool,
