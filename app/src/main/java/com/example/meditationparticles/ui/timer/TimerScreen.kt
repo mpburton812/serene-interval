@@ -249,6 +249,15 @@ fun TimerScreen(
                 controlsVisible = !controlsVisible
             },
     ) {
+        Text(
+            text = "Meditation",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(horizontal = SereneSpacing.containerMargin)
+                .padding(top = 8.dp),
+        )
+
         AnimatedVisibility(
             visible = showStatusHeader,
             enter = fadeIn(tween(TextFadeMs)),

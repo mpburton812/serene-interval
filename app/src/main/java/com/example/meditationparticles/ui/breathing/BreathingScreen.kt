@@ -123,6 +123,15 @@ fun BreathingScreen(
                 controlsVisible = !controlsVisible
             },
     ) {
+        Text(
+            text = "Breath",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(horizontal = SereneSpacing.containerMargin)
+                .padding(top = 8.dp, bottom = SereneSpacing.stackSm),
+        )
+
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -373,57 +382,55 @@ private fun BreathingPhaseHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.88f))
             .padding(horizontal = SereneSpacing.containerMargin)
             .padding(top = 4.dp, bottom = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AnimatedContent(
-            targetState = state.phase,
-            transitionSpec = {
-                fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
-            },
-            label = "phase_label",
-        ) { phase ->
-            Text(
-                text = state.copy(phase = phase).phaseLabel,
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-            )
-        }
-
-        if (state.isRunning && state.phaseDurationSeconds > 0f) {
+        if (state.isRunning) {
             AnimatedContent(
-                targetState = state.secondsRemainingInPhase,
+                targetState = state.phase,
                 transitionSpec = {
-                    fadeIn(tween(CountdownFadeMs)) togetherWith fadeOut(tween(CountdownFadeMs))
+                    fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
                 },
-                label = "phase_countdown",
-                modifier = Modifier.padding(top = 2.dp),
-            ) { seconds ->
+                label = "phase_label",
+            ) { phase ->
                 Text(
-                    text = "${seconds}s",
+                    text = state.copy(phase = phase).phaseLabel,
                     style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                 )
             }
-        }
 
-        if (!state.isRunning) {
+            if (state.phaseDurationSeconds > 0f) {
+                AnimatedContent(
+                    targetState = state.secondsRemainingInPhase,
+                    transitionSpec = {
+                        fadeIn(tween(CountdownFadeMs)) togetherWith fadeOut(tween(CountdownFadeMs))
+                    },
+                    label = "phase_countdown",
+                    modifier = Modifier.padding(top = 2.dp),
+                ) { seconds ->
+                    Text(
+                        text = "${seconds}s",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        } else {
             AnimatedContent(
                 targetState = state.pattern.purpose,
                 transitionSpec = {
                     fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
                 },
                 label = "pattern_purpose",
-                modifier = Modifier.padding(top = SereneSpacing.stackSm),
             ) { purpose ->
                 Text(
                     text = purpose,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     textAlign = TextAlign.Center,
                 )
             }
