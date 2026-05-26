@@ -1,8 +1,8 @@
 {
-  "versionCode": 9,
-  "versionName": "1.0.8",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.8/sway_meditation.apk",
-  "expectedSha256": "6e21a1a2eedfd8a71c2309674dd1e9a4cf9b87257cc07415e2af0b648cdba74b",
-  "releaseNotes": "• Unified SereneTabHeader across all tab screens\n• Breathing UI polish and visual mode default improvements\n• Mode B sphere fill/drain direction fixes with cycle-aware layout\n• Hardened sideload update download path",
+  "versionCode": 10,
+  "versionName": "1.0.9",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.9/sway_meditation.apk",
+  "expectedSha256": "ba29b5596d6610b6b9e03f9ce8b1e23e7d2ca270f44af203f10e7034119db16d",
+  "releaseNotes": "• OneNote MSAL sync integration with redirect URI fixes\n• Toolkit usage tracking and sort-by-frequency\n• Tab swipe pager and unified SereneTabHeader\n• Non-Violent Communication workflow under Reactive Relief\n• Breathing Mode A/B polish and meditation scroll fixes\n• AffirmationPreferences crash fix\n• Release manifest verification CI",
   "minVersionCode": 1
 }
