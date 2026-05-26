@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.FormatQuote
@@ -179,6 +180,54 @@ fun SereneNavHost(
         }
     }
 
+    val tabPagerState = rememberPagerState(
+        initialPage = tabIndexForRoute(currentRoute, bottomNavItems) ?: 0,
+        pageCount = { bottomNavItems.size.coerceAtLeast(1) },
+    )
+
+    val navigateToTab: (SereneDestination) -> Unit = { destination ->
+        if (destination == SereneDestination.Toolkit) {
+            toolkitResetSignal++
+        }
+        if (destination == SereneDestination.Visualizations &&
+            currentRoute?.startsWith("visualizations/player") == true
+        ) {
+            navController.popBackStack(
+                SereneDestination.Visualizations.route,
+                inclusive = false,
+            )
+        }
+        navController.navigate(destination.route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = false
+        }
+    }
+
+    LaunchedEffect(currentRoute, bottomNavItems) {
+        val index = tabIndexForRoute(currentRoute, bottomNavItems) ?: return@LaunchedEffect
+        if (index != tabPagerState.currentPage && !tabPagerState.isScrollInProgress) {
+            tabPagerState.animateScrollToPage(index)
+        }
+    }
+
+    LaunchedEffect(tabPagerState.settledPage, bottomNavItems) {
+        if (!isTabRoute(currentRoute, bottomNavItems)) return@LaunchedEffect
+        val destination = bottomNavItems.getOrNull(tabPagerState.settledPage)?.destination
+            ?: return@LaunchedEffect
+        if (destination.route != currentRoute) {
+            navigateToTab(destination)
+        }
+    }
+
+    LaunchedEffect(bottomNavItems.size) {
+        if (tabPagerState.currentPage >= bottomNavItems.size && bottomNavItems.isNotEmpty()) {
+            tabPagerState.scrollToPage(0)
+        }
+    }
+
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
         currentRoute?.startsWith("visualizations/player") != true &&
@@ -244,26 +293,7 @@ fun SereneNavHost(
                         SereneBottomBar(
                             items = bottomNavItems,
                             currentRoute = currentRoute,
-                            onNavigate = { destination ->
-                                if (destination == SereneDestination.Toolkit) {
-                                    toolkitResetSignal++
-                                }
-                                if (destination == SereneDestination.Visualizations &&
-                                    currentRoute?.startsWith("visualizations/player") == true
-                                ) {
-                                    navController.popBackStack(
-                                        SereneDestination.Visualizations.route,
-                                        inclusive = false,
-                                    )
-                                }
-                                navController.navigate(destination.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = false
-                                }
-                            },
+                            onNavigate = navigateToTab,
                         )
                     }
                     if (showBuildInfoLabel) {
@@ -292,27 +322,7 @@ fun SereneNavHost(
                     },
                 )
             }
-            composable(SereneDestination.Home.route) {
-                HomeScreen(
-                    onNavigate = { destination, toolkitTab ->
-                        val route = if (toolkitTab != null) {
-                            destination.navigationRouteFromLegacyTab(toolkitTab)
-                        } else {
-                            destination.navigationRoute()
-                        }
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onOpenSettings = {
-                        navController.navigate(SereneDestination.Settings.route)
-                    },
-                )
-            }
+            composable(SereneDestination.Home.route) { }
             composable(SereneDestination.Settings.route) {
                 SettingsScreen(
                     updateViewModel = updateViewModel,
@@ -325,38 +335,10 @@ fun SereneNavHost(
                     },
                 )
             }
-            composable(SereneDestination.Breathe.route) {
-                BreathingScreen(
-                    onSessionActiveChange = { active ->
-                        breathingSessionActive = active
-                    },
-                )
-            }
-            composable(SereneDestination.Timer.route) {
-                TimerScreen(
-                    onSessionActiveChange = { active ->
-                        timerSessionActive = active
-                    },
-                )
-            }
-            composable(SereneDestination.Affirmations.route) {
-                AffirmationsScreen()
-            }
-            composable(SereneDestination.Toolkit.route) {
-                ToolkitScreen(
-                    pendingNavigation = pendingNavigation,
-                    resetSignal = toolkitResetSignal,
-                    onNavigateToBreathe = {
-                        navController.navigate(SereneDestination.Breathe.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            }
+            composable(SereneDestination.Breathe.route) { }
+            composable(SereneDestination.Timer.route) { }
+            composable(SereneDestination.Affirmations.route) { }
+            composable(SereneDestination.Toolkit.route) { }
             composable(
                 route = "toolkit/{tab}",
                 arguments = listOf(
@@ -378,13 +360,7 @@ fun SereneNavHost(
                     }
                 }
             }
-            composable(SereneDestination.Visualizations.route) {
-                VisualizationsScreen(
-                    onOpenVisualization = { id ->
-                        navController.navigate(SereneDestination.Visualizations.playerRoute(id.name))
-                    },
-                )
-            }
+            composable(SereneDestination.Visualizations.route) { }
             composable(
                 route = "visualizations/player/{vizId}",
                 arguments = listOf(navArgument("vizId") { type = NavType.StringType }),
@@ -402,6 +378,73 @@ fun SereneNavHost(
                 }
             }
         }
+            if (isTabRoute(currentRoute, bottomNavItems) && bottomNavItems.isNotEmpty()) {
+                MainTabPager(
+                    items = bottomNavItems,
+                    pagerState = tabPagerState,
+                    userScrollEnabled = !breathingSessionActive,
+                ) { destination ->
+                    when (destination) {
+                        SereneDestination.Home -> {
+                            HomeScreen(
+                                onNavigate = { target, toolkitTab ->
+                                    val route = if (toolkitTab != null) {
+                                        target.navigationRouteFromLegacyTab(toolkitTab)
+                                    } else {
+                                        target.navigationRoute()
+                                    }
+                                    navController.navigate(route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                onOpenSettings = {
+                                    navController.navigate(SereneDestination.Settings.route)
+                                },
+                            )
+                        }
+                        SereneDestination.Breathe -> {
+                            BreathingScreen(
+                                onSessionActiveChange = { active ->
+                                    breathingSessionActive = active
+                                },
+                            )
+                        }
+                        SereneDestination.Timer -> {
+                            TimerScreen(
+                                onSessionActiveChange = { active ->
+                                    timerSessionActive = active
+                                },
+                            )
+                        }
+                        SereneDestination.Affirmations -> {
+                            AffirmationsScreen()
+                        }
+                        SereneDestination.Toolkit -> {
+                            ToolkitScreen(
+                                pendingNavigation = pendingNavigation,
+                                resetSignal = toolkitResetSignal,
+                                onNavigateToBreathe = {
+                                    navigateToTab(SereneDestination.Breathe)
+                                },
+                            )
+                        }
+                        SereneDestination.Visualizations -> {
+                            VisualizationsScreen(
+                                onOpenVisualization = { id ->
+                                    navController.navigate(
+                                        SereneDestination.Visualizations.playerRoute(id.name),
+                                    )
+                                },
+                            )
+                        }
+                        else -> Unit
+                    }
+                }
+            }
             activeFutureSelfMessageId?.let { messageId ->
                 FutureSelfNotificationOverlay(
                     messageId = messageId,

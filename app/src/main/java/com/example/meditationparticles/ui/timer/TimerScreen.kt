@@ -24,13 +24,16 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -95,6 +98,7 @@ fun TimerScreen(
     val preferences = remember { TimerPreferences(context) }
     val audioPlayer = remember { TimerAudioPlayer(context) }
     var controlsVisible by remember { mutableStateOf(true) }
+    val scrollState = rememberScrollState()
     val immersive = state.isRunning && state.phase != TimerPhase.Complete
     val sessionActive = state.isRunning && state.phase != TimerPhase.Complete
     val showStatusHeader = state.phase == TimerPhase.Idle ||
@@ -257,77 +261,67 @@ fun TimerScreen(
             },
         )
 
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
         ) {
-            TimerDisplay(
-                state = state,
-                showCountdown = showDisplayCountdown,
-                modifier = Modifier.fillMaxSize(),
-            )
-
-            FloatingActionButton(
-                onClick = { viewModel.toggleRunning() },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp)
-                    .size(FabSize),
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) {
-                Icon(
-                    imageVector = when {
-                        state.phase == TimerPhase.Complete -> Icons.Default.PlayArrow
-                        state.isRunning -> Icons.Default.Pause
-                        else -> Icons.Default.PlayArrow
-                    },
-                    contentDescription = if (state.isRunning) "Pause" else "Start",
-                    modifier = Modifier.size(28.dp),
-                )
+            val displayMinHeight = if (controlsVisible) {
+                (maxHeight * 0.5f).coerceAtLeast(220.dp)
+            } else {
+                maxHeight
             }
-        }
 
-        AnimatedVisibility(
-            visible = controlsVisible,
-            enter = fadeIn(tween(400)) + slideInVertically { it / 2 },
-            exit = fadeOut(tween(400)) + slideOutVertically { it / 2 },
-        ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = SereneSpacing.containerMargin)
-                    .padding(bottom = SereneSpacing.stackMd),
-                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+                    .fillMaxSize()
+                    .verticalScroll(scrollState),
             ) {
-                ControlSection(
-                    title = "Display Mode",
-                    subtitle = "How time is shown during meditation",
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = displayMinHeight),
                 ) {
-                    Row(
+                    TimerDisplay(
+                        state = state,
+                        showCountdown = showDisplayCountdown,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
+                    FloatingActionButton(
+                        onClick = { viewModel.toggleRunning() },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 8.dp)
+                            .size(FabSize),
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ) {
-                        TimerDisplayMode.entries.forEach { mode ->
-                            FilterChip(
-                                selected = state.displayMode == mode,
-                                onClick = { viewModel.setDisplayMode(mode) },
-                                label = { Text(mode.label, style = MaterialTheme.typography.labelMedium) },
-                                enabled = !state.isRunning,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                                    selectedLabelColor = MaterialTheme.colorScheme.primary,
-                                ),
-                            )
-                        }
+                        Icon(
+                            imageVector = when {
+                                state.phase == TimerPhase.Complete -> Icons.Default.PlayArrow
+                                state.isRunning -> Icons.Default.Pause
+                                else -> Icons.Default.PlayArrow
+                            },
+                            contentDescription = if (state.isRunning) "Pause" else "Start",
+                            modifier = Modifier.size(28.dp),
+                        )
                     }
                 }
 
+                AnimatedVisibility(
+                    visible = controlsVisible,
+                    enter = fadeIn(tween(400)) + slideInVertically { it / 2 },
+                    exit = fadeOut(tween(400)) + slideOutVertically { it / 2 },
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = SereneSpacing.containerMargin)
+                            .padding(top = SereneSpacing.stackMd, bottom = SereneSpacing.stackMd),
+                        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+                    ) {
                 ControlSection(
                     title = "Duration",
                     subtitle = "Tap to change session length",
@@ -352,6 +346,32 @@ fun TimerScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
                         )
+                    }
+                }
+
+                ControlSection(
+                    title = "Display Mode",
+                    subtitle = "How time is shown during meditation",
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    ) {
+                        TimerDisplayMode.entries.forEach { mode ->
+                            FilterChip(
+                                selected = state.displayMode == mode,
+                                onClick = { viewModel.setDisplayMode(mode) },
+                                label = { Text(mode.label, style = MaterialTheme.typography.labelMedium) },
+                                enabled = !state.isRunning,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                    selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                        }
                     }
                 }
 
@@ -508,14 +528,16 @@ fun TimerScreen(
                     }
                 }
 
-                if (immersive) {
-                    Text(
-                        text = "Tap anywhere to show or hide controls",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                    )
+                        if (immersive) {
+                            Text(
+                                text = "Tap anywhere to show or hide controls",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
                 }
             }
         }
