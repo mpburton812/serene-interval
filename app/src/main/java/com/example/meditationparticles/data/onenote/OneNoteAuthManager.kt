@@ -202,11 +202,12 @@ class OneNoteAuthManager(
                 JSONArray().put(
                     JSONObject().apply {
                         put("type", "AAD")
+                        put("default", true)
                         put(
                             "audience",
                             JSONObject().apply {
-                                put("type", "PersonalMicrosoftAccount")
-                                put("tenant_id", "consumers")
+                                // MSAL 6.x enum: AzureADandPersonalMicrosoftAccount (not AzureAdAnd…)
+                                put("type", "AzureADandPersonalMicrosoftAccount")
                             },
                         )
                     },

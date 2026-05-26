@@ -5,6 +5,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.data.onenote.OneNoteAuthResult
 import com.example.meditationparticles.data.onenote.OneNotePrefsSnapshot
 import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.data.export.AppDataImporter
@@ -199,7 +200,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         if (_oneNoteUiState.value.isBusy || !oneNoteAuth.isAvailable) return
         viewModelScope.launch {
             _oneNoteUiState.value = OneNoteSettingsUiState(isBusy = true)
-            val authResult = oneNoteAuth.signIn(activity)
+            val authResult = runCatching { oneNoteAuth.signIn(activity) }.getOrElse { error ->
+                OneNoteAuthResult.failure(error.message ?: "Could not start Microsoft sign-in.")
+            }
             if (authResult.cancelled) {
                 _oneNoteUiState.value = OneNoteSettingsUiState()
                 return@launch
