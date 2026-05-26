@@ -206,6 +206,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
         viewModelScope.launch {
+            oneNoteAuth.reconcileConnectionState(oneNotePreferences)
             val authResult = oneNoteAuth.signIn(activity)
             if (!authResult.success || authResult.cancelled) {
                 onResult(false)

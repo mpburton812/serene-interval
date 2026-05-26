@@ -6,7 +6,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.onenote.OneNoteAuthResult
+import com.example.meditationparticles.data.onenote.OneNoteNotebook
 import com.example.meditationparticles.data.onenote.OneNotePrefsSnapshot
+import com.example.meditationparticles.data.onenote.OneNoteSection
+import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.data.export.AppDataImporter
 import com.example.meditationparticles.data.export.ImportParseException
@@ -47,6 +50,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     val oneNotePrefs: StateFlow<OneNotePrefsSnapshot> = oneNotePreferences.snapshot
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OneNotePrefsSnapshot())
+
+    init {
+        viewModelScope.launch {
+            oneNotePrefs.collect { prefs ->
+                if (!prefs.accountEmail.isNullOrBlank() && _oneNoteUiState.value.notebooks.isEmpty()) {
+                    refreshOneNoteTargets(showLoading = true)
+                }
+            }
+        }
+    }
 
     val settings: StateFlow<ExperienceSettings> = preferences.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperienceSettings())
@@ -200,6 +213,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         if (_oneNoteUiState.value.isBusy || !oneNoteAuth.isAvailable) return
         viewModelScope.launch {
             _oneNoteUiState.value = OneNoteSettingsUiState(isBusy = true)
+            oneNoteAuth.reconcileConnectionState(oneNotePreferences)
             val authResult = runCatching { oneNoteAuth.signIn(activity) }.getOrElse { error ->
                 OneNoteAuthResult.failure(error.message ?: "Could not start Microsoft sign-in.")
             }
@@ -219,8 +233,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             sectionResult.onFailure { error ->
                 oneNotePreferences.setLastError(error.message)
             }
+            val backfilled = if (sectionResult.isSuccess) {
+                oneNoteSync.backfillExistingEntries()
+            } else {
+                0
+            }
+            refreshOneNoteTargets(showLoading = true)
             _oneNoteUiState.value = OneNoteSettingsUiState(
-                statusMessage = "Connected to OneNote.",
+                statusMessage = when {
+                    sectionResult.isFailure -> "Connected, but could not prepare OneNote section."
+                    backfilled > 0 -> "Connected. Queued $backfilled existing ${if (backfilled == 1) "entry" else "entries"}."
+                    else -> "Connected to OneNote."
+                },
+                notebooks = _oneNoteUiState.value.notebooks,
+                sections = _oneNoteUiState.value.sections,
             )
         }
     }
@@ -240,6 +266,97 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         oneNotePreferences.setSyncEnabled(enabled)
     }
 
+    fun setOneNoteEntryTypeSyncEnabled(entryType: OneNoteEntryType, enabled: Boolean) {
+        oneNotePreferences.setEntryTypeEnabled(entryType, enabled)
+    }
+
+    fun selectOneNoteNotebook(notebook: OneNoteNotebook) {
+        if (_oneNoteUiState.value.isBusy) return
+        viewModelScope.launch {
+            _oneNoteUiState.value = _oneNoteUiState.value.copy(isBusy = true, errorMessage = null)
+            runCatching {
+                val sections = oneNoteSync.fetchSections(notebook.id)
+                val preferredSection = sections.firstOrNull {
+                    it.displayName.equals(
+                        com.example.meditationparticles.data.onenote.OneNoteGraphClient.SECTION_NAME,
+                        ignoreCase = true,
+                    )
+                } ?: sections.firstOrNull()
+                if (preferredSection == null) {
+                    error("No sections found in this notebook.")
+                }
+                oneNoteSync.applySyncTarget(
+                    notebookId = notebook.id,
+                    notebookName = notebook.displayName,
+                    sectionId = preferredSection.id,
+                    sectionName = preferredSection.displayName,
+                )
+                preferredSection to sections
+            }.onSuccess { (preferredSection, sections) ->
+                _oneNoteUiState.value = _oneNoteUiState.value.copy(
+                    isBusy = false,
+                    sections = sections,
+                    statusMessage = "Sync target updated to ${notebook.displayName} → ${preferredSection.displayName}.",
+                )
+            }.onFailure { error ->
+                _oneNoteUiState.value = _oneNoteUiState.value.copy(
+                    isBusy = false,
+                    errorMessage = error.message ?: "Could not update notebook.",
+                )
+            }
+        }
+    }
+
+    fun selectOneNoteSection(section: OneNoteSection) {
+        val prefs = oneNotePreferences.load()
+        val notebookId = prefs.notebookId ?: return
+        val notebookName = prefs.notebookName ?: return
+        if (_oneNoteUiState.value.isBusy) return
+        viewModelScope.launch {
+            _oneNoteUiState.value = _oneNoteUiState.value.copy(isBusy = true, errorMessage = null)
+            runCatching {
+                oneNoteSync.applySyncTarget(
+                    notebookId = notebookId,
+                    notebookName = notebookName,
+                    sectionId = section.id,
+                    sectionName = section.displayName,
+                )
+            }.onSuccess {
+                _oneNoteUiState.value = _oneNoteUiState.value.copy(
+                    isBusy = false,
+                    statusMessage = "Sync target updated to $notebookName → ${section.displayName}.",
+                )
+            }.onFailure { error ->
+                _oneNoteUiState.value = _oneNoteUiState.value.copy(
+                    isBusy = false,
+                    errorMessage = error.message ?: "Could not update section.",
+                )
+            }
+        }
+    }
+
+    fun backfillOneNoteExistingEntries() {
+        if (_oneNoteUiState.value.isBusy) return
+        viewModelScope.launch {
+            _oneNoteUiState.value = _oneNoteUiState.value.copy(isBusy = true, errorMessage = null)
+            val queued = runCatching { oneNoteSync.backfillExistingEntries() }
+            val syncResult = runCatching { oneNoteSync.syncNow() }
+            _oneNoteUiState.value = OneNoteSettingsUiState(
+                statusMessage = when {
+                    queued.isFailure -> queued.exceptionOrNull()?.message ?: "Could not queue entries."
+                    syncResult.isSuccess && syncResult.getOrNull()?.syncedCount?.let { it > 0 } == true ->
+                        syncResult.getOrNull()?.message
+                    queued.getOrDefault(0) > 0 ->
+                        "Queued ${queued.getOrDefault(0)} ${if (queued.getOrDefault(0) == 1) "entry" else "entries"} for sync."
+                    else -> "No new entries to sync."
+                },
+                errorMessage = syncResult.exceptionOrNull()?.message,
+                notebooks = _oneNoteUiState.value.notebooks,
+                sections = _oneNoteUiState.value.sections,
+            )
+        }
+    }
+
     fun syncOneNoteNow() {
         if (_oneNoteUiState.value.isBusy) return
         viewModelScope.launch {
@@ -252,11 +369,41 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 } else {
                     null
                 },
+                notebooks = _oneNoteUiState.value.notebooks,
+                sections = _oneNoteUiState.value.sections,
             )
         }
     }
 
     fun clearOneNoteStatus() {
-        _oneNoteUiState.value = OneNoteSettingsUiState()
+        _oneNoteUiState.value = _oneNoteUiState.value.copy(
+            statusMessage = null,
+            errorMessage = null,
+        )
+    }
+
+    private suspend fun refreshOneNoteTargets(showLoading: Boolean) {
+        if (!oneNoteAuth.isAvailable) return
+        val prefs = oneNotePreferences.load()
+        if (prefs.accountEmail.isNullOrBlank()) return
+        if (showLoading) {
+            _oneNoteUiState.value = _oneNoteUiState.value.copy(isLoadingTargets = true)
+        }
+        runCatching {
+            val notebooks = oneNoteSync.fetchNotebooks()
+            val sections = prefs.notebookId?.let { notebookId ->
+                oneNoteSync.fetchSections(notebookId)
+            }.orEmpty()
+            _oneNoteUiState.value = _oneNoteUiState.value.copy(
+                notebooks = notebooks,
+                sections = sections,
+                isLoadingTargets = false,
+            )
+        }.onFailure { error ->
+            _oneNoteUiState.value = _oneNoteUiState.value.copy(
+                isLoadingTargets = false,
+                errorMessage = error.message,
+            )
+        }
     }
 }
