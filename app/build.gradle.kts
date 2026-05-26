@@ -82,7 +82,7 @@ android {
         buildConfigField(
             "String",
             "ONENOTE_REDIRECT_SIGNATURE_HASH",
-            "\"wnyLuNCKNp-EU4eMI6tuS0f-G_I\"",
+            "\"wnyLuNCKNp+EU4eMI6tuS0f+G/I=\"",
         )
     }
 

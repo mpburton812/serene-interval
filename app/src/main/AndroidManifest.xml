@@ -37,7 +37,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:host="com.example.meditationparticles"
-                    android:path="/wnyLuNCKNp-EU4eMI6tuS0f-G_I"
+                    android:path="/wnyLuNCKNp+EU4eMI6tuS0f+G/I="
                     android:scheme="msauth" />
             </intent-filter>
         </activity>
