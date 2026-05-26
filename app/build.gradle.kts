@@ -27,6 +27,17 @@ val buildEnvironment = buildEnvOverride ?: when {
 }
 val gitShortSha = gitOutput("rev-parse", "--short", "HEAD").ifBlank { "local" }
 
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties().apply {
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+val oneNoteClientId = localProperties.getProperty("onenote.clientId", "").trim()
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+val oneNoteSyncAvailable = localProperties.getProperty("onenote.clientId", "").trim().isNotEmpty()
+
 val sideloadPropertiesFile = rootProject.file("keystore/sideload.properties")
 val sideloadProperties = Properties().apply {
     if (sideloadPropertiesFile.exists()) {
@@ -53,8 +64,8 @@ android {
         applicationId = "com.example.meditationparticles"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.8"
+        versionCode = 10
+        versionName = "1.0.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("Boolean", "UPDATE_CHECK_ENABLED", "true")
@@ -66,6 +77,13 @@ android {
         buildConfigField("String", "BUILD_ENV", "\"$buildEnvironment\"")
         buildConfigField("String", "GIT_SHA", "\"$gitShortSha\"")
         buildConfigField("String", "SHORT_BUILD_LABEL", "\"$gitShortSha ($buildEnvironment)\"")
+        buildConfigField("String", "ONENOTE_CLIENT_ID", "\"$oneNoteClientId\"")
+        buildConfigField("Boolean", "ONENOTE_SYNC_AVAILABLE", "$oneNoteSyncAvailable")
+        buildConfigField(
+            "String",
+            "ONENOTE_REDIRECT_SIGNATURE_HASH",
+            "\"wnyLuNCKNp+EU4eMI6tuS0f+G/I=\"",
+        )
     }
 
     buildTypes {
@@ -106,11 +124,15 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.foundation)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.okhttp)
+    implementation(libs.msal)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

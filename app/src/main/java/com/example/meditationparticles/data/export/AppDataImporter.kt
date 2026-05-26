@@ -7,6 +7,7 @@ import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -200,12 +201,15 @@ class AppDataImporter(
         val reactiveOrder = json.optJSONArray("reactiveOrder")?.toEnumList<ToolkitToolId>()
             ?.let { ToolkitLayout.normalizeOrder(ToolkitCategory.Reactive, it) }
             ?: current.reactiveOrder
+        val usageCounts = json.optJSONObject("usageCounts")?.toUsageCounts()
+            ?: current.usageCounts
 
         return ToolkitImportSnapshot(
             configured = json.optBoolean("configured", current.configured || importedEnabled.isNotEmpty()),
             enabledToolIds = mergedEnabled.ifEmpty { ToolkitLayout.defaultEnabledTools() },
             proactiveOrder = proactiveOrder,
             reactiveOrder = reactiveOrder,
+            usageCounts = usageCounts,
         )
     }
 
@@ -219,6 +223,7 @@ class AppDataImporter(
         }
         toolkit.saveProactiveOrder(snapshot.proactiveOrder)
         toolkit.saveReactiveOrder(snapshot.reactiveOrder)
+        toolkit.saveUsageCounts(snapshot.usageCounts)
         toolkit.refresh(onboardingCompleted)
     }
 
@@ -311,6 +316,13 @@ class AppDataImporter(
             centerOfGravityEntries = importCenterOfGravityEntries(
                 array = entries.optJSONArray("centerOfGravityEntries"),
                 dao = db.centerOfGravityEntryDao(),
+                skips = skips,
+            ),
+        )
+        updated = updated.copy(
+            nvcEntries = importNvcEntries(
+                array = entries.optJSONArray("nvcEntries"),
+                dao = db.nvcEntryDao(),
                 skips = skips,
             ),
         )
@@ -588,6 +600,74 @@ class AppDataImporter(
         return imported
     }
 
+    private suspend fun importNvcEntries(
+        array: JSONArray?,
+        dao: com.example.meditationparticles.data.local.NvcEntryDao,
+        skips: MutableList<ImportSkip>,
+    ): Int {
+        if (array == null || array.length() == 0) return 0
+        val existing = dao.getAll()
+        var imported = 0
+
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val observation = item.optString("observation", "").trim()
+            val feeling = item.optString("feeling", "").trim()
+            val need = item.optString("need", "").trim()
+            val request = item.optString("request", "").trim()
+            if (observation.isEmpty() && feeling.isEmpty() && need.isEmpty() && request.isEmpty()) {
+                skips += ImportSkip("NVC entry", "missing content")
+                continue
+            }
+            val createdAt = item.optLong("createdAt", System.currentTimeMillis())
+            if (existing.any {
+                    it.observation == observation &&
+                        it.feeling == feeling &&
+                        it.need == need &&
+                        it.request == request &&
+                        it.createdAt == createdAt
+                }
+            ) {
+                skips += ImportSkip("NVC entry", "duplicate")
+                continue
+            }
+
+            val observationAudio = resolveAudioPath(
+                item.optionalString("observationAudioPath"),
+                "NVC entry",
+            )
+            val feelingAudio = resolveAudioPath(
+                item.optionalString("feelingAudioPath"),
+                "NVC entry",
+            )
+            val needAudio = resolveAudioPath(
+                item.optionalString("needAudioPath"),
+                "NVC entry",
+            )
+            val requestAudio = resolveAudioPath(
+                item.optionalString("requestAudioPath"),
+                "NVC entry",
+            )
+            skips += observationAudio.second + feelingAudio.second + needAudio.second + requestAudio.second
+
+            dao.insert(
+                NvcEntryEntity(
+                    observation = observation,
+                    observationAudioPath = observationAudio.first,
+                    feeling = feeling,
+                    feelingAudioPath = feelingAudio.first,
+                    need = need,
+                    needAudioPath = needAudio.first,
+                    request = request,
+                    requestAudioPath = requestAudio.first,
+                    createdAt = createdAt,
+                ),
+            )
+            imported++
+        }
+        return imported
+    }
+
     private fun resolveAudioPath(
         exportedPath: String?,
         category: String,
@@ -612,6 +692,7 @@ class AppDataImporter(
         val enabledToolIds: Set<ToolkitToolId>,
         val proactiveOrder: List<ToolkitToolId>,
         val reactiveOrder: List<ToolkitToolId>,
+        val usageCounts: Map<ToolkitToolId, Int>,
     )
 
     companion object {
@@ -660,5 +741,13 @@ private fun JSONArray.toStringSet(): Set<String> = buildSet {
     for (index in 0 until length()) {
         val value = optString(index, "").trim()
         if (value.isNotEmpty()) add(value)
+    }
+}
+
+private fun JSONObject.toUsageCounts(): Map<ToolkitToolId, Int> = buildMap {
+    keys().forEach { key ->
+        val id = runCatching { ToolkitToolId.valueOf(key) }.getOrNull() ?: return@forEach
+        val count = optInt(key, 0).coerceAtLeast(0)
+        if (count > 0) put(id, count)
     }
 }

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.MyLocation
@@ -61,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
@@ -122,6 +124,13 @@ fun AnxietyToolkitTab(
             centerOfGravityBodyAndNeeds = state.centerOfGravityBodyAndNeeds,
             centerOfGravityEntries = state.centerOfGravityEntries,
             openedCenterOfGravityEntry = state.openedCenterOfGravityEntry,
+            nvcStepIndex = state.nvcStepIndex,
+            nvcObservation = state.nvcObservation,
+            nvcFeeling = state.nvcFeeling,
+            nvcNeed = state.nvcNeed,
+            nvcRequest = state.nvcRequest,
+            nvcEntries = state.nvcEntries,
+            openedNvcEntry = state.openedNvcEntry,
             onThoughtDumpChange = viewModel::updateThoughtDump,
             onAnxietyLogChange = viewModel::updateAnxietyLog,
             onFutureSelfTextChange = viewModel::updateFutureSelfText,
@@ -152,6 +161,7 @@ fun AnxietyToolkitTab(
             onCloseRefactoringEntry = viewModel::closeRefactoringEntry,
             onNextRefactoringStep = viewModel::nextRefactoringStep,
             onPreviousRefactoringStep = viewModel::previousRefactoringStep,
+            onRefactoringStepChange = viewModel::goToRefactoringStep,
             onCenterOfGravityThoughtsAndFeelingsChange = viewModel::updateCenterOfGravityThoughtsAndFeelings,
             onCenterOfGravityBodyAndNeedsChange = viewModel::updateCenterOfGravityBodyAndNeeds,
             onCenterOfGravitySpeechResult = viewModel::appendToCenterOfGravityField,
@@ -162,6 +172,19 @@ fun AnxietyToolkitTab(
             onCloseCenterOfGravityEntry = viewModel::closeCenterOfGravityEntry,
             onNextCenterOfGravityStep = viewModel::nextCenterOfGravityStep,
             onPreviousCenterOfGravityStep = viewModel::previousCenterOfGravityStep,
+            onNvcObservationChange = viewModel::updateNvcObservation,
+            onNvcFeelingChange = viewModel::updateNvcFeeling,
+            onNvcNeedChange = viewModel::updateNvcNeed,
+            onNvcRequestChange = viewModel::updateNvcRequest,
+            onNvcSpeechResult = viewModel::appendToNvcField,
+            onSaveNvcEntry = viewModel::saveNvcEntry,
+            onClearNvcDraft = viewModel::clearNvcDraft,
+            onOpenNvcEntry = viewModel::openNvcEntry,
+            onDeleteNvcEntry = viewModel::deleteNvcEntry,
+            onCloseNvcEntry = viewModel::closeNvcEntry,
+            onNextNvcStep = viewModel::nextNvcStep,
+            onPreviousNvcStep = viewModel::previousNvcStep,
+            onNvcStepChange = viewModel::goToNvcStep,
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
@@ -425,6 +448,13 @@ private fun ToolDetailScreen(
     centerOfGravityBodyAndNeeds: String,
     centerOfGravityEntries: List<CenterOfGravityEntryEntity>,
     openedCenterOfGravityEntry: CenterOfGravityEntryEntity?,
+    nvcStepIndex: Int,
+    nvcObservation: String,
+    nvcFeeling: String,
+    nvcNeed: String,
+    nvcRequest: String,
+    nvcEntries: List<NvcEntryEntity>,
+    openedNvcEntry: NvcEntryEntity?,
     onThoughtDumpChange: (String) -> Unit,
     onAnxietyLogChange: (String) -> Unit,
     onFutureSelfTextChange: (String) -> Unit,
@@ -455,6 +485,7 @@ private fun ToolDetailScreen(
     onCloseRefactoringEntry: () -> Unit,
     onNextRefactoringStep: () -> Unit,
     onPreviousRefactoringStep: () -> Unit,
+    onRefactoringStepChange: (Int) -> Unit,
     onCenterOfGravityThoughtsAndFeelingsChange: (String) -> Unit,
     onCenterOfGravityBodyAndNeedsChange: (String) -> Unit,
     onCenterOfGravitySpeechResult: (CenterOfGravitySpeechTarget, String) -> Unit,
@@ -465,6 +496,19 @@ private fun ToolDetailScreen(
     onCloseCenterOfGravityEntry: () -> Unit,
     onNextCenterOfGravityStep: () -> Unit,
     onPreviousCenterOfGravityStep: () -> Unit,
+    onNvcObservationChange: (String) -> Unit,
+    onNvcFeelingChange: (String) -> Unit,
+    onNvcNeedChange: (String) -> Unit,
+    onNvcRequestChange: (String) -> Unit,
+    onNvcSpeechResult: (NvcSpeechTarget, String) -> Unit,
+    onSaveNvcEntry: () -> Unit,
+    onClearNvcDraft: () -> Unit,
+    onOpenNvcEntry: (NvcEntryEntity) -> Unit,
+    onDeleteNvcEntry: (NvcEntryEntity) -> Unit,
+    onCloseNvcEntry: () -> Unit,
+    onNextNvcStep: () -> Unit,
+    onPreviousNvcStep: () -> Unit,
+    onNvcStepChange: (Int) -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
@@ -573,6 +617,7 @@ private fun ToolDetailScreen(
                     onSpeechResult = onRefactoringSpeechResult,
                     onPrevious = onPreviousRefactoringStep,
                     onNext = onNextRefactoringStep,
+                    onStepChange = onRefactoringStepChange,
                     onSave = onSaveRefactoringEntry,
                     onClear = onClearRefactoringDraft,
                     onOpenEntry = onOpenRefactoringEntry,
@@ -599,6 +644,32 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenCenterOfGravityEntry,
                     onDeleteEntry = onDeleteCenterOfGravityEntry,
                     onCloseEntry = onCloseCenterOfGravityEntry,
+                )
+            }
+            ToolkitToolId.NonViolentCommunication -> {
+                NvcContent(
+                    stepIndex = nvcStepIndex,
+                    observation = nvcObservation,
+                    feeling = nvcFeeling,
+                    need = nvcNeed,
+                    request = nvcRequest,
+                    pendingAudioPath = pendingAudioPath,
+                    entries = nvcEntries,
+                    openedEntry = openedNvcEntry,
+                    onObservationChange = onNvcObservationChange,
+                    onFeelingChange = onNvcFeelingChange,
+                    onNeedChange = onNvcNeedChange,
+                    onRequestChange = onNvcRequestChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onNvcSpeechResult,
+                    onPrevious = onPreviousNvcStep,
+                    onNext = onNextNvcStep,
+                    onStepChange = onNvcStepChange,
+                    onSave = onSaveNvcEntry,
+                    onClear = onClearNvcDraft,
+                    onOpenEntry = onOpenNvcEntry,
+                    onDeleteEntry = onDeleteNvcEntry,
+                    onCloseEntry = onCloseNvcEntry,
                 )
             }
             else -> {
@@ -673,6 +744,7 @@ private fun toolIcon(id: ToolkitToolId): ImageVector = when (id) {
     ToolkitToolId.LovingKindness -> Icons.Default.Favorite
     ToolkitToolId.AnxietyLog -> Icons.Default.EditNote
     ToolkitToolId.Refactoring -> Icons.Default.Psychology
+    ToolkitToolId.NonViolentCommunication -> Icons.Default.Forum
     ToolkitToolId.RelocateCenterOfGravity -> Icons.Default.MyLocation
 }
 

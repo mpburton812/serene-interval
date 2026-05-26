@@ -44,51 +44,48 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
-import com.example.meditationparticles.data.local.RefactoringEntryEntity
+import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
-enum class RefactoringSpeechTarget {
-    Interpretation,
-    ActualFacts,
-    Explanation1,
-    Explanation2,
-    Explanation3,
+enum class NvcSpeechTarget {
+    Observation,
+    Feeling,
+    Need,
+    Request,
 }
 
 @Composable
-fun RefactoringContent(
+fun NvcContent(
     stepIndex: Int,
-    interpretation: String,
-    actualFacts: String,
-    explanation1: String,
-    explanation2: String,
-    explanation3: String,
+    observation: String,
+    feeling: String,
+    need: String,
+    request: String,
     pendingAudioPath: String?,
-    entries: List<RefactoringEntryEntity>,
-    openedEntry: RefactoringEntryEntity?,
-    onInterpretationChange: (String) -> Unit,
-    onActualFactsChange: (String) -> Unit,
-    onExplanation1Change: (String) -> Unit,
-    onExplanation2Change: (String) -> Unit,
-    onExplanation3Change: (String) -> Unit,
+    entries: List<NvcEntryEntity>,
+    openedEntry: NvcEntryEntity?,
+    onObservationChange: (String) -> Unit,
+    onFeelingChange: (String) -> Unit,
+    onNeedChange: (String) -> Unit,
+    onRequestChange: (String) -> Unit,
     onPendingAudioChange: (String?) -> Unit,
-    onSpeechResult: (RefactoringSpeechTarget, String) -> Unit,
+    onSpeechResult: (NvcSpeechTarget, String) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onStepChange: (Int) -> Unit,
     onSave: () -> Unit,
     onClear: () -> Unit,
-    onOpenEntry: (RefactoringEntryEntity) -> Unit,
-    onDeleteEntry: (RefactoringEntryEntity) -> Unit,
+    onOpenEntry: (NvcEntryEntity) -> Unit,
+    onDeleteEntry: (NvcEntryEntity) -> Unit,
     onCloseEntry: () -> Unit,
 ) {
     val context = LocalContext.current
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
     val audioPlayer = remember { ToolkitAudioPlayer() }
     var isRecording by remember { mutableStateOf(false) }
-    var speechTarget by remember { mutableStateOf(RefactoringSpeechTarget.Interpretation) }
+    var speechTarget by remember { mutableStateOf(NvcSpeechTarget.Observation) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -119,7 +116,7 @@ fun RefactoringContent(
         }
     }
 
-    fun launchSpeechToText(target: RefactoringSpeechTarget) {
+    fun launchSpeechToText(target: NvcSpeechTarget) {
         speechTarget = target
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -149,23 +146,20 @@ fun RefactoringContent(
         }
     }
 
-    val stepCount = 3
+    val stepCount = 4
     val isLastStep = stepIndex >= stepCount - 1
     val stepInstruction = when (stepIndex) {
-        0 -> "Write down the actual facts — only what you know for certain."
-        1 -> "Write down your interpretation — the story your mind is telling."
-        else -> "Write three non-threatening explanations based on logic."
+        0 -> "Describe what happened — just the facts, without judgment."
+        1 -> "Name the feeling this brings up in you."
+        2 -> "What need or value of yours is connected to this feeling?"
+        else -> "What clear, specific request could help meet that need?"
     }
 
     fun stepHasContent(): Boolean = when (stepIndex) {
-        0 -> actualFacts.isNotBlank() || pendingAudioPath != null
-        1 -> interpretation.isNotBlank() || pendingAudioPath != null
-        else -> {
-            val hasText = explanation1.isNotBlank() ||
-                explanation2.isNotBlank() ||
-                explanation3.isNotBlank()
-            hasText || pendingAudioPath != null
-        }
+        0 -> observation.isNotBlank() || pendingAudioPath != null
+        1 -> feeling.isNotBlank() || pendingAudioPath != null
+        2 -> need.isNotBlank() || pendingAudioPath != null
+        else -> request.isNotBlank() || pendingAudioPath != null
     }
 
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
@@ -191,56 +185,42 @@ fun RefactoringContent(
                 modifier = Modifier.fillMaxWidth(),
             ) { page ->
                 when (page) {
-                    0 -> RefactoringFieldEditor(
-                        label = "The actual facts",
-                        text = actualFacts,
-                        onTextChange = onActualFactsChange,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.ActualFacts) },
+                    0 -> NvcFieldEditor(
+                        label = "Observation",
+                        text = observation,
+                        onTextChange = onObservationChange,
+                        onDictate = { launchSpeechToText(NvcSpeechTarget.Observation) },
                         onToggleRecord = ::toggleRecording,
                         isRecording = isRecording,
                         pendingAudioPath = pendingAudioPath,
                     )
-                    1 -> RefactoringFieldEditor(
-                        label = "Interpretation",
-                        text = interpretation,
-                        onTextChange = onInterpretationChange,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Interpretation) },
+                    1 -> NvcFieldEditor(
+                        label = "Feeling",
+                        text = feeling,
+                        onTextChange = onFeelingChange,
+                        onDictate = { launchSpeechToText(NvcSpeechTarget.Feeling) },
                         onToggleRecord = ::toggleRecording,
                         isRecording = isRecording,
                         pendingAudioPath = pendingAudioPath,
                     )
-                    else -> Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
-                        RefactoringFieldEditor(
-                            label = "Explanation 1",
-                            text = explanation1,
-                            onTextChange = onExplanation1Change,
-                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation1) },
-                            onToggleRecord = ::toggleRecording,
-                            isRecording = isRecording,
-                            pendingAudioPath = pendingAudioPath,
-                            minLines = 3,
-                        )
-                        RefactoringFieldEditor(
-                            label = "Explanation 2",
-                            text = explanation2,
-                            onTextChange = onExplanation2Change,
-                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation2) },
-                            onToggleRecord = ::toggleRecording,
-                            isRecording = isRecording,
-                            pendingAudioPath = pendingAudioPath,
-                            minLines = 3,
-                        )
-                        RefactoringFieldEditor(
-                            label = "Explanation 3",
-                            text = explanation3,
-                            onTextChange = onExplanation3Change,
-                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation3) },
-                            onToggleRecord = ::toggleRecording,
-                            isRecording = isRecording,
-                            pendingAudioPath = pendingAudioPath,
-                            minLines = 3,
-                        )
-                    }
+                    2 -> NvcFieldEditor(
+                        label = "Need",
+                        text = need,
+                        onTextChange = onNeedChange,
+                        onDictate = { launchSpeechToText(NvcSpeechTarget.Need) },
+                        onToggleRecord = ::toggleRecording,
+                        isRecording = isRecording,
+                        pendingAudioPath = pendingAudioPath,
+                    )
+                    else -> NvcFieldEditor(
+                        label = "Request",
+                        text = request,
+                        onTextChange = onRequestChange,
+                        onDictate = { launchSpeechToText(NvcSpeechTarget.Request) },
+                        onToggleRecord = ::toggleRecording,
+                        isRecording = isRecording,
+                        pendingAudioPath = pendingAudioPath,
+                    )
                 }
             }
 
@@ -309,7 +289,7 @@ fun RefactoringContent(
                     if (index > 0) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     }
-                    RefactoringEntryRow(
+                    NvcEntryRow(
                         entry = entry,
                         onOpen = { onOpenEntry(entry) },
                         onDelete = { onDeleteEntry(entry) },
@@ -320,7 +300,7 @@ fun RefactoringContent(
     }
 
     openedEntry?.let { entry ->
-        RefactoringEntryDetailDialog(
+        NvcEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
             onDismiss = onCloseEntry,
@@ -329,7 +309,7 @@ fun RefactoringContent(
 }
 
 @Composable
-private fun RefactoringFieldEditor(
+private fun NvcFieldEditor(
     label: String,
     text: String,
     onTextChange: (String) -> Unit,
@@ -383,8 +363,8 @@ private fun RefactoringFieldEditor(
 }
 
 @Composable
-private fun RefactoringEntryRow(
-    entry: RefactoringEntryEntity,
+private fun NvcEntryRow(
+    entry: NvcEntryEntity,
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -394,13 +374,15 @@ private fun RefactoringEntryRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = formatRefactoringTimestamp(entry.createdAt),
+                text = formatNvcTimestamp(entry.createdAt),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            val preview = entry.actualFacts.ifBlank {
-                entry.interpretation.ifBlank {
-                    entry.explanation1.ifBlank { "Refactoring entry" }
+            val preview = entry.observation.ifBlank {
+                entry.feeling.ifBlank {
+                    entry.need.ifBlank {
+                        entry.request.ifBlank { "NVC entry" }
+                    }
                 }
             }
             Text(
@@ -420,8 +402,8 @@ private fun RefactoringEntryRow(
 }
 
 @Composable
-private fun RefactoringEntryDetailDialog(
-    entry: RefactoringEntryEntity,
+private fun NvcEntryDetailDialog(
+    entry: NvcEntryEntity,
     audioPlayer: ToolkitAudioPlayer,
     onDismiss: () -> Unit,
 ) {
@@ -436,13 +418,13 @@ private fun RefactoringEntryDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(formatRefactoringTimestamp(entry.createdAt)) },
+        title = { Text(formatNvcTimestamp(entry.createdAt)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                RefactoringReadOnlySection(
-                    label = "The actual facts",
-                    text = entry.actualFacts,
-                    audioPath = entry.actualFactsAudioPath,
+                NvcReadOnlySection(
+                    label = "Observation",
+                    text = entry.observation,
+                    audioPath = entry.observationAudioPath,
                     playingPath = playingPath,
                     onPlayToggle = { path ->
                         if (playingPath == path) {
@@ -454,10 +436,10 @@ private fun RefactoringEntryDetailDialog(
                         }
                     },
                 )
-                RefactoringReadOnlySection(
-                    label = "Interpretation",
-                    text = entry.interpretation,
-                    audioPath = entry.interpretationAudioPath,
+                NvcReadOnlySection(
+                    label = "Feeling",
+                    text = entry.feeling,
+                    audioPath = entry.feelingAudioPath,
                     playingPath = playingPath,
                     onPlayToggle = { path ->
                         if (playingPath == path) {
@@ -469,10 +451,10 @@ private fun RefactoringEntryDetailDialog(
                         }
                     },
                 )
-                RefactoringReadOnlySection(
-                    label = "Explanation 1",
-                    text = entry.explanation1,
-                    audioPath = entry.explanation1AudioPath,
+                NvcReadOnlySection(
+                    label = "Need",
+                    text = entry.need,
+                    audioPath = entry.needAudioPath,
                     playingPath = playingPath,
                     onPlayToggle = { path ->
                         if (playingPath == path) {
@@ -484,25 +466,10 @@ private fun RefactoringEntryDetailDialog(
                         }
                     },
                 )
-                RefactoringReadOnlySection(
-                    label = "Explanation 2",
-                    text = entry.explanation2,
-                    audioPath = entry.explanation2AudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
-                RefactoringReadOnlySection(
-                    label = "Explanation 3",
-                    text = entry.explanation3,
-                    audioPath = entry.explanation3AudioPath,
+                NvcReadOnlySection(
+                    label = "Request",
+                    text = entry.request,
+                    audioPath = entry.requestAudioPath,
                     playingPath = playingPath,
                     onPlayToggle = { path ->
                         if (playingPath == path) {
@@ -525,7 +492,7 @@ private fun RefactoringEntryDetailDialog(
 }
 
 @Composable
-private fun RefactoringReadOnlySection(
+private fun NvcReadOnlySection(
     label: String,
     text: String,
     audioPath: String?,
@@ -562,7 +529,7 @@ private fun RefactoringReadOnlySection(
     }
 }
 
-private fun formatRefactoringTimestamp(createdAt: Long): String {
+private fun formatNvcTimestamp(createdAt: Long): String {
     val formatter = java.text.SimpleDateFormat("MMM d, yyyy · h:mm a", java.util.Locale.getDefault())
     return formatter.format(Date(createdAt))
 }

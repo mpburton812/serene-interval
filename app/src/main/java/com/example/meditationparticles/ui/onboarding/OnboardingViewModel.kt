@@ -1,7 +1,10 @@
 package com.example.meditationparticles.ui.onboarding
 
+import android.app.Activity
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -11,9 +14,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppGraph.settings(application)
+    private val oneNotePreferences = AppGraph.oneNotePreferences(application)
+    private val oneNoteAuth = AppGraph.oneNoteAuth(application)
+    private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val appContext = application.applicationContext
 
     private val _draft = MutableStateFlow(OnboardingDraft.from(preferences.load()))
@@ -88,8 +95,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             }
             return false
         }
-        completeOnboarding()
-        return true
+        return finishPermissionSteps()
     }
 
     fun openExactAlarmSettings() {
@@ -181,15 +187,51 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             }
             return false
         }
-        completeOnboarding()
-        return true
+        return finishPermissionSteps()
     }
 
     fun continueFromNotifications(): Boolean {
         refreshPermissionsOnResume()
+        return finishPermissionSteps()
+    }
+
+    fun continueFromOneNoteConnect(): Boolean {
         completeOnboarding()
         return true
     }
+
+    fun connectOneNote(activity: Activity, onResult: (Boolean) -> Unit) {
+        if (!oneNoteAuth.isAvailable) {
+            onResult(false)
+            return
+        }
+        viewModelScope.launch {
+            val authResult = oneNoteAuth.signIn(activity)
+            if (!authResult.success || authResult.cancelled) {
+                onResult(false)
+                return@launch
+            }
+            oneNotePreferences.setAccountEmail(authResult.email ?: oneNoteAuth.currentAccountEmail())
+            oneNotePreferences.setSyncEnabled(true)
+            oneNoteSync.ensureSection()
+            onResult(true)
+        }
+    }
+
+    fun skipOneNoteConnect() {
+        oneNotePreferences.setSyncEnabled(false)
+    }
+
+    private fun finishPermissionSteps(): Boolean {
+        if (shouldShowOneNoteStep()) {
+            _draft.update { it.copy(step = OnboardingStep.OneNoteConnect) }
+            return false
+        }
+        completeOnboarding()
+        return true
+    }
+
+    private fun shouldShowOneNoteStep(): Boolean = BuildConfig.ONENOTE_SYNC_AVAILABLE
 
     fun completeOnboarding() {
         val current = _draft.value

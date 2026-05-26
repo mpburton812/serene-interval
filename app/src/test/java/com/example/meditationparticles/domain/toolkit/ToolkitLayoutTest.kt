@@ -25,6 +25,85 @@ class ToolkitLayoutTest {
     }
 
     @Test
+    fun orderedTools_sortsByUsageCountDescending() {
+        val savedOrder = ToolkitLayout.defaultOrder(ToolkitCategory.Reactive)
+        val enabled = setOf(
+            ToolkitToolId.Grounding54321,
+            ToolkitToolId.AnxietyLog,
+            ToolkitToolId.MuscleRelaxation,
+        )
+        val usageCounts = mapOf(
+            ToolkitToolId.AnxietyLog to 10,
+            ToolkitToolId.Grounding54321 to 3,
+            ToolkitToolId.MuscleRelaxation to 1,
+        )
+
+        val tools = ToolkitLayout.orderedTools(
+            category = ToolkitCategory.Reactive,
+            enabledIds = enabled,
+            savedOrder = savedOrder,
+            usageCounts = usageCounts,
+        )
+
+        assertEquals(
+            listOf(
+                ToolkitToolId.AnxietyLog,
+                ToolkitToolId.Grounding54321,
+                ToolkitToolId.MuscleRelaxation,
+            ),
+            tools.map { it.id },
+        )
+    }
+
+    @Test
+    fun sortByUsage_tiebreaksWithSavedOrder() {
+        val savedOrder = listOf(
+            ToolkitToolId.MicroPause,
+            ToolkitToolId.ThoughtDump,
+            ToolkitToolId.BoundarySetting,
+        )
+        val toolIds = listOf(
+            ToolkitToolId.ThoughtDump,
+            ToolkitToolId.MicroPause,
+            ToolkitToolId.BoundarySetting,
+        )
+
+        val sorted = ToolkitLayout.sortByUsage(
+            toolIds = toolIds,
+            category = ToolkitCategory.Proactive,
+            savedOrder = savedOrder,
+            usageCounts = emptyMap(),
+        )
+
+        assertEquals(savedOrder, sorted)
+    }
+
+    @Test
+    fun sortByUsage_equalCountsPreserveSavedOrder() {
+        val savedOrder = listOf(
+            ToolkitToolId.Grounding54321,
+            ToolkitToolId.AnxietyLog,
+        )
+        val toolIds = listOf(
+            ToolkitToolId.AnxietyLog,
+            ToolkitToolId.Grounding54321,
+        )
+        val usageCounts = mapOf(
+            ToolkitToolId.AnxietyLog to 2,
+            ToolkitToolId.Grounding54321 to 2,
+        )
+
+        val sorted = ToolkitLayout.sortByUsage(
+            toolIds = toolIds,
+            category = ToolkitCategory.Reactive,
+            savedOrder = savedOrder,
+            usageCounts = usageCounts,
+        )
+
+        assertEquals(savedOrder, sorted)
+    }
+
+    @Test
     fun reorder_movesItemToTargetIndex() {
         val original = listOf(
             ToolkitToolId.ThoughtDump,

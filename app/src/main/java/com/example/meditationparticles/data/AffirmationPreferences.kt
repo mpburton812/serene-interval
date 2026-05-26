@@ -2,6 +2,12 @@ package com.example.meditationparticles.data
 
 import android.content.Context
 
+private const val PREFS_NAME = "affirmation_preferences"
+private const val KEY_REMINDER_ENABLED = "reminder_enabled"
+private const val KEY_REMINDER_HOUR = "reminder_hour"
+private const val KEY_REMINDER_MINUTE = "reminder_minute"
+private const val KEY_VIEW_MODE = "view_mode"
+
 class AffirmationPreferences(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -29,12 +35,4 @@ class AffirmationPreferences(context: Context) {
         val reminderMinute: Int,
         val viewMode: String,
     )
-
-    companion object {
-        private const val PREFS_NAME = "affirmation_preferences"
-        private const val KEY_REMINDER_ENABLED = "reminder_enabled"
-        private const val KEY_REMINDER_HOUR = "reminder_hour"
-        private const val KEY_REMINDER_MINUTE = "reminder_minute"
-        private const val KEY_VIEW_MODE = "view_mode"
-    }
 }

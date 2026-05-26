@@ -10,16 +10,31 @@ object ToolkitLayout {
         category: ToolkitCategory,
         enabledIds: Set<ToolkitToolId>,
         savedOrder: List<ToolkitToolId>,
+        usageCounts: Map<ToolkitToolId, Int> = emptyMap(),
     ): List<ToolkitTool> {
         val catalogById = ToolkitCatalog.byCategory(category).associateBy { it.id }
         val enabledInCategory = catalogById.keys.filter { it in enabledIds }
-        val orderIndex = savedOrder.withIndex().associate { (index, id) -> id to index }
-        return enabledInCategory
-            .sortedWith(
-                compareBy<ToolkitToolId> { orderIndex[it] ?: Int.MAX_VALUE }
-                    .thenBy { defaultOrder(category).indexOf(it) },
-            )
-            .mapNotNull { catalogById[it] }
+        return sortByUsage(
+            toolIds = enabledInCategory,
+            category = category,
+            savedOrder = savedOrder,
+            usageCounts = usageCounts,
+        ).mapNotNull { catalogById[it] }
+    }
+
+    fun sortByUsage(
+        toolIds: List<ToolkitToolId>,
+        category: ToolkitCategory,
+        savedOrder: List<ToolkitToolId>,
+        usageCounts: Map<ToolkitToolId, Int>,
+    ): List<ToolkitToolId> {
+        val savedOrderIndex = savedOrder.withIndex().associate { (index, id) -> id to index }
+        val defaultOrderIndex = defaultOrder(category).withIndex().associate { (index, id) -> id to index }
+        return toolIds.sortedWith(
+            compareByDescending<ToolkitToolId> { usageCounts[it] ?: 0 }
+                .thenBy { savedOrderIndex[it] ?: Int.MAX_VALUE }
+                .thenBy { defaultOrderIndex[it] ?: Int.MAX_VALUE },
+        )
     }
 
     fun normalizeOrder(

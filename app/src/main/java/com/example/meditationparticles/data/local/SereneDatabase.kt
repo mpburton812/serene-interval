@@ -15,8 +15,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FutureSelfMessageEntity::class,
         RefactoringEntryEntity::class,
         CenterOfGravityEntryEntity::class,
+        NvcEntryEntity::class,
+        OneNoteSyncMappingEntity::class,
+        OneNoteSyncQueueEntity::class,
     ],
-    version = 7,
+    version = 9,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -26,6 +29,8 @@ abstract class SereneDatabase : RoomDatabase() {
     abstract fun futureSelfMessageDao(): FutureSelfMessageDao
     abstract fun refactoringEntryDao(): RefactoringEntryDao
     abstract fun centerOfGravityEntryDao(): CenterOfGravityEntryDao
+    abstract fun nvcEntryDao(): NvcEntryDao
+    abstract fun oneNoteSyncDao(): OneNoteSyncDao
 
     companion object {
         @Volatile
@@ -134,6 +139,56 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS nvc_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        observation TEXT NOT NULL,
+                        observationAudioPath TEXT,
+                        feeling TEXT NOT NULL,
+                        feelingAudioPath TEXT,
+                        need TEXT NOT NULL,
+                        needAudioPath TEXT,
+                        request TEXT NOT NULL,
+                        requestAudioPath TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS one_note_sync_mappings (
+                        localEntryId INTEGER NOT NULL,
+                        entryType TEXT NOT NULL,
+                        oneNotePageId TEXT,
+                        syncStatus TEXT NOT NULL,
+                        lastError TEXT,
+                        syncedAt INTEGER,
+                        PRIMARY KEY (localEntryId, entryType)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS one_note_sync_queue (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        localEntryId INTEGER NOT NULL,
+                        entryType TEXT NOT NULL,
+                        enqueuedAt INTEGER NOT NULL,
+                        retryCount INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -148,6 +203,8 @@ abstract class SereneDatabase : RoomDatabase() {
                         MIGRATION_4_5,
                         MIGRATION_5_6,
                         MIGRATION_6_7,
+                        MIGRATION_7_8,
+                        MIGRATION_8_9,
                     )
                     .build()
                     .also { instance = it }

@@ -15,6 +15,7 @@ enum class ToolkitToolId {
     LovingKindness,
     AnxietyLog,
     Refactoring,
+    NonViolentCommunication,
     RelocateCenterOfGravity,
 }
 
@@ -126,6 +127,18 @@ object ToolkitCatalog {
                 "Write down the actual facts — only what you know for certain.",
                 "Write down your interpretation — the story your mind is telling.",
                 "Write three non-threatening explanations based on logic.",
+            ),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.NonViolentCommunication,
+            title = "Non-Violent Communication",
+            description = "Express yourself clearly with observation, feeling, need, and request.",
+            category = ToolkitCategory.Reactive,
+            steps = listOf(
+                "Describe what happened — just the facts, without judgment.",
+                "Name the feeling this brings up in you.",
+                "What need or value of yours is connected to this feeling?",
+                "What clear, specific request could help meet that need?",
             ),
         ),
         ToolkitTool(
