@@ -1,7 +1,7 @@
 {
   "versionCode": 8,
   "versionName": "1.0.7",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/latest/download/sway_meditation.apk",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.7/sway_meditation.apk",
   "expectedSha256": "47d6d60627bb4d91e224686f28691a988ae9a693c4417ba344e4d2018c88789d",
   "releaseNotes": "• Mode B breathing sphere visualization with A/B visual mode toggle\n• Meditation bell picker and trimmed ambient sound options\n• Timer polish, theme backgrounds, and sanctuary setup UI improvements",
   "minVersionCode": 1
