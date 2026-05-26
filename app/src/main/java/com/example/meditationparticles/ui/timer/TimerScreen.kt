@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -85,6 +86,7 @@ import com.example.meditationparticles.ui.theme.SereneSpacing
 private val TextFadeMs = 650
 private val FabSize = 56.dp
 private val FabClearance = 72.dp
+private val TimerDisplayAreaHeight = 180.dp
 
 @Composable
 fun TimerScreen(
@@ -266,47 +268,80 @@ fun TimerScreen(
                 .weight(1f)
                 .fillMaxWidth(),
         ) {
-            val displayMinHeight = if (controlsVisible) {
-                (maxHeight * 0.5f).coerceAtLeast(220.dp)
-            } else {
-                maxHeight
-            }
-
+            val immersiveDisplayMinHeight = maxHeight
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState),
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = displayMinHeight),
-                ) {
-                    TimerDisplay(
-                        state = state,
-                        showCountdown = showDisplayCountdown,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    FloatingActionButton(
-                        onClick = { viewModel.toggleRunning() },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 8.dp)
-                            .size(FabSize),
-                        shape = CircleShape,
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                if (controlsVisible) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(
-                            imageVector = when {
-                                state.phase == TimerPhase.Complete -> Icons.Default.PlayArrow
-                                state.isRunning -> Icons.Default.Pause
-                                else -> Icons.Default.PlayArrow
-                            },
-                            contentDescription = if (state.isRunning) "Pause" else "Start",
-                            modifier = Modifier.size(28.dp),
+                        FloatingActionButton(
+                            onClick = { viewModel.toggleRunning() },
+                            modifier = Modifier
+                                .padding(top = 4.dp, bottom = 8.dp)
+                                .size(FabSize),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    state.phase == TimerPhase.Complete -> Icons.Default.PlayArrow
+                                    state.isRunning -> Icons.Default.Pause
+                                    else -> Icons.Default.PlayArrow
+                                },
+                                contentDescription = if (state.isRunning) "Pause" else "Start",
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(TimerDisplayAreaHeight),
+                        ) {
+                            TimerDisplay(
+                                state = state,
+                                showCountdown = showDisplayCountdown,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = immersiveDisplayMinHeight),
+                    ) {
+                        TimerDisplay(
+                            state = state,
+                            showCountdown = showDisplayCountdown,
+                            modifier = Modifier.fillMaxSize(),
                         )
+
+                        FloatingActionButton(
+                            onClick = { viewModel.toggleRunning() },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp)
+                                .size(FabSize),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    state.phase == TimerPhase.Complete -> Icons.Default.PlayArrow
+                                    state.isRunning -> Icons.Default.Pause
+                                    else -> Icons.Default.PlayArrow
+                                },
+                                contentDescription = if (state.isRunning) "Pause" else "Start",
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
                     }
                 }
 

@@ -238,8 +238,7 @@ fun SereneNavHost(
         currentRoute?.startsWith("visualizations/player") != true
 
     val showBuildInfoLabel = currentRoute?.startsWith("visualizations/player") != true &&
-        !breathingSessionActive &&
-        currentRoute != SereneDestination.Timer.route
+        !breathingSessionActive
 
     val showBottomBarSection = showBottomBar || showBuildInfoLabel
 
