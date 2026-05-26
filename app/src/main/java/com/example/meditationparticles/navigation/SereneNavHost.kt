@@ -188,8 +188,11 @@ fun SereneNavHost(
         currentRoute != SereneDestination.Onboarding.route &&
         currentRoute?.startsWith("visualizations/player") != true
 
-    val showBuildFooter = currentRoute?.startsWith("visualizations/player") != true &&
-        !breathingSessionActive
+    val showBuildInfoLabel = currentRoute?.startsWith("visualizations/player") != true &&
+        !breathingSessionActive &&
+        currentRoute != SereneDestination.Timer.route
+
+    val showBottomBarSection = showBottomBar || showBuildInfoLabel
 
     val startDestination = if (settings.onboardingCompleted) {
         SereneDestination.Home.route
@@ -235,7 +238,7 @@ fun SereneNavHost(
             }
         },
         bottomBar = {
-            if (showBuildFooter) {
+            if (showBottomBarSection) {
                 Column {
                     if (showBottomBar && bottomNavItems.isNotEmpty()) {
                         SereneBottomBar(
@@ -263,7 +266,9 @@ fun SereneNavHost(
                             },
                         )
                     }
-                    BuildInfoFooter()
+                    if (showBuildInfoLabel) {
+                        BuildInfoFooter()
+                    }
                 }
             }
         },
