@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,6 +76,7 @@ import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.reminder.MeditationReminderScheduler
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneTabBackground
+import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private val TextFadeMs = 650
@@ -240,7 +240,6 @@ fun TimerScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -249,13 +248,14 @@ fun TimerScreen(
                 controlsVisible = !controlsVisible
             },
     ) {
-        AnimatedVisibility(
-            visible = showStatusHeader,
-            enter = fadeIn(tween(TextFadeMs)),
-            exit = fadeOut(tween(TextFadeMs)),
-        ) {
-            TimerStatusHeader(state = state)
-        }
+        SereneTabHeader(
+            title = "Meditation",
+            descriptionContent = if (showStatusHeader) {
+                { TimerStatusDescription(state = state) }
+            } else {
+                null
+            },
+        )
 
         Box(
             modifier = Modifier
@@ -650,58 +650,56 @@ private fun PrepareSequenceOverlay(
 }
 
 @Composable
-private fun TimerStatusHeader(state: TimerSessionState) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = SereneSpacing.containerMargin)
-            .padding(top = 4.dp, bottom = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (state.phase == TimerPhase.Idle) {
+private fun TimerStatusDescription(state: TimerSessionState) {
+    if (state.phase == TimerPhase.Idle || state.phase == TimerPhase.Complete) {
+        if (state.statusLabel.isNotEmpty()) {
+            Text(
+                text = state.statusLabel,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        if (state.statusDescription.isNotEmpty()) {
             Text(
                 text = state.statusDescription,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
+                modifier = if (state.statusLabel.isNotEmpty()) Modifier.padding(top = 4.dp) else Modifier,
             )
-            return
         }
+        return
+    }
 
-        if (state.statusLabel.isNotEmpty()) {
-            AnimatedContent(
-                targetState = state.statusLabel,
-                transitionSpec = {
-                    fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-                },
-                label = "timer_status",
-            ) { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                )
-            }
+    if (state.statusLabel.isNotEmpty()) {
+        AnimatedContent(
+            targetState = state.statusLabel,
+            transitionSpec = {
+                fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
+            },
+            label = "timer_status",
+        ) { label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
+    }
 
-        if (state.statusDescription.isNotEmpty()) {
-            AnimatedContent(
-                targetState = state.statusDescription,
-                transitionSpec = {
-                    fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-                },
-                label = "timer_description",
-                modifier = Modifier.padding(top = 4.dp),
-            ) { description ->
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                    textAlign = TextAlign.Center,
-                )
-            }
+    if (state.statusDescription.isNotEmpty()) {
+        AnimatedContent(
+            targetState = state.statusDescription,
+            transitionSpec = {
+                fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
+            },
+            label = "timer_description",
+            modifier = Modifier.padding(top = 4.dp),
+        ) { description ->
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

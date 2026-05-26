@@ -62,6 +62,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.parseAffirmationLines
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SerenePrimary
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.theme.SereneTertiary
@@ -70,6 +71,7 @@ private const val TransitionMs = 300
 
 @Composable
 fun AffirmationsTab(
+    modifier: Modifier = Modifier,
     viewModel: AffirmationsViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -79,26 +81,27 @@ fun AffirmationsTab(
         ActivityResultContracts.RequestPermission(),
     ) { /* handled on next toggle */ }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = viewModel::showAddDialog) {
-                Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
-                Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
-            }
-            TextButton(onClick = viewModel::showBulkImportDialog) {
-                Text("Bulk Import", maxLines = 1)
-            }
-        }
+    Column(modifier = modifier.fillMaxSize()) {
+        SereneTabHeader(
+            title = "Affirmations",
+            controls = {
+                TextButton(onClick = viewModel::showAddDialog) {
+                    Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
+                    Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
+                }
+                TextButton(onClick = viewModel::showBulkImportDialog) {
+                    Text("Bulk Import", maxLines = 1)
+                }
+            },
+        )
 
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -269,6 +272,7 @@ fun AffirmationsTab(
                     },
                 )
             }
+        }
         }
     }
 

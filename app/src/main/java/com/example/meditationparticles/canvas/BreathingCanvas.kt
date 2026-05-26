@@ -93,7 +93,7 @@ fun BreathingCanvas(
         }
 
         val layout = when (visualMode) {
-            BreathingVisualMode.A -> computeStructureLayout(
+            BreathingVisualMode.A -> computeModeBLayout(
                 pattern = sessionState.pattern,
                 width = canvasWidth,
                 height = canvasHeight,
@@ -105,7 +105,7 @@ fun BreathingCanvas(
                     FLOW_CHAIN_FILL_RATIO
                 },
             )
-            BreathingVisualMode.B -> computeModeBLayout(
+            BreathingVisualMode.B -> computeStructureLayout(
                 pattern = sessionState.pattern,
                 width = canvasWidth,
                 height = canvasHeight,
@@ -122,8 +122,8 @@ fun BreathingCanvas(
         val visuals = when (displayMode) {
             BreathingCanvasDisplayMode.Preview -> computePreviewSphereVisuals(layout)
             BreathingCanvasDisplayMode.Exercise -> when (visualMode) {
-                BreathingVisualMode.A -> computeSphereVisuals(sessionState, layout)
-                BreathingVisualMode.B -> computeModeBSphereVisuals(sessionState, layout)
+                BreathingVisualMode.A -> computeModeBSphereVisuals(sessionState, layout)
+                BreathingVisualMode.B -> computeSphereVisuals(sessionState, layout)
             }
         }
 

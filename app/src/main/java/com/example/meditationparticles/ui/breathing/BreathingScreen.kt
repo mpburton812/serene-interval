@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,6 +65,7 @@ import com.example.meditationparticles.domain.breathing.BreathingVisualMode
 import com.example.meditationparticles.domain.breathing.SessionMode
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneTabBackground
+import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private val PhaseTextFadeMs = 650
@@ -114,7 +114,6 @@ fun BreathingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -123,6 +122,36 @@ fun BreathingScreen(
                 controlsVisible = !controlsVisible
             },
     ) {
+        SereneTabHeader(
+            title = "Breath",
+            controls = {
+                BreathingVisualModeToggle(
+                    selected = visualMode,
+                    onSelect = viewModel::setVisualMode,
+                    enabled = !state.isRunning,
+                )
+            },
+            descriptionContent = if (!state.isRunning) {
+                {
+                    AnimatedContent(
+                        targetState = state.pattern.purpose,
+                        transitionSpec = {
+                            fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
+                        },
+                        label = "pattern_purpose",
+                    ) { purpose ->
+                        Text(
+                            text = purpose,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                null
+            },
+        )
+
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -146,7 +175,9 @@ fun BreathingScreen(
                         displayMode = BreathingCanvasDisplayMode.Preview,
                         visualMode = visualMode,
                         modifier = Modifier.fillMaxSize(),
-                        topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },
+                        topInset = with(density) {
+                            if (sessionActive) (headerHeightPx + 12.dp.toPx()).toDp() else 12.dp
+                        },
                         bottomInset = bottomInset,
                     )
                 }
@@ -160,28 +191,23 @@ fun BreathingScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(exerciseBlend),
-                    topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },
+                    topInset = with(density) {
+                        if (sessionActive) (headerHeightPx + 12.dp.toPx()).toDp() else 12.dp
+                    },
                     bottomInset = bottomInset,
                 )
             }
 
-            BreathingPhaseHeader(
-                state = state,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .onGloballyPositioned { coords ->
-                        headerHeightPx = coords.size.height.toFloat()
-                    },
-            )
-
-            BreathingVisualModeToggle(
-                selected = visualMode,
-                onSelect = viewModel::setVisualMode,
-                enabled = !state.isRunning,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 4.dp, end = SereneSpacing.containerMargin),
-            )
+            if (sessionActive) {
+                BreathingPhaseHeader(
+                    state = state,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .onGloballyPositioned { coords ->
+                            headerHeightPx = coords.size.height.toFloat()
+                        },
+                )
+            }
 
             FloatingActionButton(
                 onClick = {
@@ -373,7 +399,6 @@ private fun BreathingPhaseHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.88f))
             .padding(horizontal = SereneSpacing.containerMargin)
             .padding(top = 4.dp, bottom = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -393,7 +418,7 @@ private fun BreathingPhaseHeader(
             )
         }
 
-        if (state.isRunning && state.phaseDurationSeconds > 0f) {
+        if (state.phaseDurationSeconds > 0f) {
             AnimatedContent(
                 targetState = state.secondsRemainingInPhase,
                 transitionSpec = {
@@ -406,24 +431,6 @@ private fun BreathingPhaseHeader(
                     text = "${seconds}s",
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
-
-        if (!state.isRunning) {
-            AnimatedContent(
-                targetState = state.pattern.purpose,
-                transitionSpec = {
-                    fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
-                },
-                label = "pattern_purpose",
-                modifier = Modifier.padding(top = SereneSpacing.stackSm),
-            ) { purpose ->
-                Text(
-                    text = purpose,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                     textAlign = TextAlign.Center,
                 )
             }
