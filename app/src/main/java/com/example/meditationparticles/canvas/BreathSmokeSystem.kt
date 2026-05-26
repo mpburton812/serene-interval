@@ -181,7 +181,7 @@ fun collectSmokeTargets(
         SmokeTarget(
             sphere = sphere,
             fillLevel = visual.fillLevel,
-            fillDirection = visual.fillDirection,
+            fillDirection = visual.liquidDirection(),
             isDraining = visual.isDraining,
         )
     }

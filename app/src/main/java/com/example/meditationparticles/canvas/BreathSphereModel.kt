@@ -8,6 +8,7 @@ import com.example.meditationparticles.domain.breathing.BreathingSessionState
 import com.example.meditationparticles.domain.breathing.FillDirection
 import com.example.meditationparticles.domain.breathing.SphereRoleKind
 import com.example.meditationparticles.domain.breathing.computeStructureSpec
+import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -67,8 +68,12 @@ data class SphereVisualState(
     val fillLevel: Float,
     val isActive: Boolean,
     val fillDirection: FillDirection = FillDirection.BottomToTop,
+    /** When draining, controls which edge empties first. Defaults to [fillDirection] for Mode A. */
+    val drainDirection: FillDirection? = null,
     val isDraining: Boolean = false,
-)
+) {
+    fun liquidDirection(): FillDirection = if (isDraining) drainDirection ?: fillDirection else fillDirection
+}
 
 private const val HOLD_TO_SMALL_RATIO = 1.1f
 private const val MIN_SPHERE_GAP = 8f
@@ -713,19 +718,154 @@ private fun applyBridgeTransfer(
     localProgress: Float,
     sourceDirection: FillDirection,
     targetDirection: FillDirection,
+    sourceDrainDirection: FillDirection? = null,
+    targetDrainDirection: FillDirection? = null,
 ) {
     val transfer = localProgress.coerceIn(0f, 1f)
     fills[sourceId] = SphereVisualState(
         fillLevel = 1f - transfer,
         isActive = transfer in 0.001f..0.999f,
         fillDirection = sourceDirection,
+        drainDirection = sourceDrainDirection,
         isDraining = transfer in 0.001f..0.999f,
     )
     fills[targetId] = SphereVisualState(
         fillLevel = transfer,
         isActive = transfer in 0.001f..0.999f,
         fillDirection = targetDirection,
+        drainDirection = targetDrainDirection,
         isDraining = false,
+    )
+}
+
+private fun computeModeBCycleOrder(layout: BreathStructureLayout): List<Int> = buildList {
+    layout.bottomHoldId?.let { add(it) }
+    layout.inhalePath.firstOrNull()?.let { add(it) }
+    layout.topHoldId?.let { add(it) }
+    layout.exhalePath.firstOrNull()?.let { add(it) }
+}
+
+private fun modeBCyclePrevious(layout: BreathStructureLayout, sphereId: Int): Int? {
+    val cycle = computeModeBCycleOrder(layout)
+    val index = cycle.indexOf(sphereId)
+    if (index < 0) return null
+    return cycle[(index - 1 + cycle.size) % cycle.size]
+}
+
+private fun modeBCycleNext(layout: BreathStructureLayout, sphereId: Int): Int? {
+    val cycle = computeModeBCycleOrder(layout)
+    val index = cycle.indexOf(sphereId)
+    if (index < 0) return null
+    return cycle[(index + 1) % cycle.size]
+}
+
+private fun modeBRoleFillDefault(
+    role: SphereRole,
+    sphereId: Int,
+    layout: BreathStructureLayout,
+): FillDirection = when (role) {
+    SphereRole.InhaleBlue -> FillDirection.BottomToTop
+    SphereRole.ExhaleRed -> FillDirection.TopToBottom
+    SphereRole.HoldPurple -> if (sphereId == layout.topHoldId) {
+        FillDirection.BottomToTopHold
+    } else {
+        FillDirection.TopToBottom
+    }
+}
+
+/** Fill/drain direction derived from pipe geometry between cycle neighbors. */
+private fun modeBPipeLiquidDirection(
+    layout: BreathStructureLayout,
+    fromSphereId: Int,
+    toSphereId: Int,
+    forReceiving: Boolean,
+): FillDirection {
+    val from = layout.sphere(fromSphereId) ?: return FillDirection.BottomToTop
+    val to = layout.sphere(toSphereId) ?: return FillDirection.BottomToTop
+
+    if (forReceiving) {
+        if (to.role == SphereRole.HoldPurple && to.id == layout.topHoldId && from.center.y > to.center.y) {
+            return FillDirection.BottomToTopHold
+        }
+        val sourceDx = from.center.x - to.center.x
+        val sourceDy = from.center.y - to.center.y
+        return when {
+            abs(sourceDy) >= abs(sourceDx) ->
+                if (sourceDy > 0f) FillDirection.BottomToTop else FillDirection.TopToBottom
+            else -> modeBRoleFillDefault(to.role, to.id, layout)
+        }
+    }
+
+    if (from.role == SphereRole.HoldPurple && from.id == layout.topHoldId) {
+        return FillDirection.BottomToTopHold
+    }
+    val targetDx = to.center.x - from.center.x
+    val targetDy = to.center.y - from.center.y
+    return when {
+        abs(targetDy) >= abs(targetDx) ->
+            if (targetDy < 0f) FillDirection.TopToBottom else FillDirection.BottomToTop
+        else -> {
+            val nextId = modeBCycleNext(layout, from.id)
+            if (nextId == to.id) {
+                when (from.role) {
+                    SphereRole.InhaleBlue -> FillDirection.TopToBottom
+                    SphereRole.ExhaleRed -> FillDirection.BottomToTop
+                    SphereRole.HoldPurple -> if (from.id == layout.topHoldId) {
+                        FillDirection.BottomToTopHold
+                    } else {
+                        FillDirection.TopToBottom
+                    }
+                }
+            } else {
+                modeBRoleFillDefault(from.role, from.id, layout)
+            }
+        }
+    }
+}
+
+private fun applyModeBSingleSphereFill(
+    fills: MutableMap<Int, SphereVisualState>,
+    layout: BreathStructureLayout,
+    sphereId: Int,
+    fillLevel: Float,
+) {
+    val level = fillLevel.coerceIn(0f, 1f)
+    val previousId = modeBCyclePrevious(layout, sphereId)
+    val fillDirection = if (previousId != null) {
+        modeBPipeLiquidDirection(layout, previousId, sphereId, forReceiving = true)
+    } else {
+        layout.sphere(sphereId)?.let { modeBRoleFillDefault(it.role, sphereId, layout) }
+            ?: FillDirection.BottomToTop
+    }
+    fills[sphereId] = SphereVisualState(
+        fillLevel = level,
+        isActive = level in 0.001f..0.999f,
+        fillDirection = fillDirection,
+    )
+}
+
+private fun applyModeBBridgeTransfer(
+    fills: MutableMap<Int, SphereVisualState>,
+    layout: BreathStructureLayout,
+    sourceId: Int,
+    targetId: Int,
+    localProgress: Float,
+) {
+    val source = layout.sphere(sourceId) ?: return
+    val sourcePrev = modeBCyclePrevious(layout, sourceId)
+    val sourceFillDirection = if (sourcePrev != null) {
+        modeBPipeLiquidDirection(layout, sourcePrev, sourceId, forReceiving = true)
+    } else {
+        modeBRoleFillDefault(source.role, sourceId, layout)
+    }
+    applyBridgeTransfer(
+        fills = fills,
+        sourceId = sourceId,
+        targetId = targetId,
+        localProgress = localProgress,
+        sourceDirection = sourceFillDirection,
+        targetDirection = modeBPipeLiquidDirection(layout, sourceId, targetId, forReceiving = true),
+        sourceDrainDirection = modeBPipeLiquidDirection(layout, sourceId, targetId, forReceiving = false),
     )
 }
 
@@ -876,7 +1016,7 @@ private data class ModeBPlacement(
 
 private fun modeBLayoutWidth(spec: BreathStructureSpec, radius: Float, gap: Float): Float {
     return if (!spec.hasTopHold && !spec.hasBottomHold) {
-        radius * 4f + gap
+        radius * 2f
     } else {
         radius * 4f + gap
     }
@@ -888,7 +1028,7 @@ private fun modeBVerticalSpan(spec: BreathStructureSpec, radius: Float, gap: Flo
     return when {
         spec.hasTopHold && spec.hasBottomHold -> edge + arm + arm + edge
         spec.hasTopHold -> edge + arm + edge
-        else -> edge
+        else -> edge + gap + edge
     }
 }
 
@@ -956,8 +1096,8 @@ private fun placeModeBSpheres(
         }
         else -> {
             val halfSpan = arm / 2f
-            spheres[inhaleId] = spheres.getValue(inhaleId).copy(center = Offset(centerX - halfSpan, centerY))
-            spheres[exhaleId] = spheres.getValue(exhaleId).copy(center = Offset(centerX + halfSpan, centerY))
+            spheres[inhaleId] = spheres.getValue(inhaleId).copy(center = Offset(centerX, centerY - halfSpan))
+            spheres[exhaleId] = spheres.getValue(exhaleId).copy(center = Offset(centerX, centerY + halfSpan))
         }
     }
 
@@ -991,6 +1131,7 @@ private fun buildModeBPipes(placement: ModeBPlacement): List<BreathPipe> {
         topHoldId != null -> listOf(
             BreathPipe(inhaleId, topHoldId),
             BreathPipe(topHoldId, exhaleId),
+            BreathPipe(inhaleId, exhaleId),
         )
         else -> listOf(BreathPipe(inhaleId, exhaleId))
     }
@@ -1008,81 +1149,81 @@ fun computeModeBSphereVisuals(
 
     when (sessionState.phase) {
         BreathPhase.Inhale -> {
-            if (layout.bottomHoldId != null && sessionState.cycleCount > 0) {
-                applyBridgeTransfer(
+            val previousId = modeBCyclePrevious(layout, inhaleId)
+            if (sessionState.cycleCount > 0 && previousId != null) {
+                applyModeBBridgeTransfer(
                     fills = fills,
-                    sourceId = layout.bottomHoldId,
+                    layout = layout,
+                    sourceId = previousId,
                     targetId = inhaleId,
                     localProgress = progress,
-                    sourceDirection = FillDirection.BottomToTopHold,
-                    targetDirection = FillDirection.BottomToTop,
                 )
             } else if (pattern.secondInhaleSeconds > 0f) {
                 val totalInhale = pattern.inhaleSeconds + pattern.secondInhaleSeconds
                 val fill = (progress * pattern.inhaleSeconds / totalInhale).coerceIn(0f, 1f)
-                fills[inhaleId] = SphereVisualState(
-                    fillLevel = fill,
-                    isActive = fill in 0.001f..0.999f,
-                    fillDirection = FillDirection.BottomToTop,
-                )
+                applyModeBSingleSphereFill(fills, layout, inhaleId, fill)
             } else {
-                fills[inhaleId] = SphereVisualState(
-                    fillLevel = progress,
-                    isActive = progress in 0.001f..0.999f,
-                    fillDirection = FillDirection.BottomToTop,
-                )
+                applyModeBSingleSphereFill(fills, layout, inhaleId, progress)
             }
         }
         BreathPhase.SecondInhale -> {
             val totalInhale = pattern.inhaleSeconds + pattern.secondInhaleSeconds
             val fill = ((pattern.inhaleSeconds + progress * pattern.secondInhaleSeconds) / totalInhale)
                 .coerceIn(0f, 1f)
-            fills[inhaleId] = SphereVisualState(
-                fillLevel = fill,
-                isActive = fill in 0.001f..0.999f,
-                fillDirection = FillDirection.BottomToTop,
-            )
+            applyModeBSingleSphereFill(fills, layout, inhaleId, fill)
         }
         BreathPhase.HoldIn -> {
             layout.topHoldId?.let { holdId ->
-                applyBridgeTransfer(
+                applyModeBBridgeTransfer(
                     fills = fills,
+                    layout = layout,
                     sourceId = inhaleId,
                     targetId = holdId,
                     localProgress = progress,
-                    sourceDirection = FillDirection.BottomToTop,
-                    targetDirection = FillDirection.BottomToTopHold,
                 )
             }
         }
         BreathPhase.Exhale -> {
-            layout.inhalePath.forEach { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTop) }
             val sourceId = layout.topHoldId ?: inhaleId
-            val sourceDirection = if (layout.topHoldId != null) {
-                FillDirection.BottomToTopHold
-            } else {
-                FillDirection.BottomToTop
+            if (layout.topHoldId != null) {
+                layout.inhalePath.forEach { id ->
+                    fills[id] = SphereVisualState(
+                        0f,
+                        false,
+                        modeBRoleFillDefault(SphereRole.InhaleBlue, id, layout),
+                    )
+                }
             }
-            applyBridgeTransfer(
+            applyModeBBridgeTransfer(
                 fills = fills,
+                layout = layout,
                 sourceId = sourceId,
                 targetId = exhaleId,
                 localProgress = progress,
-                sourceDirection = sourceDirection,
-                targetDirection = FillDirection.TopToBottom,
             )
         }
         BreathPhase.HoldOut -> {
-            layout.inhalePath.forEach { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTop) }
-            layout.topHoldId?.let { fills[it] = SphereVisualState(0f, false, FillDirection.BottomToTopHold) }
+            layout.inhalePath.forEach { id ->
+                fills[id] = SphereVisualState(
+                    0f,
+                    false,
+                    modeBRoleFillDefault(SphereRole.InhaleBlue, id, layout),
+                )
+            }
+            layout.topHoldId?.let { holdId ->
+                fills[holdId] = SphereVisualState(
+                    0f,
+                    false,
+                    modeBRoleFillDefault(SphereRole.HoldPurple, holdId, layout),
+                )
+            }
             layout.bottomHoldId?.let { holdId ->
-                applyBridgeTransfer(
+                applyModeBBridgeTransfer(
                     fills = fills,
+                    layout = layout,
                     sourceId = exhaleId,
                     targetId = holdId,
                     localProgress = progress,
-                    sourceDirection = FillDirection.TopToBottom,
-                    targetDirection = FillDirection.BottomToTopHold,
                 )
             }
         }
