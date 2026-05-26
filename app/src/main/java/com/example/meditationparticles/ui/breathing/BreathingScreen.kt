@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -49,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -60,6 +62,7 @@ import com.example.meditationparticles.canvas.BreathingCanvasDisplayMode
 import com.example.meditationparticles.domain.breathing.BreathPhase
 import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.breathing.BreathingSessionState
+import com.example.meditationparticles.domain.breathing.BreathingVisualMode
 import com.example.meditationparticles.domain.breathing.SessionMode
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneTabBackground
@@ -78,6 +81,7 @@ fun BreathingScreen(
     onSessionActiveChange: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.sessionState.collectAsState()
+    val visualMode by viewModel.visualMode.collectAsState()
     var controlsVisible by remember { mutableStateOf(true) }
     val sessionActive = state.isRunning && state.phase != BreathPhase.Complete
     val exerciseBlend by animateFloatAsState(
@@ -140,6 +144,7 @@ fun BreathingScreen(
                     BreathingCanvas(
                         sessionState = state.copy(pattern = BreathingPattern.byId(patternId)),
                         displayMode = BreathingCanvasDisplayMode.Preview,
+                        visualMode = visualMode,
                         modifier = Modifier.fillMaxSize(),
                         topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },
                         bottomInset = bottomInset,
@@ -151,6 +156,7 @@ fun BreathingScreen(
                 BreathingCanvas(
                     sessionState = state,
                     displayMode = BreathingCanvasDisplayMode.Exercise,
+                    visualMode = visualMode,
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(exerciseBlend),
@@ -166,6 +172,15 @@ fun BreathingScreen(
                     .onGloballyPositioned { coords ->
                         headerHeightPx = coords.size.height.toFloat()
                     },
+            )
+
+            BreathingVisualModeToggle(
+                selected = visualMode,
+                onSelect = viewModel::setVisualMode,
+                enabled = !state.isRunning,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = SereneSpacing.containerMargin),
             )
 
             FloatingActionButton(
@@ -299,6 +314,54 @@ fun BreathingScreen(
             }
         }
     }
+    }
+}
+
+@Composable
+private fun BreathingVisualModeToggle(
+    selected: BreathingVisualMode,
+    onSelect: (BreathingVisualMode) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(8.dp)
+    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    val selectedColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .border(1.dp, borderColor, shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
+    ) {
+        BreathingVisualMode.entries.forEachIndexed { index, mode ->
+            val isSelected = selected == mode
+            Box(
+                modifier = Modifier
+                    .clickable(enabled = enabled) { onSelect(mode) }
+                    .background(if (isSelected) selectedColor else Color.Transparent)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = mode.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 0.75f else 0.35f)
+                    },
+                )
+            }
+            if (index == 0) {
+                Box(
+                    modifier = Modifier
+                        .height(28.dp)
+                        .padding(vertical = 6.dp)
+                        .border(0.5.dp, borderColor),
+                )
+            }
+        }
     }
 }
 

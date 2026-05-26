@@ -247,4 +247,99 @@ class BreathSphereFillTest {
             }
         }
     }
+
+    @Test
+    fun modeB_resonantInhale_fillsOverFullPhaseDuration() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.Resonant)
+        val inhaleId = layout.inhalePath.first()
+
+        val empty = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = BreathingPattern.Resonant, phase = BreathPhase.Inhale, progress = 0f),
+            layout,
+        )
+        assertEquals(0f, empty[inhaleId]?.fillLevel ?: -1f, 0.001f)
+
+        val halfway = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = BreathingPattern.Resonant, phase = BreathPhase.Inhale, progress = 0.5f),
+            layout,
+        )
+        assertEquals(0.5f, halfway[inhaleId]?.fillLevel ?: -1f, 0.02f)
+        assertTrue(halfway[inhaleId]?.isActive ?: false)
+
+        val full = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = BreathingPattern.Resonant, phase = BreathPhase.Inhale, progress = 1f),
+            layout,
+        )
+        assertEquals(1f, full[inhaleId]?.fillLevel ?: -1f, 0.001f)
+    }
+
+    @Test
+    fun modeB_boxHoldIn_transfersInhaleIntoTopHold() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+        val inhaleId = layout.inhalePath.first()
+        val holdId = requireNotNull(layout.topHoldId)
+
+        val halfway = computeModeBSphereVisuals(
+            BreathTestFixtures.session(phase = BreathPhase.HoldIn, progress = 0.5f),
+            layout,
+        )
+        assertEquals(0.5f, halfway[holdId]?.fillLevel ?: -1f, 0.02f)
+        assertEquals(0.5f, halfway[inhaleId]?.fillLevel ?: -1f, 0.02f)
+    }
+
+    @Test
+    fun modeB_physiologicalSigh_blueFillsAcrossBothInhales() {
+        val pattern = BreathingPattern.PhysiologicalSigh
+        val layout = BreathTestFixtures.layoutForModeB(pattern)
+        val inhaleId = layout.inhalePath.first()
+        val total = pattern.inhaleSeconds + pattern.secondInhaleSeconds
+
+        val firstInhaleDone = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = pattern, phase = BreathPhase.Inhale, progress = 1f),
+            layout,
+        )
+        assertEquals(
+            pattern.inhaleSeconds / total,
+            firstInhaleDone[inhaleId]?.fillLevel ?: -1f,
+            0.02f,
+        )
+
+        val secondHalf = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = pattern, phase = BreathPhase.SecondInhale, progress = 0.5f),
+            layout,
+        )
+        val expected = (pattern.inhaleSeconds + pattern.secondInhaleSeconds * 0.5f) / total
+        assertEquals(expected, secondHalf[inhaleId]?.fillLevel ?: -1f, 0.03f)
+    }
+
+    @Test
+    fun modeB_prepareAndComplete_allSpheresEmpty() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+
+        listOf(BreathPhase.Prepare, BreathPhase.Complete).forEach { phase ->
+            val visuals = computeModeBSphereVisuals(
+                BreathTestFixtures.session(phase = phase, progress = 0f, isRunning = false),
+                layout,
+            )
+            layout.allSpheres.forEach { sphere ->
+                assertEquals(0f, visuals[sphere.id]?.fillLevel ?: -1f, 0.001f)
+            }
+        }
+    }
+
+    @Test
+    fun modeB_fourSevenEight_holdInUsesFullPhaseProgress() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.FourSevenEight)
+        val holdId = requireNotNull(layout.topHoldId)
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(
+                pattern = BreathingPattern.FourSevenEight,
+                phase = BreathPhase.HoldIn,
+                progress = 0.5f,
+            ),
+            layout,
+        )
+        assertEquals(0.5f, visuals[holdId]?.fillLevel ?: -1f, 0.02f)
+    }
 }

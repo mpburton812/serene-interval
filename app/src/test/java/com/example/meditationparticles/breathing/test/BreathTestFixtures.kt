@@ -1,6 +1,7 @@
 package com.example.meditationparticles.breathing.test
 
 import com.example.meditationparticles.canvas.BreathStructureLayout
+import com.example.meditationparticles.canvas.computeModeBLayout
 import com.example.meditationparticles.canvas.computeStructureLayout
 import com.example.meditationparticles.domain.breathing.BreathPhase
 import com.example.meditationparticles.domain.breathing.BreathingPattern
@@ -23,6 +24,20 @@ object BreathTestFixtures {
         topInset: Float = TOP_INSET,
         bottomInset: Float = BOTTOM_INSET,
     ): BreathStructureLayout = computeStructureLayout(
+        pattern = pattern,
+        width = width,
+        height = height,
+        topInset = topInset,
+        bottomInset = bottomInset,
+    )
+
+    fun layoutForModeB(
+        pattern: BreathingPattern,
+        width: Float = PHONE_WIDTH,
+        height: Float = PHONE_HEIGHT,
+        topInset: Float = TOP_INSET,
+        bottomInset: Float = BOTTOM_INSET,
+    ): BreathStructureLayout = computeModeBLayout(
         pattern = pattern,
         width = width,
         height = height,

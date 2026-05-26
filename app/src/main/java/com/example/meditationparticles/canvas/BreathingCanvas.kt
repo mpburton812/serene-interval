@@ -22,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import com.example.meditationparticles.R
 import com.example.meditationparticles.domain.breathing.BreathingSessionState
+import com.example.meditationparticles.domain.breathing.BreathingVisualMode
 import com.example.meditationparticles.ui.theme.SerenePrimaryContainer
 import com.example.meditationparticles.ui.theme.SereneSecondaryContainer
 import kotlinx.coroutines.isActive
@@ -50,6 +51,7 @@ fun BreathingAtmosphereBackground(modifier: Modifier = Modifier) {
 fun BreathingCanvas(
     sessionState: BreathingSessionState,
     displayMode: BreathingCanvasDisplayMode,
+    visualMode: BreathingVisualMode = BreathingVisualMode.A,
     modifier: Modifier = Modifier,
     topInset: Dp = Dp(0f),
     bottomInset: Dp = Dp(72f),
@@ -90,22 +92,39 @@ fun BreathingCanvas(
             0f
         }
 
-        val layout = computeStructureLayout(
-            pattern = sessionState.pattern,
-            width = canvasWidth,
-            height = canvasHeight,
-            topInset = topInsetPx + previewExtra,
-            bottomInset = bottomInsetPx + previewExtra,
-            zoneFillRatio = if (displayMode == BreathingCanvasDisplayMode.Preview) {
-                PREVIEW_ZONE_FILL_RATIO
-            } else {
-                FLOW_CHAIN_FILL_RATIO
-            },
-        )
+        val layout = when (visualMode) {
+            BreathingVisualMode.A -> computeStructureLayout(
+                pattern = sessionState.pattern,
+                width = canvasWidth,
+                height = canvasHeight,
+                topInset = topInsetPx + previewExtra,
+                bottomInset = bottomInsetPx + previewExtra,
+                zoneFillRatio = if (displayMode == BreathingCanvasDisplayMode.Preview) {
+                    PREVIEW_ZONE_FILL_RATIO
+                } else {
+                    FLOW_CHAIN_FILL_RATIO
+                },
+            )
+            BreathingVisualMode.B -> computeModeBLayout(
+                pattern = sessionState.pattern,
+                width = canvasWidth,
+                height = canvasHeight,
+                topInset = topInsetPx + previewExtra,
+                bottomInset = bottomInsetPx + previewExtra,
+                zoneFillRatio = if (displayMode == BreathingCanvasDisplayMode.Preview) {
+                    PREVIEW_ZONE_FILL_RATIO
+                } else {
+                    FLOW_CHAIN_FILL_RATIO
+                },
+            )
+        }
 
         val visuals = when (displayMode) {
             BreathingCanvasDisplayMode.Preview -> computePreviewSphereVisuals(layout)
-            BreathingCanvasDisplayMode.Exercise -> computeSphereVisuals(sessionState, layout)
+            BreathingCanvasDisplayMode.Exercise -> when (visualMode) {
+                BreathingVisualMode.A -> computeSphereVisuals(sessionState, layout)
+                BreathingVisualMode.B -> computeModeBSphereVisuals(sessionState, layout)
+            }
         }
 
         val startSphereId = if (displayMode == BreathingCanvasDisplayMode.Preview) {
