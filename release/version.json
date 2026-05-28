@@ -1,8 +1,8 @@
 {
-  "versionCode": 11,
-  "versionName": "1.0.10",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.10/sway_meditation.apk",
-  "expectedSha256": "f0182b9c66cf08692f83df0731c381bf121c6a4991dcf3939ac85c7422c3cefb",
-  "releaseNotes": "• OneNote Phase 2: notebook picker, per-tool sync toggles, backfill, manual sync, delete, PATCH\n• OneNote auth fixes: MSAL audience, scopes, account mismatch, redirect URI\n• Toolkit usage sorting, tab swipe pager, SereneTabHeader, NVC workflow\n• Settings error handling improvements for OneNote connect",
+  "versionCode": 12,
+  "versionName": "1.0.11",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.11/sway_meditation.apk",
+  "expectedSha256": "dfb84ba224897859fe75e253ba3e10b215176d848200e6d9d11483f5c6550ca0",
+  "releaseNotes": "• Unified journal capture with optional mood (colored 1–5 picker) on toolkit logs, future self, NVC, refactoring, and center of gravity\n• Meditation reflection after timer complete with optional mood and OneNote sync\n• Capture Thought and Anxiety Log share the same entry UI; mood stored on all journal tables (Room v12)\n• Toolkit category updates, meditation/breath UI polish, Visuals removed from bottom nav\n• Build footer shows version name and code",
   "minVersionCode": 1
 }

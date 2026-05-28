@@ -14,5 +14,6 @@ data class NvcEntryEntity(
     val needAudioPath: String? = null,
     val request: String,
     val requestAudioPath: String? = null,
+    val moodLevel: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )

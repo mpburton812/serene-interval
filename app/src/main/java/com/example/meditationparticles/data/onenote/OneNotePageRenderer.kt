@@ -2,6 +2,7 @@ package com.example.meditationparticles.data.onenote
 
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -22,6 +23,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>Non-Violent Communication</h1>")
+            appendMoodLine(entry.moodLevel)
             appendFieldSection(
                 stepHint = steps.getOrNull(0),
                 heading = "Observation",
@@ -64,6 +66,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>Refactoring</h1>")
+            appendMoodLine(entry.moodLevel)
             appendFieldSection(
                 stepHint = steps.getOrNull(0),
                 heading = "Actual facts",
@@ -111,6 +114,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>Relocate Center of Gravity</h1>")
+            appendMoodLine(entry.moodLevel)
             appendFieldSection(
                 stepHint = steps.getOrNull(0),
                 heading = "Thoughts and feelings",
@@ -141,7 +145,8 @@ object OneNotePageRenderer {
         val tool = ToolkitCatalog.byId(ToolkitToolId.ThoughtDump)
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
-            appendLine("<h1>${escapeHtml(tool?.title ?: "Daily Thought Dump")}</h1>")
+            appendLine("<h1>${escapeHtml(tool?.title ?: "Capture Thought")}</h1>")
+            appendMoodLine(entry.moodLevel)
             appendParagraph(entry.content)
             appendAudioNote(entry.audioPath)
             appendFooter(entry.id)
@@ -157,6 +162,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>${escapeHtml(tool?.title ?: "Anxiety Log")}</h1>")
+            appendMoodLine(entry.moodLevel)
             appendParagraph(entry.content)
             appendAudioNote(entry.audioPath)
             appendFooter(entry.id)
@@ -175,6 +181,7 @@ object OneNotePageRenderer {
             appendLine("<h1>${escapeHtml(tool?.title ?: "Future Self Message")}</h1>")
             appendLine("<p><strong>Deliver on:</strong> ${escapeHtml(deliverLabel)}</p>")
             appendLine("<p><strong>Written on:</strong> ${escapeHtml(createdLabel)}</p>")
+            appendMoodLine(entry.moodLevel)
             appendParagraph(entry.content)
             appendAudioNote(entry.audioPath)
             appendFooter(entry.id)
@@ -189,6 +196,25 @@ object OneNotePageRenderer {
         )
     }
 
+    fun renderMeditationReflection(entry: MeditationReflectionEntity): OneNotePageContent {
+        val dateLabel = formatDate(entry.completedAt)
+        val body = buildString {
+            appendLine("<h1>Meditation Reflection</h1>")
+            appendLine("<p><strong>Duration:</strong> ${entry.durationSeconds / 60} min</p>")
+            appendMoodLine(entry.moodLevel)
+            appendParagraph(entry.reflection)
+            appendFooter(entry.id)
+        }
+        return OneNotePageContent(
+            title = "Meditation Reflection — $dateLabel",
+            html = wrapHtml(
+                title = "Meditation Reflection — $dateLabel",
+                createdAtMillis = entry.completedAt,
+                body = body,
+            ),
+        )
+    }
+
     fun render(entryType: OneNoteEntryType, payload: Any): OneNotePageContent = when (entryType) {
         OneNoteEntryType.NVC -> renderNvc(payload as NvcEntryEntity)
         OneNoteEntryType.REFACTORING -> renderRefactoring(payload as RefactoringEntryEntity)
@@ -196,6 +222,7 @@ object OneNotePageRenderer {
         OneNoteEntryType.THOUGHT_DUMP -> renderThoughtDump(payload as ThoughtDumpEntity)
         OneNoteEntryType.ANXIETY_LOG -> renderAnxietyLog(payload as ThoughtDumpEntity)
         OneNoteEntryType.FUTURE_SELF -> renderFutureSelf(payload as FutureSelfMessageEntity)
+        OneNoteEntryType.MEDITATION_REFLECTION -> renderMeditationReflection(payload as MeditationReflectionEntity)
     }
 
     internal fun escapeHtml(value: String): String = buildString(value.length) {
@@ -208,6 +235,12 @@ object OneNotePageRenderer {
                 '\'' -> append("&#39;")
                 else -> append(char)
             }
+        }
+    }
+
+    private fun StringBuilder.appendMoodLine(moodLevel: Int?) {
+        moodLevel?.let { level ->
+            appendLine("<p><strong>Mood:</strong> ${level.coerceIn(1, 5)}/5</p>")
         }
     }
 

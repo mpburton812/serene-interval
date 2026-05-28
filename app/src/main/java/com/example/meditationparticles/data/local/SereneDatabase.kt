@@ -11,6 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         AffirmationEntity::class,
         ThoughtDumpEntity::class,
+        MeditationReflectionEntity::class,
         SessionEntity::class,
         FutureSelfMessageEntity::class,
         RefactoringEntryEntity::class,
@@ -19,12 +20,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OneNoteSyncMappingEntity::class,
         OneNoteSyncQueueEntity::class,
     ],
-    version = 9,
+    version = 12,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
     abstract fun affirmationDao(): AffirmationDao
     abstract fun thoughtDumpDao(): ThoughtDumpDao
+    abstract fun meditationReflectionDao(): MeditationReflectionDao
     abstract fun sessionDao(): SessionDao
     abstract fun futureSelfMessageDao(): FutureSelfMessageDao
     abstract fun refactoringEntryDao(): RefactoringEntryDao
@@ -189,6 +191,61 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    ALTER TABLE thought_dumps ADD COLUMN moodLevel INTEGER NOT NULL DEFAULT 3
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS meditation_reflections (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        reflection TEXT NOT NULL,
+                        durationSeconds INTEGER NOT NULL,
+                        completedAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS thought_dumps_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        logType TEXT NOT NULL,
+                        moodLevel INTEGER,
+                        audioPath TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO thought_dumps_new (id, content, logType, moodLevel, audioPath, createdAt)
+                    SELECT id, content, logType, moodLevel, audioPath, createdAt FROM thought_dumps
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE thought_dumps")
+                db.execSQL("ALTER TABLE thought_dumps_new RENAME TO thought_dumps")
+                db.execSQL("ALTER TABLE meditation_reflections ADD COLUMN moodLevel INTEGER")
+                db.execSQL("ALTER TABLE future_self_messages ADD COLUMN moodLevel INTEGER")
+                db.execSQL("ALTER TABLE refactoring_entries ADD COLUMN moodLevel INTEGER")
+                db.execSQL("ALTER TABLE center_of_gravity_entries ADD COLUMN moodLevel INTEGER")
+                db.execSQL("ALTER TABLE nvc_entries ADD COLUMN moodLevel INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -205,6 +262,9 @@ abstract class SereneDatabase : RoomDatabase() {
                         MIGRATION_6_7,
                         MIGRATION_7_8,
                         MIGRATION_8_9,
+                        MIGRATION_9_10,
+                        MIGRATION_10_11,
+                        MIGRATION_11_12,
                     )
                     .build()
                     .also { instance = it }

@@ -59,7 +59,6 @@ import com.example.meditationparticles.ui.timer.TimerScreen
 import com.example.meditationparticles.ui.toolkit.AffirmationsScreen
 import com.example.meditationparticles.ui.toolkit.ToolkitScreen
 import com.example.meditationparticles.ui.update.UpdateViewModel
-import com.example.meditationparticles.ui.visualizations.VisualizationPlayerScreen
 import com.example.meditationparticles.ui.visualizations.VisualizationsScreen
 
 private val allBottomNavItems = listOf(
@@ -73,7 +72,6 @@ private val allBottomNavItems = listOf(
         Icons.Default.FormatQuote,
     ),
     BottomNavItem(SereneDestination.Toolkit, "Toolkit", Icons.Outlined.Handyman, Icons.Default.Handyman),
-    BottomNavItem(SereneDestination.Visualizations, "Visuals", Icons.Outlined.Landscape, Icons.Default.Landscape),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -82,7 +80,6 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Timer.route,
     SereneDestination.Affirmations.route,
     SereneDestination.Toolkit.route,
-    SereneDestination.Visualizations.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -105,7 +102,6 @@ fun SereneNavHost(
     val isSystemDark = isSystemInDarkTheme()
     var breathingSessionActive by remember { mutableStateOf(false) }
     var timerSessionActive by remember { mutableStateOf(false) }
-    var visualizationPlayerActive by remember { mutableStateOf(false) }
     var activeFutureSelfMessageId by remember { mutableStateOf<Long?>(null) }
     var toolkitResetSignal by remember { mutableIntStateOf(0) }
 
@@ -151,13 +147,10 @@ fun SereneNavHost(
         if (currentRoute != SereneDestination.Timer.route) {
             timerSessionActive = false
         }
-        if (currentRoute?.startsWith("visualizations/player") != true) {
-            visualizationPlayerActive = false
-        }
     }
 
     KeepScreenOnEffect(
-        active = breathingSessionActive || timerSessionActive || visualizationPlayerActive,
+        active = breathingSessionActive || timerSessionActive,
     )
 
     val bottomNavItems = remember(
@@ -165,7 +158,6 @@ fun SereneNavHost(
         settings.enableTimer,
         settings.enableAffirmations,
         settings.enableToolkit,
-        settings.enableVisuals,
     ) {
         allBottomNavItems.filter { item ->
             when (item.destination) {
@@ -174,7 +166,6 @@ fun SereneNavHost(
                 SereneDestination.Timer -> settings.enableTimer
                 SereneDestination.Affirmations -> settings.enableAffirmations
                 SereneDestination.Toolkit -> settings.enableToolkit
-                SereneDestination.Visualizations -> settings.enableVisuals
                 else -> false
             }
         }
@@ -230,15 +221,12 @@ fun SereneNavHost(
 
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
-        currentRoute?.startsWith("visualizations/player") != true &&
         !breathingSessionActive
 
     val showAppBanner = currentRoute != SereneDestination.Settings.route &&
-        currentRoute != SereneDestination.Onboarding.route &&
-        currentRoute?.startsWith("visualizations/player") != true
+        currentRoute != SereneDestination.Onboarding.route
 
-    val showBuildInfoLabel = currentRoute?.startsWith("visualizations/player") != true &&
-        !breathingSessionActive
+    val showBuildInfoLabel = !breathingSessionActive
 
     val showBottomBarSection = showBottomBar || showBuildInfoLabel
 
@@ -359,23 +347,6 @@ fun SereneNavHost(
                     }
                 }
             }
-            composable(SereneDestination.Visualizations.route) { }
-            composable(
-                route = "visualizations/player/{vizId}",
-                arguments = listOf(navArgument("vizId") { type = NavType.StringType }),
-            ) { entry ->
-                val vizId = entry.arguments?.getString("vizId")
-                val visualization = vizId?.let { CalmingVisualizationCatalog.byRouteName(it) }
-                if (visualization != null) {
-                    VisualizationPlayerScreen(
-                        visualization = visualization,
-                        onClose = { navController.popBackStack() },
-                        onPlayerActiveChange = { active ->
-                            visualizationPlayerActive = active
-                        },
-                    )
-                }
-            }
         }
             if (isTabRoute(currentRoute, bottomNavItems) && bottomNavItems.isNotEmpty()) {
                 MainTabPager(
@@ -428,15 +399,6 @@ fun SereneNavHost(
                                 resetSignal = toolkitResetSignal,
                                 onNavigateToBreathe = {
                                     navigateToTab(SereneDestination.Breathe)
-                                },
-                            )
-                        }
-                        SereneDestination.Visualizations -> {
-                            VisualizationsScreen(
-                                onOpenVisualization = { id ->
-                                    navController.navigate(
-                                        SereneDestination.Visualizations.playerRoute(id.name),
-                                    )
                                 },
                             )
                         }

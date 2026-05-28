@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Handyman
-import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WaterDrop
@@ -224,7 +223,6 @@ fun ExperienceSection(
     onTimerChanged: (Boolean) -> Unit,
     onAffirmationsChanged: (Boolean) -> Unit,
     onToolkitChanged: (Boolean) -> Unit,
-    onVisualsChanged: (Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
         Text(
@@ -261,12 +259,6 @@ fun ExperienceSection(
             icon = Icons.Default.Handyman,
             checked = settings.enableToolkit,
             onCheckedChange = onToolkitChanged,
-        )
-        SettingsToggleRow(
-            label = "Visual Sanctuary",
-            icon = Icons.Default.Landscape,
-            checked = settings.enableVisuals,
-            onCheckedChange = onVisualsChanged,
         )
     }
 }
@@ -315,120 +307,4 @@ fun SettingsToggleRow(
     }
 }
 
-@Composable
-fun VisualSanctuarySection(
-    enabledScenes: Set<String>,
-    onToggleScene: (CalmingVisualizationId) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Default.Landscape,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-            )
-            Text(
-                text = "Visual Sanctuary Scenes",
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-        Text(
-            text = "Pick your preferred ambient backgrounds.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        val scenes = listOf(
-            SceneOption(CalmingVisualizationId.Snowfall, "Snowfall", Icons.Default.AcUnit),
-            SceneOption(CalmingVisualizationId.Rainfall, "Rainfall", Icons.Default.WaterDrop),
-            SceneOption(CalmingVisualizationId.Firepit, "Firepit", Icons.Default.LocalFireDepartment),
-            SceneOption(CalmingVisualizationId.Sandblow, "Sandblow", Icons.Default.Waves),
-            SceneOption(CalmingVisualizationId.Leaffall, "Leaffall", Icons.Default.Eco),
-        )
-
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            scenes.chunked(2).forEach { rowScenes ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    rowScenes.forEach { scene ->
-                        SceneToggleChip(
-                            scene = scene,
-                            selected = enabledScenes.contains(scene.id.name),
-                            onClick = { onToggleScene(scene.id) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    if (rowScenes.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-data class SceneOption(
-    val id: CalmingVisualizationId,
-    val label: String,
-    val icon: ImageVector,
-)
-
-@Composable
-fun SceneToggleChip(
-    scene: SceneOption,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(12.dp)
-    val borderColor = if (selected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-    }
-    val backgroundColor = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
-    }
-
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(backgroundColor)
-            .border(1.dp, borderColor, shape)
-            .clickable(onClick = onClick)
-            .padding(12.dp),
-    ) {
-        if (selected) {
-            Icon(
-                Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(18.dp),
-            )
-        }
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = scene.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-            )
-            Text(
-                text = scene.label,
-                style = MaterialTheme.typography.labelMedium,
-            )
-        }
-    }
-}
+// Visual Sanctuary was removed.

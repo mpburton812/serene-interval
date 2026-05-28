@@ -36,6 +36,7 @@ data class ToolkitUiState(
     val selectedTool: ToolkitTool? = null,
     val stepIndex: Int = 0,
     val thoughtDumpText: String = "",
+    val draftMoodLevel: Int? = null,
     val anxietyLogText: String = "",
     val pendingAudioPath: String? = null,
     val thoughtDumpEntries: List<ThoughtDumpEntity> = emptyList(),
@@ -208,6 +209,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 stepIndex = 0,
                 randomToolState = RandomToolState.Idle,
                 thoughtDumpText = "",
+                draftMoodLevel = null,
                 anxietyLogText = "",
                 pendingAudioPath = null,
                 openedLogEntry = null,
@@ -285,6 +287,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 selectedTool = null,
                 stepIndex = 0,
                 thoughtDumpText = "",
+                draftMoodLevel = null,
                 anxietyLogText = "",
                 pendingAudioPath = null,
                 openedLogEntry = null,
@@ -339,6 +342,10 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateThoughtDump(text: String) {
         _uiState.update { it.copy(thoughtDumpText = text) }
+    }
+
+    fun updateDraftMoodLevel(level: Int?) {
+        _uiState.update { it.copy(draftMoodLevel = level?.coerceIn(1, 5)) }
     }
 
     fun updateAnxietyLog(text: String) {
@@ -475,6 +482,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     explanation2AudioPath = state.refactoringExplanation2Audio,
                     explanation3 = state.refactoringExplanation3.trim(),
                     explanation3AudioPath = state.refactoringExplanation3Audio,
+                    moodLevel = state.draftMoodLevel,
                 ),
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.REFACTORING, it) }
@@ -602,6 +610,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     thoughtsAndFeelingsAudioPath = state.centerOfGravityThoughtsAndFeelingsAudio,
                     bodyAndNeeds = state.centerOfGravityBodyAndNeeds.trim(),
                     bodyAndNeedsAudioPath = state.centerOfGravityBodyAndNeedsAudio,
+                    moodLevel = state.draftMoodLevel,
                 ),
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.CENTER_OF_GRAVITY, it) }
@@ -740,6 +749,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     needAudioPath = state.nvcNeedAudio,
                     request = state.nvcRequest.trim(),
                     requestAudioPath = state.nvcRequestAudio,
+                    moodLevel = state.draftMoodLevel,
                 ),
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.NVC, it) }
@@ -827,10 +837,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             val entryId = logRepository.save(
                 type = ToolkitLogType.THOUGHT_DUMP,
                 content = _uiState.value.thoughtDumpText,
+                moodLevel = _uiState.value.draftMoodLevel,
                 audioPath = _uiState.value.pendingAudioPath,
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.THOUGHT_DUMP, it) }
-            _uiState.update { it.copy(thoughtDumpText = "", pendingAudioPath = null) }
+            _uiState.update { it.copy(thoughtDumpText = "", draftMoodLevel = null, pendingAudioPath = null) }
         }
     }
 
@@ -839,10 +850,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             val entryId = logRepository.save(
                 type = ToolkitLogType.ANXIETY_LOG,
                 content = _uiState.value.anxietyLogText,
+                moodLevel = _uiState.value.draftMoodLevel,
                 audioPath = _uiState.value.pendingAudioPath,
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.ANXIETY_LOG, it) }
-            _uiState.update { it.copy(anxietyLogText = "", pendingAudioPath = null) }
+            _uiState.update { it.copy(anxietyLogText = "", draftMoodLevel = null, pendingAudioPath = null) }
         }
     }
 
@@ -859,6 +871,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 content = state.futureSelfText,
                 audioPath = state.pendingAudioPath,
                 scheduledAtMillis = state.futureSelfScheduledAtMillis,
+                moodLevel = state.draftMoodLevel,
             ) ?: return@launch
             FutureSelfMessageScheduler.schedule(
                 appContext,
@@ -874,6 +887,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update {
             it.copy(
                 thoughtDumpText = "",
+                draftMoodLevel = null,
                 anxietyLogText = "",
                 futureSelfText = "",
                 pendingAudioPath = null,
@@ -942,6 +956,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update {
             it.copy(
                 futureSelfText = entry.content,
+                draftMoodLevel = entry.moodLevel,
                 pendingAudioPath = entry.audioPath,
                 futureSelfScheduledAtMillis = entry.scheduledAtMillis,
                 editingFutureSelfId = entry.id,

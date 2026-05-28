@@ -46,6 +46,7 @@ import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.MoodLevelPicker
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
@@ -60,6 +61,8 @@ private const val CENTER_OF_GRAVITY_INTRO =
 @Composable
 fun CenterOfGravityContent(
     stepIndex: Int,
+    selectedMoodLevel: Int?,
+    onMoodLevelChange: (Int?) -> Unit,
     thoughtsAndFeelings: String,
     bodyAndNeeds: String,
     pendingAudioPath: String?,
@@ -178,6 +181,10 @@ fun CenterOfGravityContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            MoodLevelPicker(
+                selectedLevel = selectedMoodLevel,
+                onLevelChange = onMoodLevelChange,
+            )
 
             when (stepIndex) {
                 0 -> CenterOfGravityFieldEditor(
@@ -295,7 +302,7 @@ private fun CenterOfGravityFieldEditor(
     onToggleRecord: () -> Unit,
     isRecording: Boolean,
     pendingAudioPath: String?,
-    minLines: Int = 6,
+    minLines: Int = 8,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -307,7 +314,7 @@ private fun CenterOfGravityFieldEditor(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Write here…") },
+            placeholder = { Text("What's on your mind…") },
             minLines = minLines,
         )
         Row(

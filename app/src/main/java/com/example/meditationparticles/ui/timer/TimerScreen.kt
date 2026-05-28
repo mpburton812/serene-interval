@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,8 +48,10 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -95,6 +98,8 @@ fun TimerScreen(
     onSessionActiveChange: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.sessionState.collectAsState()
+    val reflection by viewModel.reflectionText.collectAsState()
+    val reflectionSaved by viewModel.reflectionSaved.collectAsState()
     val context = LocalContext.current
     val remindersAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
     val preferences = remember { TimerPreferences(context) }
@@ -180,8 +185,8 @@ fun TimerScreen(
     }
 
     SideEffect {
-        val keepScreenOn = sessionActive && state.displayMode != TimerDisplayMode.Blank
-        onSessionActiveChange(keepScreenOn)
+        // Allow the screen to sleep normally during meditation.
+        onSessionActiveChange(false)
     }
 
     DisposableEffect(Unit) {
@@ -298,17 +303,6 @@ fun TimerScreen(
                                 modifier = Modifier.size(28.dp),
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(TimerDisplayAreaHeight),
-                        ) {
-                            TimerDisplay(
-                                state = state,
-                                showCountdown = showDisplayCountdown,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
                     }
                 } else {
                     Box(
@@ -357,6 +351,16 @@ fun TimerScreen(
                             .padding(top = SereneSpacing.stackMd, bottom = SereneSpacing.stackMd),
                         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
                     ) {
+                if (state.phase == TimerPhase.Complete) {
+                    MeditationReflectionCard(
+                        reflection = reflection,
+                        reflectionMoodLevel = viewModel.reflectionMoodLevel.collectAsState().value,
+                        saved = reflectionSaved,
+                        onReflectionChange = viewModel::updateReflection,
+                        onReflectionMoodChange = viewModel::updateReflectionMoodLevel,
+                        onSave = viewModel::saveReflection,
+                    )
+                }
                 ControlSection(
                     title = "Duration",
                     subtitle = "Tap to change session length",
@@ -581,6 +585,56 @@ fun TimerScreen(
 }
 
 @Composable
+private fun MeditationReflectionCard(
+    reflection: String,
+    reflectionMoodLevel: Int?,
+    saved: Boolean,
+    onReflectionChange: (String) -> Unit,
+    onReflectionMoodChange: (Int?) -> Unit,
+    onSave: () -> Unit,
+) {
+    ControlSection(
+        title = "Reflection",
+        subtitle = "Jot down what you noticed.",
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            com.example.meditationparticles.ui.components.JournalCaptureFields(
+                text = reflection,
+                onTextChange = onReflectionChange,
+                selectedMoodLevel = reflectionMoodLevel,
+                onMoodLevelChange = onReflectionMoodChange,
+                pendingAudioPath = null,
+                onPendingAudioChange = {},
+                onSpeechResult = { spoken ->
+                    val separator = if (reflection.isBlank()) "" else " "
+                    onReflectionChange(reflection + separator + spoken.trim())
+                },
+                placeholder = "How did it feel? What came up?",
+                enabled = !saved,
+                showAudioControls = false,
+                showDictate = true,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Button(
+                    onClick = onSave,
+                    enabled = reflection.isNotBlank() && !saved,
+                ) {
+                    Text(if (saved) "Saved" else "Save")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun TimerDisplay(
     state: TimerSessionState,
     showCountdown: Boolean,
@@ -591,6 +645,11 @@ private fun TimerDisplay(
             state = state,
             modifier = modifier.padding(bottom = FabClearance),
         )
+        return
+    }
+
+    if (state.phase == TimerPhase.Idle) {
+        Box(modifier = modifier.fillMaxSize())
         return
     }
 

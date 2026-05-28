@@ -1,12 +1,5 @@
 package com.example.meditationparticles.ui.toolkit
 
-import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.speech.RecognizerIntent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
@@ -26,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,14 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import com.example.meditationparticles.audio.ToolkitAudioPlayer
-import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.JournalCaptureFields
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
@@ -52,6 +41,8 @@ import java.util.Date
 fun ToolkitLogContent(
     instructionText: String,
     text: String,
+    selectedMoodLevel: Int?,
+    onMoodLevelChange: (Int?) -> Unit,
     entries: List<ThoughtDumpEntity>,
     pendingAudioPath: String?,
     openedEntry: ThoughtDumpEntity?,
@@ -67,67 +58,10 @@ fun ToolkitLogContent(
     showOneNoteSync: Boolean = false,
     onSyncEntryToOneNote: (ThoughtDumpEntity) -> Unit = {},
 ) {
-    val context = LocalContext.current
-    val audioRecorder = remember { ToolkitAudioRecorder(context) }
     val audioPlayer = remember { ToolkitAudioPlayer() }
-    var isRecording by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
-        onDispose {
-            if (isRecording) audioRecorder.stop()
-            audioPlayer.release()
-        }
-    }
-
-    val recordPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            audioRecorder.start()?.let { path ->
-                onPendingAudioChange(path)
-                isRecording = true
-            }
-        }
-    }
-
-    val speechLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val spoken = result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-            spoken?.let(onSpeechResult)
-        }
-    }
-
-    fun launchSpeechToText() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your thoughts…")
-        }
-        speechLauncher.launch(intent)
-    }
-
-    fun toggleRecording() {
-        if (isRecording) {
-            val path = audioRecorder.stop()
-            isRecording = false
-            onPendingAudioChange(path ?: pendingAudioPath)
-        } else {
-            val granted = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.RECORD_AUDIO,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (granted) {
-                audioRecorder.start()?.let { path ->
-                    onPendingAudioChange(path)
-                    isRecording = true
-                }
-            } else {
-                recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
-        }
+        onDispose { audioPlayer.release() }
     }
 
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
@@ -135,53 +69,16 @@ fun ToolkitLogContent(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
         ) {
-            Text(
-                text = instructionText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            JournalCaptureFields(
+                text = text,
+                onTextChange = onTextChange,
+                selectedMoodLevel = selectedMoodLevel,
+                onMoodLevelChange = onMoodLevelChange,
+                pendingAudioPath = pendingAudioPath,
+                onPendingAudioChange = onPendingAudioChange,
+                onSpeechResult = onSpeechResult,
+                instructionText = instructionText,
             )
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("What's on your mind…") },
-                minLines = 8,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = ::launchSpeechToText,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Default.VolumeUp, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Dictate", modifier = Modifier.padding(start = 6.dp))
-                }
-                OutlinedButton(
-                    onClick = ::toggleRecording,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(
-                        if (isRecording) Icons.Default.StopCircle else Icons.Default.Mic,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Text(
-                        if (isRecording) "Stop" else "Record",
-                        modifier = Modifier.padding(start = 6.dp),
-                    )
-                }
-            }
-
-            if (pendingAudioPath != null) {
-                Text(
-                    text = if (isRecording) "Recording in progress…" else "Audio ready to save",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -302,6 +199,13 @@ private fun LogEntryDetailDialog(
         title = { Text(formatLogTimestamp(entry.createdAt)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                entry.moodLevel?.let { mood ->
+                    Text(
+                        text = "Mood: ${mood.coerceIn(1, 5)}/5",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 if (entry.content.isNotBlank()) {
                     Text(
                         text = entry.content,

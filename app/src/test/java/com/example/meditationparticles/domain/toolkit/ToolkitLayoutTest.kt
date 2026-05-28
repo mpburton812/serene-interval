@@ -8,12 +8,11 @@ class ToolkitLayoutTest {
     @Test
     fun orderedTools_respectsSavedOrderAndEnabledFilter() {
         val order = listOf(
-            ToolkitToolId.MicroPause,
-            ToolkitToolId.ThoughtDump,
-            ToolkitToolId.BoundarySetting,
             ToolkitToolId.FutureSelfMessage,
+            ToolkitToolId.LovingKindness,
+            ToolkitToolId.ThoughtDump,
         )
-        val enabled = setOf(ToolkitToolId.ThoughtDump, ToolkitToolId.MicroPause)
+        val enabled = setOf(ToolkitToolId.ThoughtDump, ToolkitToolId.LovingKindness)
 
         val tools = ToolkitLayout.orderedTools(
             category = ToolkitCategory.Proactive,
@@ -21,7 +20,7 @@ class ToolkitLayoutTest {
             savedOrder = order,
         )
 
-        assertEquals(listOf(ToolkitToolId.MicroPause, ToolkitToolId.ThoughtDump), tools.map { it.id })
+        assertEquals(listOf(ToolkitToolId.LovingKindness, ToolkitToolId.ThoughtDump), tools.map { it.id })
     }
 
     @Test
@@ -70,7 +69,7 @@ class ToolkitLayoutTest {
 
         val sorted = ToolkitLayout.sortByUsage(
             toolIds = toolIds,
-            category = ToolkitCategory.Proactive,
+            category = ToolkitCategory.Reactive,
             savedOrder = savedOrder,
             usageCounts = emptyMap(),
         )
@@ -131,7 +130,7 @@ class ToolkitLayoutTest {
         )
 
         assertEquals(ToolkitToolId.AnxietyLog, normalized.first())
-        assertTrue(ToolkitToolId.LovingKindness in normalized)
+        assertTrue(ToolkitToolId.MicroPause in normalized)
         assertEquals(ToolkitLayout.defaultOrder(ToolkitCategory.Reactive).size, normalized.size)
     }
 

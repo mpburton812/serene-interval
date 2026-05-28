@@ -51,7 +51,6 @@ import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
 import com.example.meditationparticles.ui.settings.NamingSection
 import com.example.meditationparticles.ui.settings.ThemeSection
-import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 
@@ -219,17 +218,7 @@ private fun OnboardingCustomizationStep(
                 onTimerChanged = viewModel::setEnableTimer,
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
-                onVisualsChanged = viewModel::setEnableVisuals,
             )
-        }
-
-        if (draft.enableVisuals) {
-            OnboardingSectionCard {
-                VisualSanctuarySection(
-                    enabledScenes = draft.enabledScenes,
-                    onToggleScene = viewModel::toggleScene,
-                )
-            }
         }
 
         if (draft.enableToolkit) {

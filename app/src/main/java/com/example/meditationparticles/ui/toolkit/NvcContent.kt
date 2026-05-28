@@ -46,6 +46,7 @@ import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.MoodLevelPicker
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
@@ -59,6 +60,8 @@ enum class NvcSpeechTarget {
 @Composable
 fun NvcContent(
     stepIndex: Int,
+    selectedMoodLevel: Int?,
+    onMoodLevelChange: (Int?) -> Unit,
     observation: String,
     feeling: String,
     need: String,
@@ -178,6 +181,10 @@ fun NvcContent(
                 text = stepInstruction,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            MoodLevelPicker(
+                selectedLevel = selectedMoodLevel,
+                onLevelChange = onMoodLevelChange,
             )
 
             ToolkitStepPager(
@@ -321,7 +328,7 @@ private fun NvcFieldEditor(
     onToggleRecord: () -> Unit,
     isRecording: Boolean,
     pendingAudioPath: String?,
-    minLines: Int = 6,
+    minLines: Int = 8,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -333,7 +340,7 @@ private fun NvcFieldEditor(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Write here…") },
+            placeholder = { Text("What's on your mind…") },
             minLines = minLines,
         )
         Row(

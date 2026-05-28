@@ -398,10 +398,12 @@ class AppDataImporter(
             )
             skips += audioSkips
 
+            val moodLevel = item.optionalMoodLevel()
             dao.insert(
                 ThoughtDumpEntity(
                     content = content,
                     logType = logType.name,
+                    moodLevel = moodLevel,
                     audioPath = audioPath,
                     createdAt = createdAt,
                 ),
@@ -452,6 +454,7 @@ class AppDataImporter(
             val newId = dao.insert(
                 FutureSelfMessageEntity(
                     content = content,
+                    moodLevel = item.optionalMoodLevel(),
                     audioPath = audioPath,
                     scheduledAtMillis = scheduledAtMillis,
                     createdAtMillis = createdAtMillis,
@@ -540,6 +543,7 @@ class AppDataImporter(
                     explanation2AudioPath = explanation2Audio.first,
                     explanation3 = item.optString("explanation3", ""),
                     explanation3AudioPath = explanation3Audio.first,
+                    moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
                 ),
             )
@@ -592,6 +596,7 @@ class AppDataImporter(
                     thoughtsAndFeelingsAudioPath = thoughtsAudio.first,
                     bodyAndNeeds = bodyAndNeeds,
                     bodyAndNeedsAudioPath = bodyAudio.first,
+                    moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
                 ),
             )
@@ -660,12 +665,18 @@ class AppDataImporter(
                     needAudioPath = needAudio.first,
                     request = request,
                     requestAudioPath = requestAudio.first,
+                    moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
                 ),
             )
             imported++
         }
         return imported
+    }
+
+    private fun JSONObject.optionalMoodLevel(): Int? {
+        if (!has("moodLevel") || isNull("moodLevel")) return null
+        return optInt("moodLevel").coerceIn(1, 5)
     }
 
     private fun resolveAudioPath(
