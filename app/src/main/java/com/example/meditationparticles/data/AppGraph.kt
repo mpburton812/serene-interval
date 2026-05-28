@@ -16,6 +16,9 @@ object AppGraph {
     private var settingsPreferences: SettingsPreferences? = null
     @Volatile
     private var toolkitPreferences: ToolkitPreferences? = null
+
+    @Volatile
+    private var quickStartPreferences: QuickStartPreferences? = null
     @Volatile
     private var sessionRepository: SessionRepository? = null
 
@@ -70,6 +73,12 @@ object AppGraph {
         toolkitPreferences ?: synchronized(this) {
             toolkitPreferences ?: ToolkitPreferences(context.applicationContext)
                 .also { toolkitPreferences = it }
+        }
+
+    fun quickStart(context: Context): QuickStartPreferences =
+        quickStartPreferences ?: synchronized(this) {
+            quickStartPreferences ?: QuickStartPreferences(context.applicationContext)
+                .also { quickStartPreferences = it }
         }
 
     fun sessions(context: Context): SessionRepository =

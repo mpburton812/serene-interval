@@ -27,6 +27,7 @@ class AppDataExporter(
         val db = SereneDatabase.getInstance(context)
         val settings = AppGraph.settings(context).load()
         val toolkit = AppGraph.toolkit(context).load(settings.onboardingCompleted)
+        val quickStartIds = AppGraph.quickStart(context).load(settings)
         val affirmationPrefs = AffirmationPreferences(context).load()
         val timerPrefs = TimerPreferences(context).load()
 
@@ -42,7 +43,7 @@ class AppDataExporter(
             put("exportedAt", Instant.now().toString())
             put("appVersionName", BuildConfig.VERSION_NAME)
             put("appVersionCode", BuildConfig.VERSION_CODE)
-            put("configuration", buildConfiguration(settings, toolkit, affirmationPrefs, timerPrefs))
+            put("configuration", buildConfiguration(settings, toolkit, quickStartIds, affirmationPrefs, timerPrefs))
             put("entries", buildEntries(
                 affirmations = affirmations,
                 thoughtDumps = thoughtDumps,
@@ -57,6 +58,7 @@ class AppDataExporter(
     private fun buildConfiguration(
         settings: ExperienceSettings,
         toolkit: com.example.meditationparticles.data.ToolkitPrefsSnapshot,
+        quickStartIds: List<com.example.meditationparticles.domain.quickstart.QuickStartId>,
         affirmationPrefs: AffirmationPreferences.AffirmationPrefsSnapshot,
         timerPrefs: TimerPreferences.TimerPrefsSnapshot,
     ): JSONObject = JSONObject().apply {
@@ -84,6 +86,9 @@ class AppDataExporter(
                     put(id.name, count)
                 }
             })
+        })
+        put("quickStartPreferences", JSONObject().apply {
+            put("selectedIds", JSONArray(quickStartIds.map { it.name }))
         })
         put("affirmationPreferences", JSONObject().apply {
             put("reminderEnabled", affirmationPrefs.reminderEnabled)

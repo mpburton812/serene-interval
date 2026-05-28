@@ -50,6 +50,7 @@ import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
 import com.example.meditationparticles.ui.settings.NamingSection
+import com.example.meditationparticles.ui.settings.QuickStartSelectionSection
 import com.example.meditationparticles.ui.settings.ThemeSection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
@@ -221,6 +222,14 @@ private fun OnboardingCustomizationStep(
             )
         }
 
+        OnboardingSectionCard {
+            QuickStartSelectionSection(
+                settings = settingsPreview,
+                selectedIds = draft.quickStartIds,
+                onToggle = viewModel::toggleQuickStart,
+            )
+        }
+
         if (draft.enableToolkit) {
             OnboardingSectionCard {
                 ToolkitToolSelectionContent(
@@ -238,6 +247,8 @@ private fun OnboardingCustomizationStep(
             text = when {
                 draft.enableToolkit && draft.enabledToolkitTools.isEmpty() ->
                     "Enable at least one toolkit tool to continue."
+                draft.quickStartIds.size < 4 ->
+                    "Choose 4 Quick Start tools to continue."
                 else -> "Keep at least one tool enabled to continue."
             },
             style = MaterialTheme.typography.bodyMedium,

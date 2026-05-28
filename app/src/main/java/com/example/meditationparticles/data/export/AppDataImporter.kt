@@ -11,6 +11,8 @@ import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
+import com.example.meditationparticles.domain.quickstart.QuickStartId
+import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
@@ -112,6 +114,20 @@ class AppDataImporter(
                 .onFailure { error ->
                     skips += ImportSkip(
                         category = "toolkit preferences",
+                        reason = "invalid values",
+                        detail = error.message,
+                    )
+                }
+        }
+
+        configuration.optJSONObject("quickStartPreferences")?.let { quickStart ->
+            runCatching { importQuickStartPreferences(quickStart) }
+                .onSuccess {
+                    applyQuickStartPreferences(it)
+                }
+                .onFailure { error ->
+                    skips += ImportSkip(
+                        category = "quick start preferences",
                         reason = "invalid values",
                         detail = error.message,
                     )
@@ -225,6 +241,17 @@ class AppDataImporter(
         toolkit.saveReactiveOrder(snapshot.reactiveOrder)
         toolkit.saveUsageCounts(snapshot.usageCounts)
         toolkit.refresh(onboardingCompleted)
+    }
+
+    private fun importQuickStartPreferences(json: JSONObject): List<QuickStartId> {
+        val settings = AppGraph.settings(context).load()
+        val imported = json.optJSONArray("selectedIds")?.toEnumList<QuickStartId>() ?: emptyList()
+        return QuickStartLayout.normalizeSelection(imported, settings)
+    }
+
+    private fun applyQuickStartPreferences(selection: List<QuickStartId>) {
+        val settings = AppGraph.settings(context).load()
+        AppGraph.quickStart(context).saveSelection(selection, settings)
     }
 
     private fun importAffirmationPreferences(json: JSONObject): AffirmationPreferences.AffirmationPrefsSnapshot {

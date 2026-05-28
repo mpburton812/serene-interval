@@ -52,6 +52,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val settings by viewModel.settings.collectAsState()
+    val quickStartIds by viewModel.quickStartIds.collectAsState()
     val settingsUiState by viewModel.uiState.collectAsState()
     val oneNotePrefs by viewModel.oneNotePrefs.collectAsState()
     val oneNoteUiState by viewModel.oneNoteUiState.collectAsState()
@@ -177,6 +178,12 @@ fun SettingsScreen(
                 onToolkitChanged = viewModel::setEnableToolkit,
             )
 
+            QuickStartSelectionSection(
+                settings = settings,
+                selectedIds = quickStartIds,
+                onToggle = viewModel::toggleQuickStart,
+            )
+
             Column(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
@@ -233,7 +240,7 @@ fun SettingsScreen(
                         )
                     } else {
                         Text(
-                            text = "Import configuration & entries",
+                            text = "Import configuration and entries.",
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier.padding(vertical = 8.dp),
                         )
