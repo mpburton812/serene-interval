@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OneNoteSyncMappingEntity::class,
         OneNoteSyncQueueEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -216,6 +216,16 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    ALTER TABLE meditation_reflections ADD COLUMN audioPath TEXT
+                    """.trimIndent(),
+                )
+            }
+        }
+
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -265,6 +275,7 @@ abstract class SereneDatabase : RoomDatabase() {
                         MIGRATION_9_10,
                         MIGRATION_10_11,
                         MIGRATION_11_12,
+                        MIGRATION_12_13,
                     )
                     .build()
                     .also { instance = it }

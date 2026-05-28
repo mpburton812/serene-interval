@@ -13,6 +13,7 @@ import com.example.meditationparticles.domain.onenote.OneNoteSyncStatus
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class OneNoteSyncRepository(
     private val context: Context,
@@ -178,7 +179,12 @@ class OneNoteSyncRepository(
                     graphClient.updatePageContent(accessToken, existingPageId, page.html)
                     existingPageId
                 } else {
-                    graphClient.createPage(accessToken, sectionId, page.html)
+                    if (page.attachments.isNotEmpty()) {
+                        val uploads = resolveAttachments(page.attachments)
+                        graphClient.createPageWithAttachments(accessToken, sectionId, page.html, uploads)
+                    } else {
+                        graphClient.createPage(accessToken, sectionId, page.html)
+                    }
                 }
                 syncDao.upsertMapping(
                     OneNoteSyncMappingEntity(
@@ -242,6 +248,54 @@ class OneNoteSyncRepository(
                 else -> lastError ?: "Nothing synced."
             },
         )
+    }
+
+    private fun resolveAttachments(attachments: List<OneNoteAttachmentRef>): List<OneNoteUploadAttachment> {
+        val totalBytes = attachments.sumOf { ref -> File(ref.absolutePath).takeIf { it.exists() }?.length() ?: 0L }
+        if (totalBytes > MAX_TOTAL_ATTACHMENT_BYTES) {
+            throw IllegalStateException(
+                "Audio is too large to upload (${formatBytes(totalBytes)}). Try a shorter recording.",
+            )
+        }
+        return attachments.map { ref ->
+            val file = File(ref.absolutePath)
+            if (!file.exists()) {
+                throw IllegalStateException("Missing audio file for upload: ${ref.fileName}")
+            }
+            val size = file.length()
+            if (size <= 0L) {
+                throw IllegalStateException("Audio file is empty: ${ref.fileName}")
+            }
+            if (size > MAX_SINGLE_ATTACHMENT_BYTES) {
+                throw IllegalStateException(
+                    "Audio file is too large (${formatBytes(size)}): ${ref.fileName}",
+                )
+            }
+            OneNoteUploadAttachment(
+                partName = ref.partName,
+                fileName = ref.fileName,
+                contentType = guessAudioContentType(file.name),
+                bytes = file.readBytes(),
+            )
+        }
+    }
+
+    private fun guessAudioContentType(fileName: String): String {
+        val ext = fileName.substringAfterLast('.', missingDelimiterValue = "").lowercase()
+        return when (ext) {
+            "m4a" -> "audio/mp4"
+            "mp3" -> "audio/mpeg"
+            "wav" -> "audio/wav"
+            "3gp" -> "audio/3gpp"
+            "aac" -> "audio/aac"
+            "ogg" -> "audio/ogg"
+            else -> "application/octet-stream"
+        }
+    }
+
+    private fun formatBytes(bytes: Long): String {
+        val mb = bytes / (1024.0 * 1024.0)
+        return "%.1f MB".format(mb)
     }
 
     suspend fun ensureSection(): Result<String> = withContext(Dispatchers.IO) {
@@ -319,7 +373,8 @@ class OneNoteSyncRepository(
             .filter { it.logType == ToolkitLogType.ANXIETY_LOG.name }
             .map { it.id }
         OneNoteEntryType.FUTURE_SELF -> database.futureSelfMessageDao().getAll().map { it.id }
-        OneNoteEntryType.MEDITATION_REFLECTION -> emptyList()
+        OneNoteEntryType.MEDITATION_REFLECTION ->
+            database.meditationReflectionDao().getAll().map { it.id }
     }
 
     private suspend fun loadEntry(entryType: OneNoteEntryType, localEntryId: Long): Any? =
@@ -348,6 +403,8 @@ class OneNoteSyncRepository(
 
     companion object {
         const val WORK_NAME = "one_note_sync"
+        private const val MAX_SINGLE_ATTACHMENT_BYTES: Long = 20L * 1024L * 1024L
+        private const val MAX_TOTAL_ATTACHMENT_BYTES: Long = 25L * 1024L * 1024L
     }
 }
 

@@ -214,6 +214,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             }
             oneNotePreferences.setAccountEmail(authResult.email ?: oneNoteAuth.currentAccountEmail())
             oneNotePreferences.setSyncEnabled(true)
+            oneNotePreferences.setEntryTypeEnabled(com.example.meditationparticles.domain.onenote.OneNoteEntryType.MEDITATION_REFLECTION, true)
             oneNoteSync.ensureSection()
             onResult(true)
         }
