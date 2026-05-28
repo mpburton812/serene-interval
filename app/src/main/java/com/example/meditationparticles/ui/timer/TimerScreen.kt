@@ -84,6 +84,7 @@ import com.example.meditationparticles.reminder.MeditationReminderScheduler
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.components.SereneTabHeader
+import com.example.meditationparticles.ui.components.SereneTextPlate
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private val TextFadeMs = 650
@@ -689,22 +690,26 @@ private fun TimerDisplay(
                 modifier = modifier.padding(bottom = FabClearance),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = state.remainingFormatted,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 72.sp,
-                        letterSpacing = 2.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                )
+                SereneTextPlate(
+                    cornerRadius = 20.dp,
+                    contentPadding = 20.dp,
+                ) {
+                    Text(
+                        text = state.remainingFormatted,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 72.sp,
+                            letterSpacing = 2.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                }
             }
         }
         TimerDisplayMode.Blank -> {
             Box(
-                modifier = modifier
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(bottom = FabClearance),
+                modifier = modifier.padding(bottom = FabClearance),
                 contentAlignment = Alignment.Center,
             ) {
                 AnimatedVisibility(
@@ -712,12 +717,18 @@ private fun TimerDisplay(
                     enter = fadeIn(tween(TextFadeMs)),
                     exit = fadeOut(tween(TextFadeMs)),
                 ) {
-                    Text(
-                        text = state.remainingFormatted,
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                        textAlign = TextAlign.Center,
-                    )
+                    SereneTextPlate(
+                        cornerRadius = 20.dp,
+                        contentPadding = 16.dp,
+                    ) {
+                        Text(
+                            text = state.remainingFormatted,
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
                 }
             }
         }
@@ -746,44 +757,56 @@ private fun PrepareSequenceOverlay(
         contentAlignment = Alignment.Center,
     ) {
         if (inCountdown) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            SereneTextPlate(
+                cornerRadius = 20.dp,
+                contentPadding = 24.dp,
             ) {
-                Text(
-                    text = "Start Meditating In...",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                AnimatedContent(
-                    targetState = state.prepareCountdownSeconds,
-                    transitionSpec = {
-                        fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-                    },
-                    label = "prepare_countdown",
-                ) { seconds ->
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     Text(
-                        text = seconds.toString(),
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 72.sp,
-                            letterSpacing = 2.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
+                        text = "Start Meditating In...",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                     )
+                    AnimatedContent(
+                        targetState = state.prepareCountdownSeconds,
+                        transitionSpec = {
+                            fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
+                        },
+                        label = "prepare_countdown",
+                    ) { seconds ->
+                        Text(
+                            text = seconds.toString(),
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                fontSize = 72.sp,
+                                letterSpacing = 2.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
         } else if (beginFadeProgress > 0f) {
-            Text(
-                text = "Begin",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 56.sp,
-                    letterSpacing = 1.sp,
-                ),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = beginFadeProgress),
-                textAlign = TextAlign.Center,
-            )
+            SereneTextPlate(
+                cornerRadius = 20.dp,
+                contentPadding = 20.dp,
+            ) {
+                Text(
+                    text = "Begin",
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 56.sp,
+                        letterSpacing = 1.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = beginFadeProgress),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
         }
     }
 }
@@ -802,7 +825,7 @@ private fun TimerStatusDescription(state: TimerSessionState) {
             Text(
                 text = state.statusDescription,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = if (state.statusLabel.isNotEmpty()) Modifier.padding(top = 4.dp) else Modifier,
             )
         }
@@ -837,7 +860,7 @@ private fun TimerStatusDescription(state: TimerSessionState) {
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
@@ -849,22 +872,25 @@ private fun ControlSection(
     subtitle: String? = null,
     content: @Composable () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(start = 8.dp),
-        )
-        if (subtitle != null) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp),
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-        }
-        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
             content()
         }
     }

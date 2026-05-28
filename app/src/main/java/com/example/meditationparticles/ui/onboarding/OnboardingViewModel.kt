@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
@@ -18,12 +19,16 @@ import kotlinx.coroutines.launch
 
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppGraph.settings(application)
+    private val quickStartPreferences = AppGraph.quickStart(application)
     private val oneNotePreferences = AppGraph.oneNotePreferences(application)
     private val oneNoteAuth = AppGraph.oneNoteAuth(application)
     private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val appContext = application.applicationContext
 
-    private val _draft = MutableStateFlow(OnboardingDraft.from(preferences.load()))
+    private val _draft = MutableStateFlow(run {
+        val settings = preferences.load()
+        OnboardingDraft.from(settings, quickStartPreferences.load(settings))
+    })
     val draft: StateFlow<OnboardingDraft> = _draft.asStateFlow()
 
     fun setPreferredName(name: String) {
@@ -56,6 +61,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
     fun toggleToolkitTool(id: ToolkitToolId) {
         _draft.update { it.toggleToolkitTool(id) }
+    }
+
+    fun toggleQuickStart(target: QuickStartTarget) {
+        _draft.update { it.toggleQuickStart(target) }
     }
 
     fun setEnableVisuals(enabled: Boolean) {
@@ -242,11 +251,15 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         val exactAlarmsGranted = SchedulingPermissions.canScheduleExactAlarms(appContext)
         val schedulingAvailable = exactAlarmsGranted
 
-        preferences.save(
-            current.toExperienceSettings(
-                meditationRemindersAvailable = schedulingAvailable,
-                futureSelfSchedulingAvailable = schedulingAvailable,
-            ),
+        val savedSettings = current.toExperienceSettings(
+            meditationRemindersAvailable = schedulingAvailable,
+            futureSelfSchedulingAvailable = schedulingAvailable,
+        )
+        preferences.save(savedSettings)
+        quickStartPreferences.saveSelection(
+            current.quickStartTargets,
+            savedSettings,
+            current.enabledToolkitTools,
         )
         if (current.enableToolkit) {
             AppGraph.toolkit(getApplication()).saveConfiguration(current.enabledToolkitTools)

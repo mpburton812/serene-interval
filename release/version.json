@@ -1,8 +1,8 @@
 {
-  "versionCode": 13,
-  "versionName": "1.0.12",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.12/sway_meditation.apk",
-  "expectedSha256": "0fadd9714193b898a5d3593ced372a34730a10ef1984da63762ae53fbae57782",
-  "releaseNotes": "• Meditation reflections history\n• OneNote audio attachments for reflections\n• Unified journal capture with optional mood (colored 1–5 picker) on toolkit logs, future self, NVC, refactoring, and center of gravity\n• Meditation reflection after timer complete with optional mood and OneNote sync\n• Capture Thought and Anxiety Log share the same entry UI; mood stored on all journal tables (Room v12)\n• Toolkit category updates, meditation/breath UI polish, Visuals removed from bottom nav\n• Build footer shows version name and code",
+  "versionCode": 14,
+  "versionName": "1.0.13",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.13/sway_meditation.apk",
+  "expectedSha256": "ad31c2b0a958d609c790af1b148629113c0ddf701843be77c7537d243ca8a51a",
+  "releaseNotes": "• Text readability: SereneTextPlate scrims and glass styling on Home, Breath, and Timer\n• Quick Start: granular targets (toolkit sub-destinations), deselect fix, return Home after toolkit\n• Customizable Quick Start home row and simplified welcome",
   "minVersionCode": 1
 }

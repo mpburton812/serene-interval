@@ -1,5 +1,7 @@
 package com.example.meditationparticles.ui.onboarding
 
+import com.example.meditationparticles.domain.quickstart.QuickStartLayout
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
@@ -17,15 +19,22 @@ data class OnboardingDraft(
     val enableVisuals: Boolean = true,
     val enabledScenes: Set<String> = ExperienceSettings.defaultScenes,
     val enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    val quickStartTargets: List<QuickStartTarget> = emptyList(),
     val step: OnboardingStep = OnboardingStep.Customization,
     val permissionState: OnboardingPermissionState = OnboardingPermissionState(),
 ) {
     val canComplete: Boolean
         get() {
+            val settings = previewExperienceSettings()
             val hasExperienceTool = enableBreathing || enableTimer || enableAffirmations ||
                 enableToolkit || enableVisuals
             val toolkitReady = !enableToolkit || enabledToolkitTools.isNotEmpty()
-            return hasExperienceTool && toolkitReady
+            val quickStartReady = QuickStartLayout.hasValidSelection(
+                quickStartTargets,
+                settings,
+                enabledToolkitTools,
+            )
+            return hasExperienceTool && toolkitReady && quickStartReady
         }
 
     fun toExperienceSettings(
@@ -47,7 +56,10 @@ data class OnboardingDraft(
     )
 
     companion object {
-        fun from(settings: ExperienceSettings): OnboardingDraft = OnboardingDraft(
+        fun from(
+            settings: ExperienceSettings,
+            quickStartTargets: List<QuickStartTarget> = QuickStartLayout.defaultSelection(settings),
+        ): OnboardingDraft = OnboardingDraft(
             preferredName = settings.preferredName,
             sanctuaryName = settings.sanctuaryName,
             themeMode = if (
@@ -63,9 +75,36 @@ data class OnboardingDraft(
             enableToolkit = settings.enableToolkit,
             enableVisuals = settings.enableVisuals,
             enabledScenes = settings.enabledScenes,
+            quickStartTargets = QuickStartLayout.normalizeSelection(quickStartTargets, settings),
         )
     }
 }
+
+fun OnboardingDraft.toggleQuickStart(target: QuickStartTarget): OnboardingDraft {
+    val settings = previewExperienceSettings()
+    return copy(
+        quickStartTargets = QuickStartLayout.toggleSelection(
+            quickStartTargets,
+            target,
+            settings,
+            enabledToolkitTools,
+        ),
+    )
+}
+
+private fun OnboardingDraft.pruneQuickStart(): OnboardingDraft {
+    val settings = previewExperienceSettings()
+    return copy(
+        quickStartTargets = QuickStartLayout.sanitizeSelection(
+            quickStartTargets,
+            settings,
+            enabledToolkitTools,
+        ),
+    )
+}
+
+private fun OnboardingDraft.previewExperienceSettings(): ExperienceSettings =
+    toExperienceSettings().copy(onboardingCompleted = false)
 
 fun OnboardingDraft.toggleToolkitTool(id: ToolkitToolId): OnboardingDraft {
     val next = enabledToolkitTools.toMutableSet()
@@ -74,7 +113,7 @@ fun OnboardingDraft.toggleToolkitTool(id: ToolkitToolId): OnboardingDraft {
     } else {
         next.add(id)
     }
-    return copy(enabledToolkitTools = next)
+    return copy(enabledToolkitTools = next).pruneQuickStart()
 }
 
 fun OnboardingDraft.toggleScene(id: CalmingVisualizationId): OnboardingDraft {
@@ -101,5 +140,5 @@ fun OnboardingDraft.withToolEnabled(
         enableToolkit = enableToolkit,
         enableVisuals = enableVisuals,
     )
-    return if (next.canComplete) next else this
+    return (if (next.canComplete) next else this).pruneQuickStart()
 }

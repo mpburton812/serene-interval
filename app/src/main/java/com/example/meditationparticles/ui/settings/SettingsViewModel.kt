@@ -13,6 +13,11 @@ import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.data.export.AppDataImporter
 import com.example.meditationparticles.data.export.ImportParseException
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
+import com.example.meditationparticles.domain.toolkit.ToolkitLayout
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
+import kotlinx.coroutines.flow.map
+import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
@@ -36,6 +41,7 @@ data class SettingsUiState(
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppGraph.settings(application)
+    private val quickStartPreferences = AppGraph.quickStart(application)
     private val oneNotePreferences = AppGraph.oneNotePreferences(application)
     private val oneNoteAuth = AppGraph.oneNoteAuth(application)
     private val oneNoteSync = AppGraph.oneNoteSync(application)
@@ -51,7 +57,31 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val oneNotePrefs: StateFlow<OneNotePrefsSnapshot> = oneNotePreferences.snapshot
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OneNotePrefsSnapshot())
 
+    val settings: StateFlow<ExperienceSettings> = preferences.settings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperienceSettings())
+
+    val quickStartTargets: StateFlow<List<QuickStartTarget>> = quickStartPreferences.selectedTargets
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val enabledToolkitTools: StateFlow<Set<ToolkitToolId>> =
+        AppGraph.toolkit(application).snapshot
+            .map { it.enabledToolIds }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                ToolkitLayout.defaultEnabledTools(),
+            )
+
     init {
+        quickStartPreferences.load(preferences.settings.value)
+        viewModelScope.launch {
+            settings.collect { quickStartPreferences.refresh(it) }
+        }
+        viewModelScope.launch {
+            AppGraph.toolkit(application).snapshot.collect {
+                quickStartPreferences.refresh(settings.value)
+            }
+        }
         viewModelScope.launch {
             oneNotePrefs.collect { prefs ->
                 if (!prefs.accountEmail.isNullOrBlank() && _oneNoteUiState.value.notebooks.isEmpty()) {
@@ -61,8 +91,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    val settings: StateFlow<ExperienceSettings> = preferences.settings
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperienceSettings())
+    fun toggleQuickStart(target: QuickStartTarget) {
+        val currentSettings = settings.value
+        val enabledTools = enabledToolkitTools.value
+        quickStartPreferences.updateSelection(currentSettings, enabledTools) { selected ->
+            QuickStartLayout.toggleSelection(selected, target, currentSettings, enabledTools)
+        }
+    }
 
     fun setPreferredName(name: String) {
         preferences.update { it.copy(preferredName = name) }

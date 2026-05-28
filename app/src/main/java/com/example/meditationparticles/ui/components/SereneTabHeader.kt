@@ -24,9 +24,8 @@ fun SereneTabHeader(
     controls: @Composable RowScope.() -> Unit = {},
     descriptionContent: @Composable (() -> Unit)? = null,
 ) {
-    Column(
+    SereneHeaderPlate(
         modifier = modifier
-            .fillMaxWidth()
             .padding(horizontal = SereneSpacing.containerMargin)
             .padding(top = 8.dp, bottom = SereneSpacing.stackSm),
     ) {
@@ -60,7 +59,7 @@ fun SereneTabHeader(
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = descriptionTextAlign,
                     modifier = Modifier
                         .fillMaxWidth()
