@@ -45,7 +45,7 @@ object ToolkitCatalog {
             id = ToolkitToolId.BoundarySetting,
             title = "Boundary Setting",
             description = "A guide to protecting your mental space.",
-            category = ToolkitCategory.Proactive,
+            category = ToolkitCategory.Reactive,
             steps = listOf(
                 "Notice what is draining your energy right now.",
                 "Name one boundary you need — time, space, or emotional.",
@@ -57,7 +57,7 @@ object ToolkitCatalog {
             id = ToolkitToolId.MicroPause,
             title = "Micro-Pause Practice",
             description = "30-second resets throughout your day.",
-            category = ToolkitCategory.Proactive,
+            category = ToolkitCategory.Reactive,
             steps = listOf(
                 "Unclench your jaw and let your tongue rest softly.",
                 "Drop your shoulders away from your ears.",
@@ -102,7 +102,7 @@ object ToolkitCatalog {
             id = ToolkitToolId.LovingKindness,
             title = "Loving Kindness",
             description = "Send warmth to yourself and others.",
-            category = ToolkitCategory.Reactive,
+            category = ToolkitCategory.Proactive,
             steps = listOf(
                 "Find a comfortable posture. Place a hand on your heart if that feels grounding.",
                 "Silently repeat: May I be safe. May I be happy. May I be healthy. May I live with ease.",

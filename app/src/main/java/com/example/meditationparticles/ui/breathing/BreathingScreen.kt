@@ -152,6 +152,39 @@ fun BreathingScreen(
             },
         )
 
+        if (controlsVisible) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        if (!state.isRunning) {
+                            onSessionActiveChange(true)
+                        }
+                        viewModel.toggleRunning()
+                    },
+                    modifier = Modifier
+                        .padding(top = 4.dp, bottom = 8.dp)
+                        .size(FabSize)
+                        .onGloballyPositioned { fabClearancePx = 0f },
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Icon(
+                        imageVector = when {
+                            state.phase == BreathPhase.Complete -> Icons.Default.PlayArrow
+                            state.isRunning -> Icons.Default.Pause
+                            else -> Icons.Default.PlayArrow
+                        },
+                        contentDescription = if (state.isRunning) "Pause" else "Start",
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+            }
+        }
+
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -209,35 +242,37 @@ fun BreathingScreen(
                 )
             }
 
-            FloatingActionButton(
-                onClick = {
-                    if (!state.isRunning) {
-                        onSessionActiveChange(true)
-                    }
-                    viewModel.toggleRunning()
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = SereneSpacing.containerMargin, bottom = 16.dp)
-                    .size(FabSize)
-                    .onGloballyPositioned {
-                        with(density) {
-                            fabClearancePx = FabSize.toPx() + 16.dp.toPx()
+            if (!controlsVisible) {
+                FloatingActionButton(
+                    onClick = {
+                        if (!state.isRunning) {
+                            onSessionActiveChange(true)
                         }
+                        viewModel.toggleRunning()
                     },
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) {
-                Icon(
-                    imageVector = when {
-                        state.phase == BreathPhase.Complete -> Icons.Default.PlayArrow
-                        state.isRunning -> Icons.Default.Pause
-                        else -> Icons.Default.PlayArrow
-                    },
-                    contentDescription = if (state.isRunning) "Pause" else "Start",
-                    modifier = Modifier.size(28.dp),
-                )
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                        .size(FabSize)
+                        .onGloballyPositioned {
+                            with(density) {
+                                fabClearancePx = FabSize.toPx() + 8.dp.toPx()
+                            }
+                        },
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Icon(
+                        imageVector = when {
+                            state.phase == BreathPhase.Complete -> Icons.Default.PlayArrow
+                            state.isRunning -> Icons.Default.Pause
+                            else -> Icons.Default.PlayArrow
+                        },
+                        contentDescription = if (state.isRunning) "Pause" else "Start",
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
         }
 

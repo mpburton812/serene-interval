@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -180,8 +181,8 @@ fun TimerScreen(
     }
 
     SideEffect {
-        val keepScreenOn = sessionActive && state.displayMode != TimerDisplayMode.Blank
-        onSessionActiveChange(keepScreenOn)
+        // Allow the screen to sleep normally during meditation.
+        onSessionActiveChange(false)
     }
 
     DisposableEffect(Unit) {
@@ -298,17 +299,7 @@ fun TimerScreen(
                                 modifier = Modifier.size(28.dp),
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(TimerDisplayAreaHeight),
-                        ) {
-                            TimerDisplay(
-                                state = state,
-                                showCountdown = showDisplayCountdown,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(TimerDisplayAreaHeight))
                     }
                 } else {
                     Box(
@@ -591,6 +582,11 @@ private fun TimerDisplay(
             state = state,
             modifier = modifier.padding(bottom = FabClearance),
         )
+        return
+    }
+
+    if (state.phase == TimerPhase.Idle) {
+        Box(modifier = modifier.fillMaxSize())
         return
     }
 

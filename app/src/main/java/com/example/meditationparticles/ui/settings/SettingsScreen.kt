@@ -175,15 +175,7 @@ fun SettingsScreen(
                 onTimerChanged = viewModel::setEnableTimer,
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
-                onVisualsChanged = viewModel::setEnableVisuals,
             )
-
-            if (settings.enableVisuals) {
-                VisualSanctuarySection(
-                    enabledScenes = settings.enabledScenes,
-                    onToggleScene = viewModel::toggleScene,
-                )
-            }
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
