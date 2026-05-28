@@ -48,8 +48,10 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -96,6 +98,8 @@ fun TimerScreen(
     onSessionActiveChange: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.sessionState.collectAsState()
+    val reflection by viewModel.reflectionText.collectAsState()
+    val reflectionSaved by viewModel.reflectionSaved.collectAsState()
     val context = LocalContext.current
     val remindersAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
     val preferences = remember { TimerPreferences(context) }
@@ -299,7 +303,6 @@ fun TimerScreen(
                                 modifier = Modifier.size(28.dp),
                             )
                         }
-                        Spacer(modifier = Modifier.height(TimerDisplayAreaHeight))
                     }
                 } else {
                     Box(
@@ -348,6 +351,14 @@ fun TimerScreen(
                             .padding(top = SereneSpacing.stackMd, bottom = SereneSpacing.stackMd),
                         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
                     ) {
+                if (state.phase == TimerPhase.Complete) {
+                    MeditationReflectionCard(
+                        reflection = reflection,
+                        saved = reflectionSaved,
+                        onReflectionChange = viewModel::updateReflection,
+                        onSave = viewModel::saveReflection,
+                    )
+                }
                 ControlSection(
                     title = "Duration",
                     subtitle = "Tap to change session length",
@@ -568,6 +579,46 @@ fun TimerScreen(
             }
         }
     }
+    }
+}
+
+@Composable
+private fun MeditationReflectionCard(
+    reflection: String,
+    saved: Boolean,
+    onReflectionChange: (String) -> Unit,
+    onSave: () -> Unit,
+) {
+    ControlSection(
+        title = "Reflection",
+        subtitle = "Jot down what you noticed.",
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedTextField(
+                value = reflection,
+                onValueChange = onReflectionChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("How did it feel? What came up?") },
+                minLines = 4,
+                enabled = !saved,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Button(
+                    onClick = onSave,
+                    enabled = reflection.isNotBlank() && !saved,
+                ) {
+                    Text(if (saved) "Saved" else "Save")
+                }
+            }
+        }
     }
 }
 

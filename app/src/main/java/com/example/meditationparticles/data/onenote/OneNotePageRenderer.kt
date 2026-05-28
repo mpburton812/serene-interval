@@ -2,6 +2,7 @@ package com.example.meditationparticles.data.onenote
 
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -190,6 +191,24 @@ object OneNotePageRenderer {
         )
     }
 
+    fun renderMeditationReflection(entry: MeditationReflectionEntity): OneNotePageContent {
+        val dateLabel = formatDate(entry.completedAt)
+        val body = buildString {
+            appendLine("<h1>Meditation Reflection</h1>")
+            appendLine("<p><strong>Duration:</strong> ${entry.durationSeconds / 60} min</p>")
+            appendParagraph(entry.reflection)
+            appendFooter(entry.id)
+        }
+        return OneNotePageContent(
+            title = "Meditation Reflection — $dateLabel",
+            html = wrapHtml(
+                title = "Meditation Reflection — $dateLabel",
+                createdAtMillis = entry.completedAt,
+                body = body,
+            ),
+        )
+    }
+
     fun render(entryType: OneNoteEntryType, payload: Any): OneNotePageContent = when (entryType) {
         OneNoteEntryType.NVC -> renderNvc(payload as NvcEntryEntity)
         OneNoteEntryType.REFACTORING -> renderRefactoring(payload as RefactoringEntryEntity)
@@ -197,6 +216,7 @@ object OneNotePageRenderer {
         OneNoteEntryType.THOUGHT_DUMP -> renderThoughtDump(payload as ThoughtDumpEntity)
         OneNoteEntryType.ANXIETY_LOG -> renderAnxietyLog(payload as ThoughtDumpEntity)
         OneNoteEntryType.FUTURE_SELF -> renderFutureSelf(payload as FutureSelfMessageEntity)
+        OneNoteEntryType.MEDITATION_REFLECTION -> renderMeditationReflection(payload as MeditationReflectionEntity)
     }
 
     internal fun escapeHtml(value: String): String = buildString(value.length) {
