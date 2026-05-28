@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -64,6 +65,7 @@ import com.example.meditationparticles.domain.breathing.BreathingSessionState
 import com.example.meditationparticles.domain.breathing.BreathingVisualMode
 import com.example.meditationparticles.domain.breathing.SessionMode
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.SereneHeaderPlate
 import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SereneSpacing
@@ -77,9 +79,18 @@ private val FabClearance = 72.dp
 @Composable
 fun BreathingScreen(
     modifier: Modifier = Modifier,
+    pendingPatternId: String? = null,
+    onPendingPatternConsumed: () -> Unit = {},
     viewModel: BreathingViewModel = viewModel(),
     onSessionActiveChange: (Boolean) -> Unit = {},
 ) {
+    LaunchedEffect(pendingPatternId) {
+        pendingPatternId?.let { patternId ->
+            viewModel.selectPattern(BreathingPattern.byId(patternId))
+            onPendingPatternConsumed()
+        }
+    }
+
     val state by viewModel.sessionState.collectAsState()
     val visualMode by viewModel.visualMode.collectAsState()
     var controlsVisible by remember { mutableStateOf(true) }
@@ -143,7 +154,7 @@ fun BreathingScreen(
                         Text(
                             text = purpose,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
@@ -295,7 +306,7 @@ fun BreathingScreen(
                 Text(
                     text = "BREATHING PATTERN",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                     modifier = Modifier.padding(start = 8.dp),
                 )
                 GlassCard(
@@ -367,7 +378,7 @@ fun BreathingScreen(
                     Text(
                         text = "Tap anywhere to hide controls",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )
@@ -431,13 +442,17 @@ private fun BreathingPhaseHeader(
     state: BreathingSessionState,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    SereneHeaderPlate(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = SereneSpacing.containerMargin)
             .padding(top = 4.dp, bottom = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        cornerRadius = 20.dp,
     ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
         AnimatedContent(
             targetState = state.phase,
             transitionSpec = {
@@ -465,10 +480,11 @@ private fun BreathingPhaseHeader(
                 Text(
                     text = "${seconds}s",
                     style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
                 )
             }
+        }
         }
     }
 }

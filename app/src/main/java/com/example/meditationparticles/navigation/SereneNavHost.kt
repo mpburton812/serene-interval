@@ -41,6 +41,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationCatalog
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.navigation.SereneDestination.ToolkitTab
@@ -104,6 +106,9 @@ fun SereneNavHost(
     var timerSessionActive by remember { mutableStateOf(false) }
     var activeFutureSelfMessageId by remember { mutableStateOf<Long?>(null) }
     var toolkitResetSignal by remember { mutableIntStateOf(0) }
+    var quickStartBreathingPatternId by remember { mutableStateOf<String?>(null) }
+    var quickStartToolkitToolId by remember { mutableStateOf<ToolkitToolId?>(null) }
+    var quickStartReturnToHome by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -194,6 +199,31 @@ fun SereneNavHost(
             }
             launchSingleTop = true
             restoreState = false
+        }
+    }
+
+    val effectiveToolkitNavigation = remember(pendingNavigation, quickStartToolkitToolId) {
+        if (quickStartToolkitToolId != null) {
+            PendingToolkitNavigation(toolId = quickStartToolkitToolId)
+        } else {
+            pendingNavigation
+        }
+    }
+
+    val handleQuickStart: (QuickStartTarget) -> Unit = { target ->
+        when (target) {
+            is QuickStartTarget.Breathing -> {
+                quickStartBreathingPatternId = target.patternId
+                navigateToTab(SereneDestination.Breathe)
+            }
+            QuickStartTarget.Timer -> navigateToTab(SereneDestination.Timer)
+            QuickStartTarget.Affirmations -> navigateToTab(SereneDestination.Affirmations)
+            QuickStartTarget.Visuals -> navigateToTab(SereneDestination.Visualizations)
+            is QuickStartTarget.Toolkit -> {
+                quickStartToolkitToolId = target.toolId
+                quickStartReturnToHome = true
+                navigateToTab(SereneDestination.Toolkit)
+            }
         }
     }
 
@@ -371,6 +401,7 @@ fun SereneNavHost(
                                         restoreState = true
                                     }
                                 },
+                                onQuickStart = handleQuickStart,
                                 onOpenSettings = {
                                     navController.navigate(SereneDestination.Settings.route)
                                 },
@@ -378,6 +409,8 @@ fun SereneNavHost(
                         }
                         SereneDestination.Breathe -> {
                             BreathingScreen(
+                                pendingPatternId = quickStartBreathingPatternId,
+                                onPendingPatternConsumed = { quickStartBreathingPatternId = null },
                                 onSessionActiveChange = { active ->
                                     breathingSessionActive = active
                                 },
@@ -395,8 +428,15 @@ fun SereneNavHost(
                         }
                         SereneDestination.Toolkit -> {
                             ToolkitScreen(
-                                pendingNavigation = pendingNavigation,
+                                pendingNavigation = effectiveToolkitNavigation,
                                 resetSignal = toolkitResetSignal,
+                                returnToHomeOnComplete = quickStartReturnToHome,
+                                onPendingNavigationConsumed = { quickStartToolkitToolId = null },
+                                onReturnToHome = {
+                                    quickStartReturnToHome = false
+                                    quickStartToolkitToolId = null
+                                    navigateToTab(SereneDestination.Home)
+                                },
                                 onNavigateToBreathe = {
                                     navigateToTab(SereneDestination.Breathe)
                                 },

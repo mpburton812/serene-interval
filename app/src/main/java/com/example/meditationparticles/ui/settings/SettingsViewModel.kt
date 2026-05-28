@@ -13,7 +13,10 @@ import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.data.export.AppDataImporter
 import com.example.meditationparticles.data.export.ImportParseException
-import com.example.meditationparticles.domain.quickstart.QuickStartId
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
+import com.example.meditationparticles.domain.toolkit.ToolkitLayout
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
+import kotlinx.coroutines.flow.map
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
@@ -57,13 +60,27 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val settings: StateFlow<ExperienceSettings> = preferences.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperienceSettings())
 
-    val quickStartIds: StateFlow<List<QuickStartId>> = quickStartPreferences.selectedIds
+    val quickStartTargets: StateFlow<List<QuickStartTarget>> = quickStartPreferences.selectedTargets
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val enabledToolkitTools: StateFlow<Set<ToolkitToolId>> =
+        AppGraph.toolkit(application).snapshot
+            .map { it.enabledToolIds }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                ToolkitLayout.defaultEnabledTools(),
+            )
 
     init {
         quickStartPreferences.load(preferences.settings.value)
         viewModelScope.launch {
             settings.collect { quickStartPreferences.refresh(it) }
+        }
+        viewModelScope.launch {
+            AppGraph.toolkit(application).snapshot.collect {
+                quickStartPreferences.refresh(settings.value)
+            }
         }
         viewModelScope.launch {
             oneNotePrefs.collect { prefs ->
@@ -74,10 +91,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun toggleQuickStart(id: QuickStartId) {
+    fun toggleQuickStart(target: QuickStartTarget) {
         val currentSettings = settings.value
-        quickStartPreferences.updateSelection(currentSettings) { selected ->
-            QuickStartLayout.toggleSelection(selected, id, currentSettings)
+        val enabledTools = enabledToolkitTools.value
+        quickStartPreferences.updateSelection(currentSettings, enabledTools) { selected ->
+            QuickStartLayout.toggleSelection(selected, target, currentSettings, enabledTools)
         }
     }
 

@@ -1,54 +1,117 @@
 package com.example.meditationparticles.domain.quickstart
 
+import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
+import com.example.meditationparticles.domain.toolkit.ToolkitLayout
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 
 object QuickStartLayout {
     const val SELECTION_COUNT = 4
 
-    val displayOrder: List<QuickStartId> = QuickStartId.entries.toList()
-
-    fun isToolEnabled(id: QuickStartId, settings: ExperienceSettings): Boolean = when (id) {
-        QuickStartId.BREATHING -> settings.enableBreathing
-        QuickStartId.TIMER -> settings.enableTimer
-        QuickStartId.AFFIRMATIONS -> settings.enableAffirmations
-        QuickStartId.TOOLKIT -> settings.enableToolkit
-        QuickStartId.VISUALS -> settings.enableVisuals
+    fun displayOrder(
+        settings: ExperienceSettings,
+        enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    ): List<QuickStartTarget> {
+        val breathing = if (settings.enableBreathing) {
+            BreathingPattern.All.map { QuickStartTarget.Breathing(it.id) }
+        } else {
+            emptyList()
+        }
+        val core = buildList {
+            if (settings.enableTimer) add(QuickStartTarget.Timer)
+            if (settings.enableAffirmations) add(QuickStartTarget.Affirmations)
+            if (settings.enableVisuals) add(QuickStartTarget.Visuals)
+        }
+        val toolkit = if (settings.enableToolkit) {
+            ToolkitCatalog.all
+                .filter { it.id in enabledToolkitTools }
+                .map { QuickStartTarget.Toolkit(it.id) }
+        } else {
+            emptyList()
+        }
+        return breathing + core + toolkit
     }
 
-    fun availableIds(settings: ExperienceSettings): List<QuickStartId> =
-        displayOrder.filter { isToolEnabled(it, settings) }
-
-    fun defaultSelection(settings: ExperienceSettings): List<QuickStartId> =
-        availableIds(settings).take(SELECTION_COUNT)
-
-    fun normalizeSelection(
-        selected: List<QuickStartId>,
+    fun isTargetEnabled(
+        target: QuickStartTarget,
         settings: ExperienceSettings,
-    ): List<QuickStartId> {
-        val available = availableIds(settings)
-        val availableSet = available.toSet()
-        val filtered = selected.filter { it in availableSet }.distinct()
-        if (filtered.size >= SELECTION_COUNT) {
-            return filtered.take(SELECTION_COUNT)
+        enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    ): Boolean = when (target) {
+        is QuickStartTarget.Breathing -> settings.enableBreathing &&
+            BreathingPattern.All.any { it.id == target.patternId }
+        QuickStartTarget.Timer -> settings.enableTimer
+        QuickStartTarget.Affirmations -> settings.enableAffirmations
+        QuickStartTarget.Visuals -> settings.enableVisuals
+        is QuickStartTarget.Toolkit -> settings.enableToolkit && target.toolId in enabledToolkitTools
+    }
+
+    fun availableTargets(
+        settings: ExperienceSettings,
+        enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    ): List<QuickStartTarget> =
+        displayOrder(settings, enabledToolkitTools)
+            .filter { isTargetEnabled(it, settings, enabledToolkitTools) }
+
+    fun defaultSelection(
+        settings: ExperienceSettings,
+        enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    ): List<QuickStartTarget> {
+        val preferred = buildList {
+            if (settings.enableBreathing) {
+                add(QuickStartTarget.Breathing(BreathingPattern.BoxBreathing.id))
+            }
+            if (settings.enableTimer) add(QuickStartTarget.Timer)
+            if (settings.enableAffirmations) add(QuickStartTarget.Affirmations)
+            if (settings.enableToolkit) {
+                val firstTool = ToolkitCatalog.all.firstOrNull { it.id in enabledToolkitTools }
+                if (firstTool != null) add(QuickStartTarget.Toolkit(firstTool.id))
+            }
         }
-        val filled = (filtered + available).distinct().take(SELECTION_COUNT)
-        return filled
+        return normalizeSelection(preferred, settings, enabledToolkitTools)
+    }
+
+    /** Drops invalid targets and caps at [SELECTION_COUNT]; does not pad partial selections. */
+    fun sanitizeSelection(
+        selected: List<QuickStartTarget>,
+        settings: ExperienceSettings,
+        enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    ): List<QuickStartTarget> {
+        val availableSet = availableTargets(settings, enabledToolkitTools).toSet()
+        return selected.filter { it in availableSet }.distinct().take(SELECTION_COUNT)
+    }
+
+    /** Sanitizes then fills up to [SELECTION_COUNT] from available targets (defaults, import, prune). */
+    fun normalizeSelection(
+        selected: List<QuickStartTarget>,
+        settings: ExperienceSettings,
+        enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    ): List<QuickStartTarget> {
+        val sanitized = sanitizeSelection(selected, settings, enabledToolkitTools)
+        if (sanitized.size >= SELECTION_COUNT) return sanitized
+        val available = availableTargets(settings, enabledToolkitTools)
+        return (sanitized + available).distinct().take(SELECTION_COUNT)
     }
 
     fun toggleSelection(
-        current: List<QuickStartId>,
-        id: QuickStartId,
+        current: List<QuickStartTarget>,
+        target: QuickStartTarget,
         settings: ExperienceSettings,
-    ): List<QuickStartId> {
-        if (!isToolEnabled(id, settings)) return current
-        if (id in current) return current.filter { it != id }
+        enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    ): List<QuickStartTarget> {
+        if (!isTargetEnabled(target, settings, enabledToolkitTools)) return current
+        if (target in current) return current.filter { it != target }
         if (current.size >= SELECTION_COUNT) return current
-        return current + id
+        return current + target
     }
 
-    fun hasValidSelection(selection: List<QuickStartId>, settings: ExperienceSettings): Boolean {
+    fun hasValidSelection(
+        selection: List<QuickStartTarget>,
+        settings: ExperienceSettings,
+        enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    ): Boolean {
         if (selection.size != SELECTION_COUNT) return false
-        val available = availableIds(settings).toSet()
+        val available = availableTargets(settings, enabledToolkitTools).toSet()
         return selection.all { it in available }
     }
 }

@@ -10,10 +10,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.example.meditationparticles.domain.quickstart.QuickStartId
+import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.settings.ExperienceSettings
-import com.example.meditationparticles.navigation.SereneDestination
+import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
+import com.example.meditationparticles.domain.toolkit.ToolkitLayout
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 
 data class QuickStartTileModel(
     val label: String,
@@ -25,22 +28,23 @@ data class QuickStartTileModel(
 
 @Composable
 fun buildQuickStartTiles(
-    selectedIds: List<QuickStartId>,
+    selectedTargets: List<QuickStartTarget>,
     settings: ExperienceSettings,
-    onNavigate: (SereneDestination, String?) -> Unit,
+    enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    onQuickStart: (QuickStartTarget) -> Unit,
 ): List<QuickStartTileModel> {
     val scheme = MaterialTheme.colorScheme
-    val resolved = QuickStartLayout.normalizeSelection(selectedIds, settings)
-        .filter { QuickStartLayout.isToolEnabled(it, settings) }
+    val resolved = QuickStartLayout.sanitizeSelection(selectedTargets, settings, enabledToolkitTools)
+        .filter { QuickStartLayout.isTargetEnabled(it, settings, enabledToolkitTools) }
 
-    return resolved.map { id ->
-        val presentation = quickStartPresentation(id, scheme)
+    return resolved.map { target ->
+        val presentation = quickStartPresentation(target, scheme)
         QuickStartTileModel(
             label = presentation.label,
             icon = presentation.icon,
             iconTint = presentation.iconTint,
             iconBackground = presentation.iconBackground,
-            onClick = { onNavigate(presentation.destination, null) },
+            onClick = { onQuickStart(target) },
         )
     }
 }
@@ -50,47 +54,47 @@ private data class QuickStartPresentation(
     val icon: ImageVector,
     val iconTint: Color,
     val iconBackground: Color,
-    val destination: SereneDestination,
 )
 
 @Composable
 private fun quickStartPresentation(
-    id: QuickStartId,
+    target: QuickStartTarget,
     scheme: androidx.compose.material3.ColorScheme,
-): QuickStartPresentation = when (id) {
-    QuickStartId.BREATHING -> QuickStartPresentation(
-        label = "Breathing",
-        icon = Icons.Default.Air,
-        iconTint = scheme.secondary,
-        iconBackground = scheme.secondaryContainer.copy(alpha = 0.4f),
-        destination = SereneDestination.Breathe,
-    )
-    QuickStartId.TIMER -> QuickStartPresentation(
+): QuickStartPresentation = when (target) {
+    is QuickStartTarget.Breathing -> {
+        val pattern = BreathingPattern.byId(target.patternId)
+        QuickStartPresentation(
+            label = pattern.name,
+            icon = Icons.Default.Air,
+            iconTint = scheme.secondary,
+            iconBackground = scheme.secondaryContainer.copy(alpha = 0.4f),
+        )
+    }
+    QuickStartTarget.Timer -> QuickStartPresentation(
         label = "Meditation",
         icon = Icons.Default.SelfImprovement,
         iconTint = scheme.primary,
         iconBackground = scheme.primaryContainer.copy(alpha = 0.4f),
-        destination = SereneDestination.Timer,
     )
-    QuickStartId.AFFIRMATIONS -> QuickStartPresentation(
+    QuickStartTarget.Affirmations -> QuickStartPresentation(
         label = "Affirmations",
         icon = Icons.Default.AutoAwesome,
         iconTint = scheme.tertiary,
         iconBackground = scheme.tertiaryContainer.copy(alpha = 0.3f),
-        destination = SereneDestination.Affirmations,
     )
-    QuickStartId.TOOLKIT -> QuickStartPresentation(
-        label = "Toolkit",
-        icon = Icons.Default.Handyman,
-        iconTint = scheme.onSurfaceVariant,
-        iconBackground = scheme.surfaceContainerHigh,
-        destination = SereneDestination.Toolkit,
-    )
-    QuickStartId.VISUALS -> QuickStartPresentation(
+    is QuickStartTarget.Toolkit -> {
+        val title = ToolkitCatalog.byId(target.toolId)?.title ?: "Toolkit"
+        QuickStartPresentation(
+            label = title,
+            icon = Icons.Default.Handyman,
+            iconTint = scheme.onSurfaceVariant,
+            iconBackground = scheme.surfaceContainerHigh,
+        )
+    }
+    QuickStartTarget.Visuals -> QuickStartPresentation(
         label = "Visualizations",
         icon = Icons.Default.Landscape,
         iconTint = scheme.tertiary,
         iconBackground = scheme.tertiaryContainer.copy(alpha = 0.25f),
-        destination = SereneDestination.Visualizations,
     )
 }

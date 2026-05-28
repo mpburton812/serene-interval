@@ -11,7 +11,7 @@ import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
-import com.example.meditationparticles.domain.quickstart.QuickStartId
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
@@ -243,13 +243,18 @@ class AppDataImporter(
         toolkit.refresh(onboardingCompleted)
     }
 
-    private fun importQuickStartPreferences(json: JSONObject): List<QuickStartId> {
+    private fun importQuickStartPreferences(json: JSONObject): List<QuickStartTarget> {
         val settings = AppGraph.settings(context).load()
-        val imported = json.optJSONArray("selectedIds")?.toEnumList<QuickStartId>() ?: emptyList()
-        return QuickStartLayout.normalizeSelection(imported, settings)
+        val toolkit = AppGraph.toolkit(context).snapshot.value
+        val imported = json.optJSONArray("selectedIds")?.let { array ->
+            (0 until array.length()).mapNotNull { index ->
+                QuickStartTarget.decode(array.optString(index))
+            }
+        } ?: emptyList()
+        return QuickStartLayout.normalizeSelection(imported, settings, toolkit.enabledToolIds)
     }
 
-    private fun applyQuickStartPreferences(selection: List<QuickStartId>) {
+    private fun applyQuickStartPreferences(selection: List<QuickStartTarget>) {
         val settings = AppGraph.settings(context).load()
         AppGraph.quickStart(context).saveSelection(selection, settings)
     }

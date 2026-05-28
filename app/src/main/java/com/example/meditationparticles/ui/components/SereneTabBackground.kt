@@ -36,8 +36,24 @@ fun SereneTabBackground(
     LaunchedEffect(settings.themeMode, isSystemDark) {
         rotation.sync(settings.themeMode, isSystemDark)
     }
-    val scrimTopAlpha = if (isDark) 0.78f else 0.58f
-    val scrimBottomAlpha = if (isDark) 0.88f else 0.72f
+    val scrim = MaterialTheme.colorScheme.background
+    val scrimBrush = if (isDark) {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0f to scrim.copy(alpha = 0.78f),
+                0.4f to scrim.copy(alpha = 0.82f),
+                1f to scrim.copy(alpha = 0.88f),
+            ),
+        )
+    } else {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0f to scrim.copy(alpha = 0.72f),
+                0.4f to scrim.copy(alpha = 0.62f),
+                1f to scrim.copy(alpha = 0.52f),
+            ),
+        )
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Image(
@@ -49,14 +65,7 @@ fun SereneTabBackground(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background.copy(alpha = scrimTopAlpha),
-                            MaterialTheme.colorScheme.background.copy(alpha = scrimBottomAlpha),
-                        ),
-                    ),
-                ),
+                .background(scrimBrush),
         )
         content()
     }

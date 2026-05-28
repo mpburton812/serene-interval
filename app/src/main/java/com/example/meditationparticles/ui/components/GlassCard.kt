@@ -12,8 +12,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.meditationparticles.ui.theme.isDarkScheme
-
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
@@ -21,18 +19,8 @@ fun GlassCard(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val isDark = isDarkScheme(scheme)
     val shape = RoundedCornerShape(cornerRadius)
-    val glassFill = if (isDark) {
-        scheme.surfaceContainerHigh.copy(alpha = 0.72f)
-    } else {
-        scheme.surfaceContainerLow.copy(alpha = 0.92f)
-    }
-    val glassBorder = if (isDark) {
-        scheme.outlineVariant.copy(alpha = 0.45f)
-    } else {
-        scheme.outlineVariant.copy(alpha = 0.65f)
-    }
+    val glass = sereneGlassStyle(scheme)
     Box(
         modifier = modifier
             .shadow(
@@ -42,8 +30,8 @@ fun GlassCard(
                 spotColor = scheme.primary.copy(alpha = 0.08f),
             )
             .clip(shape)
-            .background(glassFill)
-            .border(1.dp, glassBorder, shape),
+            .background(glass.fill)
+            .border(1.dp, glass.border, shape),
         content = content,
     )
 }

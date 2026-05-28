@@ -20,6 +20,9 @@ import com.example.meditationparticles.ui.theme.SereneSpacing
 fun ToolkitScreen(
     pendingNavigation: PendingToolkitNavigation? = null,
     resetSignal: Int = 0,
+    returnToHomeOnComplete: Boolean = false,
+    onPendingNavigationConsumed: () -> Unit = {},
+    onReturnToHome: () -> Unit = {},
     onNavigateToBreathe: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ToolkitViewModel = viewModel(),
@@ -57,6 +60,9 @@ fun ToolkitScreen(
                 AnxietyToolkitTab(
                     onNavigateToBreathe = onNavigateToBreathe,
                     pendingNavigation = pendingNavigation,
+                    returnToHomeOnComplete = returnToHomeOnComplete,
+                    onPendingNavigationConsumed = onPendingNavigationConsumed,
+                    onReturnToHome = onReturnToHome,
                     viewModel = viewModel,
                 )
             }

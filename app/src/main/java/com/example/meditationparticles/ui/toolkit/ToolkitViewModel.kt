@@ -277,7 +277,8 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     ToolkitCatalog.byId(ToolkitToolId.FutureSelfMessage)?.let(::openTool)
                 }
             }
-            else -> Unit
+            null -> Unit
+            else -> ToolkitCatalog.byId(toolId)?.let(::openTool)
         }
     }
 
@@ -466,7 +467,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun saveRefactoringEntry() {
+    fun saveRefactoringEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             commitPendingRefactoringAudio()
             val state = _uiState.value
@@ -502,6 +503,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     pendingAudioPath = null,
                 )
             }
+            onComplete()
         }
     }
 
@@ -600,7 +602,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun saveCenterOfGravityEntry() {
+    fun saveCenterOfGravityEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             commitPendingCenterOfGravityAudio()
             val state = _uiState.value
@@ -624,6 +626,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     pendingAudioPath = null,
                 )
             }
+            onComplete()
         }
     }
 
@@ -735,7 +738,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun saveNvcEntry() {
+    fun saveNvcEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             commitPendingNvcAudio()
             val state = _uiState.value
@@ -767,6 +770,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     pendingAudioPath = null,
                 )
             }
+            onComplete()
         }
     }
 
@@ -832,7 +836,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun saveThoughtDump() {
+    fun saveThoughtDump(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val entryId = logRepository.save(
                 type = ToolkitLogType.THOUGHT_DUMP,
@@ -842,10 +846,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.THOUGHT_DUMP, it) }
             _uiState.update { it.copy(thoughtDumpText = "", draftMoodLevel = null, pendingAudioPath = null) }
+            onComplete()
         }
     }
 
-    fun saveAnxietyLog() {
+    fun saveAnxietyLog(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val entryId = logRepository.save(
                 type = ToolkitLogType.ANXIETY_LOG,
@@ -855,10 +860,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.ANXIETY_LOG, it) }
             _uiState.update { it.copy(anxietyLogText = "", draftMoodLevel = null, pendingAudioPath = null) }
+            onComplete()
         }
     }
 
-    fun saveFutureSelfMessage() {
+    fun saveFutureSelfMessage(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val state = _uiState.value
             if (state.futureSelfScheduledAtMillis <= System.currentTimeMillis()) return@launch
@@ -880,6 +886,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             )
             enqueueOneNoteSync(OneNoteEntryType.FUTURE_SELF, savedId)
             closeTool()
+            onComplete()
         }
     }
 

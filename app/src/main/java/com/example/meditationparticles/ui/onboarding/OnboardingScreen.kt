@@ -225,7 +225,8 @@ private fun OnboardingCustomizationStep(
         OnboardingSectionCard {
             QuickStartSelectionSection(
                 settings = settingsPreview,
-                selectedIds = draft.quickStartIds,
+                enabledToolkitTools = draft.enabledToolkitTools,
+                selectedTargets = draft.quickStartTargets,
                 onToggle = viewModel::toggleQuickStart,
             )
         }
@@ -247,7 +248,7 @@ private fun OnboardingCustomizationStep(
             text = when {
                 draft.enableToolkit && draft.enabledToolkitTools.isEmpty() ->
                     "Enable at least one toolkit tool to continue."
-                draft.quickStartIds.size < 4 ->
+                draft.quickStartTargets.size < 4 ->
                     "Choose 4 Quick Start tools to continue."
                 else -> "Keep at least one tool enabled to continue."
             },

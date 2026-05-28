@@ -83,16 +83,29 @@ import com.example.meditationparticles.ui.theme.SereneTertiaryContainer
 fun AnxietyToolkitTab(
     onNavigateToBreathe: () -> Unit,
     pendingNavigation: PendingToolkitNavigation? = null,
+    returnToHomeOnComplete: Boolean = false,
+    onPendingNavigationConsumed: () -> Unit = {},
+    onReturnToHome: () -> Unit = {},
     viewModel: ToolkitViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    val completeToolFlow: () -> Unit = {
+        viewModel.closeTool()
+        if (returnToHomeOnComplete) {
+            onReturnToHome()
+        }
+    }
+
     LaunchedEffect(pendingNavigation) {
         pendingNavigation?.let { navigation ->
-            viewModel.handlePendingNavigation(
-                toolId = navigation.toolId,
-                futureSelfMessageId = navigation.futureSelfMessageId,
-            )
+            if (navigation.toolId != null || navigation.futureSelfMessageId != null) {
+                viewModel.handlePendingNavigation(
+                    toolId = navigation.toolId,
+                    futureSelfMessageId = navigation.futureSelfMessageId,
+                )
+                onPendingNavigationConsumed()
+            }
         }
     }
 
@@ -141,9 +154,15 @@ fun AnxietyToolkitTab(
             onFutureSelfScheduledAtChange = viewModel::updateFutureSelfScheduledAt,
             onPendingAudioChange = viewModel::setPendingAudioPath,
             onSpeechResult = viewModel::appendToActiveLog,
-            onSaveThoughtDump = viewModel::saveThoughtDump,
-            onSaveAnxietyLog = viewModel::saveAnxietyLog,
-            onSaveFutureSelfMessage = viewModel::saveFutureSelfMessage,
+            onSaveThoughtDump = {
+                viewModel.saveThoughtDump(onComplete = completeToolFlow)
+            },
+            onSaveAnxietyLog = {
+                viewModel.saveAnxietyLog(onComplete = completeToolFlow)
+            },
+            onSaveFutureSelfMessage = {
+                viewModel.saveFutureSelfMessage(onComplete = completeToolFlow)
+            },
             onClearDraft = viewModel::clearActiveDraft,
             onOpenLogEntry = viewModel::openLogEntry,
             onDeleteLogEntry = viewModel::deleteLogEntry,
@@ -158,7 +177,9 @@ fun AnxietyToolkitTab(
             onRefactoringExplanation2Change = viewModel::updateRefactoringExplanation2,
             onRefactoringExplanation3Change = viewModel::updateRefactoringExplanation3,
             onRefactoringSpeechResult = viewModel::appendToRefactoringField,
-            onSaveRefactoringEntry = viewModel::saveRefactoringEntry,
+            onSaveRefactoringEntry = {
+                viewModel.saveRefactoringEntry(onComplete = completeToolFlow)
+            },
             onClearRefactoringDraft = viewModel::clearRefactoringDraft,
             onOpenRefactoringEntry = viewModel::openRefactoringEntry,
             onDeleteRefactoringEntry = viewModel::deleteRefactoringEntry,
@@ -169,7 +190,9 @@ fun AnxietyToolkitTab(
             onCenterOfGravityThoughtsAndFeelingsChange = viewModel::updateCenterOfGravityThoughtsAndFeelings,
             onCenterOfGravityBodyAndNeedsChange = viewModel::updateCenterOfGravityBodyAndNeeds,
             onCenterOfGravitySpeechResult = viewModel::appendToCenterOfGravityField,
-            onSaveCenterOfGravityEntry = viewModel::saveCenterOfGravityEntry,
+            onSaveCenterOfGravityEntry = {
+                viewModel.saveCenterOfGravityEntry(onComplete = completeToolFlow)
+            },
             onClearCenterOfGravityDraft = viewModel::clearCenterOfGravityDraft,
             onOpenCenterOfGravityEntry = viewModel::openCenterOfGravityEntry,
             onDeleteCenterOfGravityEntry = viewModel::deleteCenterOfGravityEntry,
@@ -181,7 +204,9 @@ fun AnxietyToolkitTab(
             onNvcNeedChange = viewModel::updateNvcNeed,
             onNvcRequestChange = viewModel::updateNvcRequest,
             onNvcSpeechResult = viewModel::appendToNvcField,
-            onSaveNvcEntry = viewModel::saveNvcEntry,
+            onSaveNvcEntry = {
+                viewModel.saveNvcEntry(onComplete = completeToolFlow)
+            },
             onClearNvcDraft = viewModel::clearNvcDraft,
             onOpenNvcEntry = viewModel::openNvcEntry,
             onDeleteNvcEntry = viewModel::deleteNvcEntry,
@@ -192,6 +217,7 @@ fun AnxietyToolkitTab(
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
+            onCompleteFlow = completeToolFlow,
             onNavigateToBreathe = onNavigateToBreathe,
             showOneNoteSync = BuildConfig.ONENOTE_SYNC_AVAILABLE && state.oneNoteConnected,
             onSyncEntryToOneNote = viewModel::syncEntryToOneNote,
@@ -520,6 +546,7 @@ private fun ToolDetailScreen(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
+    onCompleteFlow: () -> Unit,
     onNavigateToBreathe: () -> Unit,
     showOneNoteSync: Boolean,
     onSyncEntryToOneNote: (OneNoteEntryType, Long) -> Unit,
@@ -759,7 +786,7 @@ private fun ToolDetailScreen(
                     }
 
                     Button(
-                        onClick = if (isLastStep) onClose else onNext,
+                        onClick = if (isLastStep) onCompleteFlow else onNext,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(if (isLastStep) "Done" else "Next")

@@ -52,7 +52,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val settings by viewModel.settings.collectAsState()
-    val quickStartIds by viewModel.quickStartIds.collectAsState()
+    val quickStartTargets by viewModel.quickStartTargets.collectAsState()
+    val enabledToolkitTools by viewModel.enabledToolkitTools.collectAsState()
     val settingsUiState by viewModel.uiState.collectAsState()
     val oneNotePrefs by viewModel.oneNotePrefs.collectAsState()
     val oneNoteUiState by viewModel.oneNoteUiState.collectAsState()
@@ -180,7 +181,8 @@ fun SettingsScreen(
 
             QuickStartSelectionSection(
                 settings = settings,
-                selectedIds = quickStartIds,
+                enabledToolkitTools = enabledToolkitTools,
+                selectedTargets = quickStartTargets,
                 onToggle = viewModel::toggleQuickStart,
             )
 

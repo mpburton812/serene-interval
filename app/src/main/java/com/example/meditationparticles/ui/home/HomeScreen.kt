@@ -46,8 +46,10 @@ import com.example.meditationparticles.domain.sessions.HomeProgress
 import com.example.meditationparticles.domain.sessions.MeditationSession
 import com.example.meditationparticles.domain.sessions.SessionType
 import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.navigation.SereneDestination
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.SereneHeaderPlate
 import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.SereneSpacing
@@ -56,13 +58,14 @@ import java.util.Calendar
 @Composable
 fun HomeScreen(
     onNavigate: (SereneDestination, String?) -> Unit,
+    onQuickStart: (QuickStartTarget) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
 ) {
     val dailyAffirmation by viewModel.dailyAffirmation.collectAsState()
     val homeProgress by viewModel.homeProgress.collectAsState()
-    val quickStartIds by viewModel.quickStartIds.collectAsState()
+    val quickStartTargets by viewModel.quickStartTargets.collectAsState()
     val settings = LocalExperienceSettings.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -79,9 +82,9 @@ fun HomeScreen(
     }
 
     val quickStartTiles = buildQuickStartTiles(
-        selectedIds = quickStartIds,
+        selectedTargets = quickStartTargets,
         settings = settings,
-        onNavigate = onNavigate,
+        onQuickStart = onQuickStart,
     )
 
     SereneTabBackground(modifier = modifier) {
@@ -96,10 +99,13 @@ fun HomeScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
             verticalAlignment = Alignment.Top,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            SereneHeaderPlate(
+                modifier = Modifier.weight(1f),
+                cornerRadius = 20.dp,
+            ) {
                 Text(
                     text = welcomeHeadline(settings),
                     style = MaterialTheme.typography.displayLarge,
@@ -107,7 +113,7 @@ fun HomeScreen(
                 Text(
                     text = homeSubtitle(settings),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }

@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,21 +21,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.example.meditationparticles.domain.quickstart.QuickStartId
+import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
+import com.example.meditationparticles.domain.toolkit.ToolkitLayout
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 @Composable
 fun QuickStartSelectionSection(
     settings: ExperienceSettings,
-    selectedIds: List<QuickStartId>,
-    onToggle: (QuickStartId) -> Unit,
+    enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
+    selectedTargets: List<QuickStartTarget>,
+    onToggle: (QuickStartTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val available = QuickStartLayout.availableIds(settings)
-    val selectionCount = selectedIds.size
+    val available = QuickStartLayout.availableTargets(settings, enabledToolkitTools)
+    val selectionCount = selectedTargets.size
 
     Column(
         modifier = modifier,
@@ -48,7 +52,8 @@ fun QuickStartSelectionSection(
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            text = "Choose ${QuickStartLayout.SELECTION_COUNT} tools to feature on your home screen.",
+            text = "Choose ${QuickStartLayout.SELECTION_COUNT} shortcuts for your home screen — " +
+                "breathing patterns, toolkit tools, and more.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -64,21 +69,55 @@ fun QuickStartSelectionSection(
 
         if (available.size < QuickStartLayout.SELECTION_COUNT) {
             Text(
-                text = "Enable at least ${QuickStartLayout.SELECTION_COUNT} tools in Your Experience " +
+                text = "Enable at least ${QuickStartLayout.SELECTION_COUNT} options in Your Experience " +
                     "to choose your Quick Start row.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.tertiary,
             )
         }
 
+        val breathingAvailable = available.filterIsInstance<QuickStartTarget.Breathing>()
+        val coreAvailable = available.filter {
+            it is QuickStartTarget.Timer ||
+                it is QuickStartTarget.Affirmations ||
+                it is QuickStartTarget.Visuals
+        }
+        val toolkitAvailable = available.filterIsInstance<QuickStartTarget.Toolkit>()
+
         Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
-            QuickStartLayout.displayOrder.forEach { id ->
-                if (id in available) {
+            if (breathingAvailable.isNotEmpty()) {
+                QuickStartGroupHeader("Breathing patterns")
+                breathingAvailable.forEach { target ->
                     QuickStartSelectionRow(
-                        id = id,
-                        checked = id in selectedIds,
-                        enabled = id in selectedIds || selectionCount < QuickStartLayout.SELECTION_COUNT,
-                        onToggle = { onToggle(id) },
+                        target = target,
+                        checked = target in selectedTargets,
+                        enabled = target in selectedTargets ||
+                            selectionCount < QuickStartLayout.SELECTION_COUNT,
+                        onToggle = { onToggle(target) },
+                    )
+                }
+            }
+            if (coreAvailable.isNotEmpty()) {
+                QuickStartGroupHeader("Other tools")
+                coreAvailable.forEach { target ->
+                    QuickStartSelectionRow(
+                        target = target,
+                        checked = target in selectedTargets,
+                        enabled = target in selectedTargets ||
+                            selectionCount < QuickStartLayout.SELECTION_COUNT,
+                        onToggle = { onToggle(target) },
+                    )
+                }
+            }
+            if (toolkitAvailable.isNotEmpty()) {
+                QuickStartGroupHeader("Toolkit tools")
+                toolkitAvailable.forEach { target ->
+                    QuickStartSelectionRow(
+                        target = target,
+                        checked = target in selectedTargets,
+                        enabled = target in selectedTargets ||
+                            selectionCount < QuickStartLayout.SELECTION_COUNT,
+                        onToggle = { onToggle(target) },
                     )
                 }
             }
@@ -87,13 +126,23 @@ fun QuickStartSelectionSection(
 }
 
 @Composable
+private fun QuickStartGroupHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+@Composable
 private fun QuickStartSelectionRow(
-    id: QuickStartId,
+    target: QuickStartTarget,
     checked: Boolean,
     enabled: Boolean,
     onToggle: () -> Unit,
 ) {
-    val (label, icon) = quickStartMeta(id)
+    val (label, icon) = quickStartMeta(target)
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -109,8 +158,8 @@ private fun QuickStartSelectionRow(
         ) {
             Checkbox(
                 checked = checked,
-                onCheckedChange = { if (enabled || checked) onToggle() },
-                enabled = enabled || checked,
+                onCheckedChange = { if (enabled) onToggle() },
+                enabled = enabled,
             )
             Icon(
                 imageVector = icon,
@@ -125,10 +174,16 @@ private fun QuickStartSelectionRow(
     }
 }
 
-private fun quickStartMeta(id: QuickStartId): Pair<String, ImageVector> = when (id) {
-    QuickStartId.BREATHING -> "Breathing" to Icons.Default.Air
-    QuickStartId.TIMER -> "Meditation" to Icons.Default.SelfImprovement
-    QuickStartId.AFFIRMATIONS -> "Affirmations" to Icons.Default.AutoAwesome
-    QuickStartId.TOOLKIT -> "Toolkit" to Icons.Default.Handyman
-    QuickStartId.VISUALS -> "Visualizations" to Icons.Default.Landscape
+private fun quickStartMeta(target: QuickStartTarget): Pair<String, ImageVector> = when (target) {
+    is QuickStartTarget.Breathing -> {
+        val pattern = BreathingPattern.byId(target.patternId)
+        pattern.name to Icons.Default.Air
+    }
+    QuickStartTarget.Timer -> "Meditation" to Icons.Default.SelfImprovement
+    QuickStartTarget.Affirmations -> "Affirmations" to Icons.Default.AutoAwesome
+    QuickStartTarget.Visuals -> "Visualizations" to Icons.Default.Landscape
+    is QuickStartTarget.Toolkit -> {
+        val title = ToolkitCatalog.byId(target.toolId)?.title ?: "Toolkit"
+        title to Icons.Default.Handyman
+    }
 }

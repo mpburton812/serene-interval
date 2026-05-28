@@ -6,7 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.AppGraph
-import com.example.meditationparticles.domain.quickstart.QuickStartId
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
@@ -63,8 +63,8 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _draft.update { it.toggleToolkitTool(id) }
     }
 
-    fun toggleQuickStart(id: QuickStartId) {
-        _draft.update { it.toggleQuickStart(id) }
+    fun toggleQuickStart(target: QuickStartTarget) {
+        _draft.update { it.toggleQuickStart(target) }
     }
 
     fun setEnableVisuals(enabled: Boolean) {
@@ -256,7 +256,11 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             futureSelfSchedulingAvailable = schedulingAvailable,
         )
         preferences.save(savedSettings)
-        quickStartPreferences.saveSelection(current.quickStartIds, savedSettings)
+        quickStartPreferences.saveSelection(
+            current.quickStartTargets,
+            savedSettings,
+            current.enabledToolkitTools,
+        )
         if (current.enableToolkit) {
             AppGraph.toolkit(getApplication()).saveConfiguration(current.enabledToolkitTools)
         }
