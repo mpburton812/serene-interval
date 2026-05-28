@@ -141,7 +141,8 @@ object OneNotePageRenderer {
         val tool = ToolkitCatalog.byId(ToolkitToolId.ThoughtDump)
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
-            appendLine("<h1>${escapeHtml(tool?.title ?: "Daily Thought Dump")}</h1>")
+            appendLine("<h1>${escapeHtml(tool?.title ?: "Capture Thought")}</h1>")
+            appendLine("<p><strong>Mood:</strong> ${entry.moodLevel.coerceIn(1, 5)}/5</p>")
             appendParagraph(entry.content)
             appendAudioNote(entry.audioPath)
             appendFooter(entry.id)

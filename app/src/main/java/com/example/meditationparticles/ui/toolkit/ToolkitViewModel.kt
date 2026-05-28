@@ -36,6 +36,7 @@ data class ToolkitUiState(
     val selectedTool: ToolkitTool? = null,
     val stepIndex: Int = 0,
     val thoughtDumpText: String = "",
+    val thoughtDumpMoodLevel: Int = 3,
     val anxietyLogText: String = "",
     val pendingAudioPath: String? = null,
     val thoughtDumpEntries: List<ThoughtDumpEntity> = emptyList(),
@@ -208,6 +209,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 stepIndex = 0,
                 randomToolState = RandomToolState.Idle,
                 thoughtDumpText = "",
+                thoughtDumpMoodLevel = 3,
                 anxietyLogText = "",
                 pendingAudioPath = null,
                 openedLogEntry = null,
@@ -285,6 +287,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 selectedTool = null,
                 stepIndex = 0,
                 thoughtDumpText = "",
+                thoughtDumpMoodLevel = 3,
                 anxietyLogText = "",
                 pendingAudioPath = null,
                 openedLogEntry = null,
@@ -339,6 +342,10 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateThoughtDump(text: String) {
         _uiState.update { it.copy(thoughtDumpText = text) }
+    }
+
+    fun updateThoughtDumpMoodLevel(level: Int) {
+        _uiState.update { it.copy(thoughtDumpMoodLevel = level.coerceIn(1, 5)) }
     }
 
     fun updateAnxietyLog(text: String) {
@@ -827,10 +834,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             val entryId = logRepository.save(
                 type = ToolkitLogType.THOUGHT_DUMP,
                 content = _uiState.value.thoughtDumpText,
+                moodLevel = _uiState.value.thoughtDumpMoodLevel,
                 audioPath = _uiState.value.pendingAudioPath,
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.THOUGHT_DUMP, it) }
-            _uiState.update { it.copy(thoughtDumpText = "", pendingAudioPath = null) }
+            _uiState.update { it.copy(thoughtDumpText = "", thoughtDumpMoodLevel = 3, pendingAudioPath = null) }
         }
     }
 
@@ -874,6 +882,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update {
             it.copy(
                 thoughtDumpText = "",
+                thoughtDumpMoodLevel = 3,
                 anxietyLogText = "",
                 futureSelfText = "",
                 pendingAudioPath = null,

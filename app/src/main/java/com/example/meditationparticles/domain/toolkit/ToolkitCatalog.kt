@@ -31,8 +31,8 @@ object ToolkitCatalog {
     val all: List<ToolkitTool> = listOf(
         ToolkitTool(
             id = ToolkitToolId.ThoughtDump,
-            title = "Daily Thought Dump",
-            description = "Clear cognitive clutter before it builds.",
+            title = "Capture Thought",
+            description = "Jot down a thought and mood.",
             category = ToolkitCategory.Proactive,
             steps = listOf(
                 "Find a quiet moment. This is a judgment-free space.",

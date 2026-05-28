@@ -398,10 +398,12 @@ class AppDataImporter(
             )
             skips += audioSkips
 
+            val moodLevel = item.optInt("moodLevel", 3).coerceIn(1, 5)
             dao.insert(
                 ThoughtDumpEntity(
                     content = content,
                     logType = logType.name,
+                    moodLevel = moodLevel,
                     audioPath = audioPath,
                     createdAt = createdAt,
                 ),

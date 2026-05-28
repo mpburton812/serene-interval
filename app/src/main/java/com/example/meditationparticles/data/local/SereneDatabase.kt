@@ -19,7 +19,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OneNoteSyncMappingEntity::class,
         OneNoteSyncQueueEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -189,6 +189,16 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    ALTER TABLE thought_dumps ADD COLUMN moodLevel INTEGER NOT NULL DEFAULT 3
+                    """.trimIndent(),
+                )
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -205,6 +215,7 @@ abstract class SereneDatabase : RoomDatabase() {
                         MIGRATION_6_7,
                         MIGRATION_7_8,
                         MIGRATION_8_9,
+                        MIGRATION_9_10,
                     )
                     .build()
                     .also { instance = it }

@@ -13,12 +13,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.SentimentDissatisfied
+import androidx.compose.material.icons.filled.SentimentNeutral
+import androidx.compose.material.icons.filled.SentimentSatisfied
+import androidx.compose.material.icons.filled.SentimentVeryDissatisfied
+import androidx.compose.material.icons.filled.SentimentVerySatisfied
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -38,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -52,6 +59,8 @@ import java.util.Date
 fun ToolkitLogContent(
     instructionText: String,
     text: String,
+    moodLevel: Int? = null,
+    onMoodLevelChange: ((Int) -> Unit)? = null,
     entries: List<ThoughtDumpEntity>,
     pendingAudioPath: String?,
     openedEntry: ThoughtDumpEntity?,
@@ -140,6 +149,12 @@ fun ToolkitLogContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (moodLevel != null && onMoodLevelChange != null) {
+                MoodLevelPicker(
+                    level = moodLevel,
+                    onLevelChange = onMoodLevelChange,
+                )
+            }
             OutlinedTextField(
                 value = text,
                 onValueChange = onTextChange,
@@ -302,6 +317,11 @@ private fun LogEntryDetailDialog(
         title = { Text(formatLogTimestamp(entry.createdAt)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Mood: ${entry.moodLevel.coerceIn(1, 5)}/5",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 if (entry.content.isNotBlank()) {
                     Text(
                         text = entry.content,
@@ -343,6 +363,63 @@ private fun LogEntryDetailDialog(
             }
         },
     )
+}
+
+@Composable
+private fun MoodLevelPicker(
+    level: Int,
+    onLevelChange: (Int) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Mood",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            (1..5).forEach { value ->
+                val icon = when (value) {
+                    1 -> Icons.Default.SentimentVeryDissatisfied
+                    2 -> Icons.Default.SentimentDissatisfied
+                    3 -> Icons.Default.SentimentNeutral
+                    4 -> Icons.Default.SentimentSatisfied
+                    else -> Icons.Default.SentimentVerySatisfied
+                }
+                val selected = value == level
+                Icon(
+                    imageVector = icon,
+                    contentDescription = "Mood $value of 5",
+                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .selectable(
+                            selected = selected,
+                            onClick = { onLevelChange(value) },
+                            role = Role.RadioButton,
+                        ),
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "Sad",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Happy",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 private fun formatLogTimestamp(createdAt: Long): String {

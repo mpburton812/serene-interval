@@ -150,6 +150,7 @@ class AppDataExporter(
         put("id", id)
         put("content", content)
         put("logType", logType)
+        put("moodLevel", moodLevel)
         put("audioPath", audioPath)
         put("createdAt", createdAt)
     }
