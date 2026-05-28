@@ -229,6 +229,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             }
             oneNotePreferences.setAccountEmail(authResult.email ?: oneNoteAuth.currentAccountEmail())
             oneNotePreferences.setSyncEnabled(true)
+            oneNotePreferences.setEntryTypeEnabled(OneNoteEntryType.MEDITATION_REFLECTION, true)
             val sectionResult = oneNoteSync.ensureSection()
             sectionResult.onFailure { error ->
                 oneNotePreferences.setLastError(error.message)

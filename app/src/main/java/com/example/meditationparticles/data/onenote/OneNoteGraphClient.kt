@@ -1,8 +1,10 @@
 package com.example.meditationparticles.data.onenote
 
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -17,11 +19,38 @@ class OneNoteGraphClient(
         sectionId: String,
         html: String,
     ): String {
-        val request = Request.Builder()
-            .url("$GRAPH_BASE/me/onenote/sections/$sectionId/pages")
-            .addHeader("Authorization", "Bearer $accessToken")
-            .post(html.toRequestBody("text/html; charset=utf-8".toMediaType()))
-            .build()
+        val request = buildCreatePageRequest(
+            accessToken = accessToken,
+            sectionId = sectionId,
+            body = html.toRequestBody("text/html; charset=utf-8".toMediaType()),
+        )
+        val response = httpClient.newCall(request).execute()
+        response.use {
+            val body = it.body?.string().orEmpty()
+            if (!it.isSuccessful) {
+                throw IOException("Create page failed (${it.code}): $body")
+            }
+            val json = JSONObject(body)
+            return json.optString("id").takeIf { id -> id.isNotBlank() }
+                ?: throw IOException("Create page response missing id")
+        }
+    }
+
+    suspend fun createPageWithAttachments(
+        accessToken: String,
+        sectionId: String,
+        html: String,
+        attachments: List<OneNoteUploadAttachment>,
+    ): String {
+        val requestBody = buildMultipartPageBody(
+            html = html,
+            attachments = attachments,
+        )
+        val request = buildCreatePageRequest(
+            accessToken = accessToken,
+            sectionId = sectionId,
+            body = requestBody,
+        )
         val response = httpClient.newCall(request).execute()
         response.use {
             val body = it.body?.string().orEmpty()
@@ -181,6 +210,38 @@ class OneNoteGraphClient(
             .writeTimeout(60, TimeUnit.SECONDS)
             .build()
     }
+
+    internal fun buildMultipartPageBody(
+        html: String,
+        attachments: List<OneNoteUploadAttachment>,
+    ): RequestBody {
+        val builder = MultipartBody.Builder().setType(MultipartBody.FORM)
+        builder.addFormDataPart(
+            "Presentation",
+            null,
+            html.toRequestBody("text/html; charset=utf-8".toMediaType()),
+        )
+        for (attachment in attachments) {
+            builder.addFormDataPart(
+                attachment.partName,
+                attachment.fileName,
+                attachment.bytes.toRequestBody(attachment.contentType.toMediaType()),
+            )
+        }
+        return builder.build()
+    }
+
+    private fun buildCreatePageRequest(
+        accessToken: String,
+        sectionId: String,
+        body: RequestBody,
+    ): Request {
+        return Request.Builder()
+            .url("$GRAPH_BASE/me/onenote/sections/$sectionId/pages")
+            .addHeader("Authorization", "Bearer $accessToken")
+            .post(body)
+            .build()
+    }
 }
 
 data class OneNoteNotebook(
@@ -191,4 +252,11 @@ data class OneNoteNotebook(
 data class OneNoteSection(
     val id: String,
     val displayName: String,
+)
+
+data class OneNoteUploadAttachment(
+    val partName: String,
+    val fileName: String,
+    val contentType: String,
+    val bytes: ByteArray,
 )

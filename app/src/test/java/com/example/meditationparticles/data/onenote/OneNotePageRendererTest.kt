@@ -1,13 +1,14 @@
 package com.example.meditationparticles.data.onenote
 
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
+import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
-import com.example.meditationparticles.data.local.OneNoteSyncQueueEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -46,9 +47,10 @@ class OneNotePageRendererTest {
     }
 
     @Test
-    fun renderRefactoring_includesAudioNoteWhenPathPresent() {
-        val html = OneNotePageRenderer.renderRefactoring(
+    fun renderRefactoring_includesAudioAttachmentPlaceholderWhenPathPresent() {
+        val page = OneNotePageRenderer.renderRefactoring(
             RefactoringEntryEntity(
+                id = 12L,
                 interpretation = "They don't care",
                 actualFacts = "They arrived at 8:20",
                 explanation1 = "Traffic",
@@ -56,10 +58,12 @@ class OneNotePageRendererTest {
                 explanation3 = "Forgot",
                 actualFactsAudioPath = "/data/audio.3gp",
             ),
-        ).html
+        )
 
-        assertTrue(html.contains("Actual facts"))
-        assertTrue(html.contains("Audio recorded in app (not synced)"))
+        assertTrue(page.html.contains("Actual facts"))
+        assertTrue(page.html.contains("data-attachment=\"serene_12_actualFacts.3gp\""))
+        assertEquals(1, page.attachments.size)
+        assertEquals("audio_actualFacts", page.attachments.first().partName)
     }
 
     @Test
@@ -105,6 +109,23 @@ class OneNotePageRendererTest {
 
         assertTrue(html.contains("Thoughts and feelings"))
         assertTrue(html.contains("Body and needs"))
+    }
+
+    @Test
+    fun renderMeditationReflection_includesAudioAttachmentPlaceholderWhenPathPresent() {
+        val page = OneNotePageRenderer.renderMeditationReflection(
+            MeditationReflectionEntity(
+                id = 99L,
+                reflection = "Calm and focused",
+                durationSeconds = 600,
+                completedAt = 1_735_689_600_000L,
+                audioPath = "/data/reflection.3gp",
+            ),
+        )
+
+        assertTrue(page.html.contains("Calm and focused"))
+        assertTrue(page.html.contains("data-attachment=\"serene_99_audio.3gp\""))
+        assertEquals(1, page.attachments.size)
     }
 
     @Test

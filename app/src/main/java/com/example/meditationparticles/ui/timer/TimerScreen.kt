@@ -48,10 +48,10 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -99,7 +99,11 @@ fun TimerScreen(
 ) {
     val state by viewModel.sessionState.collectAsState()
     val reflection by viewModel.reflectionText.collectAsState()
-    val reflectionSaved by viewModel.reflectionSaved.collectAsState()
+    val reflectionMoodLevel by viewModel.reflectionMoodLevel.collectAsState()
+    val pendingAudioPath by viewModel.pendingAudioPath.collectAsState()
+    val showReflectionCapture by viewModel.showReflectionCapture.collectAsState()
+    val reflections by viewModel.reflections.collectAsState()
+    val openedReflection by viewModel.openedReflection.collectAsState()
     val context = LocalContext.current
     val remindersAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
     val preferences = remember { TimerPreferences(context) }
@@ -351,14 +355,16 @@ fun TimerScreen(
                             .padding(top = SereneSpacing.stackMd, bottom = SereneSpacing.stackMd),
                         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
                     ) {
-                if (state.phase == TimerPhase.Complete) {
+                if (state.phase == TimerPhase.Complete && showReflectionCapture) {
                     MeditationReflectionCard(
                         reflection = reflection,
-                        reflectionMoodLevel = viewModel.reflectionMoodLevel.collectAsState().value,
-                        saved = reflectionSaved,
+                        reflectionMoodLevel = reflectionMoodLevel,
+                        pendingAudioPath = pendingAudioPath,
                         onReflectionChange = viewModel::updateReflection,
                         onReflectionMoodChange = viewModel::updateReflectionMoodLevel,
+                        onPendingAudioChange = viewModel::updatePendingAudio,
                         onSave = viewModel::saveReflection,
+                        onSkip = viewModel::skipReflection,
                     )
                 }
                 ControlSection(
@@ -567,6 +573,17 @@ fun TimerScreen(
                     }
                 }
 
+                        MeditationReflectionHistory(
+                            entries = reflections,
+                            openedEntry = openedReflection,
+                            oneNoteConnected = viewModel.oneNoteConnected,
+                            onOpenEntry = viewModel::openReflection,
+                            onDeleteEntry = viewModel::deleteReflection,
+                            onCloseEntry = viewModel::closeReflection,
+                            onSyncEntryToOneNote = viewModel::syncReflectionToOneNote,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
                         if (immersive) {
                             Text(
                                 text = "Tap anywhere to show or hide controls",
@@ -588,11 +605,14 @@ fun TimerScreen(
 private fun MeditationReflectionCard(
     reflection: String,
     reflectionMoodLevel: Int?,
-    saved: Boolean,
+    pendingAudioPath: String?,
     onReflectionChange: (String) -> Unit,
     onReflectionMoodChange: (Int?) -> Unit,
+    onPendingAudioChange: (String?) -> Unit,
     onSave: () -> Unit,
+    onSkip: () -> Unit,
 ) {
+    val canSave = reflection.isNotBlank() || pendingAudioPath != null
     ControlSection(
         title = "Reflection",
         subtitle = "Jot down what you noticed.",
@@ -608,26 +628,29 @@ private fun MeditationReflectionCard(
                 onTextChange = onReflectionChange,
                 selectedMoodLevel = reflectionMoodLevel,
                 onMoodLevelChange = onReflectionMoodChange,
-                pendingAudioPath = null,
-                onPendingAudioChange = {},
+                pendingAudioPath = pendingAudioPath,
+                onPendingAudioChange = onPendingAudioChange,
                 onSpeechResult = { spoken ->
                     val separator = if (reflection.isBlank()) "" else " "
                     onReflectionChange(reflection + separator + spoken.trim())
                 },
                 placeholder = "How did it feel? What came up?",
-                enabled = !saved,
-                showAudioControls = false,
+                showAudioControls = true,
                 showDictate = true,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                TextButton(onClick = onSkip) {
+                    Text("Skip")
+                }
                 Button(
                     onClick = onSave,
-                    enabled = reflection.isNotBlank() && !saved,
+                    enabled = canSave,
                 ) {
-                    Text(if (saved) "Saved" else "Save")
+                    Text("Save")
                 }
             }
         }

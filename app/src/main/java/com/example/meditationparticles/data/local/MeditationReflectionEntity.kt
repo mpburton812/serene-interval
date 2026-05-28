@@ -8,6 +8,7 @@ data class MeditationReflectionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val reflection: String,
     val moodLevel: Int? = null,
+    val audioPath: String? = null,
     val durationSeconds: Int,
     val completedAt: Long,
 )
