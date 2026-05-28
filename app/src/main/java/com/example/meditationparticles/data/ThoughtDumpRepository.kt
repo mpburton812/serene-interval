@@ -17,7 +17,7 @@ class ThoughtDumpRepository(
     suspend fun save(
         type: ToolkitLogType,
         content: String,
-        moodLevel: Int = 3,
+        moodLevel: Int? = null,
         audioPath: String? = null,
     ): Long? {
         val trimmed = content.trim()
@@ -26,7 +26,7 @@ class ThoughtDumpRepository(
             ThoughtDumpEntity(
                 content = trimmed,
                 logType = type.name,
-                moodLevel = moodLevel.coerceIn(1, 5),
+                moodLevel = moodLevel?.coerceIn(1, 5),
                 audioPath = audioPath,
             ),
         )

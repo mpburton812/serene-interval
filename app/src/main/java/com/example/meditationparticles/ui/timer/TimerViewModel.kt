@@ -23,6 +23,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     val sessionState: StateFlow<TimerSessionState> = engine.state
     val reflectionText = MutableStateFlow("")
+    val reflectionMoodLevel = MutableStateFlow<Int?>(null)
     val reflectionSaved = MutableStateFlow(false)
     private val appContext = application.applicationContext
 
@@ -37,6 +38,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                 if (state.phase != TimerPhase.Complete) {
                     loggedCompletion = false
                     reflectionText.value = ""
+                    reflectionMoodLevel.value = null
                     reflectionSaved.value = false
                 }
             }
@@ -58,6 +60,11 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         reflectionText.value = text
     }
 
+    fun updateReflectionMoodLevel(level: Int?) {
+        if (reflectionSaved.value) return
+        reflectionMoodLevel.value = level?.coerceIn(1, 5)
+    }
+
     fun saveReflection() {
         if (reflectionSaved.value) return
         viewModelScope.launch {
@@ -67,6 +74,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                 reflection = reflectionText.value,
                 durationSeconds = state.targetMinutes * 60,
                 completedAt = System.currentTimeMillis(),
+                moodLevel = reflectionMoodLevel.value,
             ) ?: return@launch
             oneNoteSync.enqueueSync(OneNoteEntryType.MEDITATION_REFLECTION, savedId)
             reflectionSaved.value = true

@@ -8,7 +8,7 @@ data class ThoughtDumpEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val content: String,
     val logType: String,
-    val moodLevel: Int = 3,
+    val moodLevel: Int? = null,
     val audioPath: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )

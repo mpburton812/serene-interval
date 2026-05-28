@@ -46,6 +46,7 @@ import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.MoodLevelPicker
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
@@ -60,6 +61,8 @@ enum class RefactoringSpeechTarget {
 @Composable
 fun RefactoringContent(
     stepIndex: Int,
+    selectedMoodLevel: Int?,
+    onMoodLevelChange: (Int?) -> Unit,
     interpretation: String,
     actualFacts: String,
     explanation1: String,
@@ -184,6 +187,10 @@ fun RefactoringContent(
                 text = stepInstruction,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            MoodLevelPicker(
+                selectedLevel = selectedMoodLevel,
+                onLevelChange = onMoodLevelChange,
             )
 
             ToolkitStepPager(
@@ -341,7 +348,7 @@ private fun RefactoringFieldEditor(
     onToggleRecord: () -> Unit,
     isRecording: Boolean,
     pendingAudioPath: String?,
-    minLines: Int = 6,
+    minLines: Int = 8,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -353,7 +360,7 @@ private fun RefactoringFieldEditor(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Write here…") },
+            placeholder = { Text("What's on your mind…") },
             minLines = minLines,
         )
         Row(

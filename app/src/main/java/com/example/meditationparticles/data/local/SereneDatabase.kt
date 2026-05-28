@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OneNoteSyncMappingEntity::class,
         OneNoteSyncQueueEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -216,6 +216,36 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS thought_dumps_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        logType TEXT NOT NULL,
+                        moodLevel INTEGER,
+                        audioPath TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO thought_dumps_new (id, content, logType, moodLevel, audioPath, createdAt)
+                    SELECT id, content, logType, moodLevel, audioPath, createdAt FROM thought_dumps
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE thought_dumps")
+                db.execSQL("ALTER TABLE thought_dumps_new RENAME TO thought_dumps")
+                db.execSQL("ALTER TABLE meditation_reflections ADD COLUMN moodLevel INTEGER")
+                db.execSQL("ALTER TABLE future_self_messages ADD COLUMN moodLevel INTEGER")
+                db.execSQL("ALTER TABLE refactoring_entries ADD COLUMN moodLevel INTEGER")
+                db.execSQL("ALTER TABLE center_of_gravity_entries ADD COLUMN moodLevel INTEGER")
+                db.execSQL("ALTER TABLE nvc_entries ADD COLUMN moodLevel INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): SereneDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -234,6 +264,7 @@ abstract class SereneDatabase : RoomDatabase() {
                         MIGRATION_8_9,
                         MIGRATION_9_10,
                         MIGRATION_10_11,
+                        MIGRATION_11_12,
                     )
                     .build()
                     .also { instance = it }

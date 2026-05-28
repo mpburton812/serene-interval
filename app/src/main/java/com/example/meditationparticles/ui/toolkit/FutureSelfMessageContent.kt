@@ -54,6 +54,7 @@ import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.JournalCaptureFields
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -63,6 +64,8 @@ import java.util.Locale
 @Composable
 fun FutureSelfMessageContent(
     text: String,
+    selectedMoodLevel: Int?,
+    onMoodLevelChange: (Int?) -> Unit,
     scheduledAtMillis: Long,
     pendingAudioPath: String?,
     entries: List<FutureSelfMessageEntity>,
@@ -111,9 +114,7 @@ fun FutureSelfMessageContent(
         return
     }
 
-    val audioRecorder = remember { ToolkitAudioRecorder(context) }
     val audioPlayer = remember { ToolkitAudioPlayer() }
-    var isRecording by remember { mutableStateOf(false) }
     var pendingSaveAfterNotification by remember { mutableStateOf(false) }
     var showNotificationDeniedDialog by remember { mutableStateOf(false) }
     var showExactAlarmDialog by remember { mutableStateOf(false) }
@@ -134,61 +135,7 @@ fun FutureSelfMessageContent(
     }
 
     DisposableEffect(Unit) {
-        onDispose {
-            if (isRecording) audioRecorder.stop()
-            audioPlayer.release()
-        }
-    }
-
-    val recordPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            audioRecorder.start()?.let { path ->
-                onPendingAudioChange(path)
-                isRecording = true
-            }
-        }
-    }
-
-    val speechLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val spoken = result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-            spoken?.let(onSpeechResult)
-        }
-    }
-
-    fun launchSpeechToText() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your message to your future self…")
-        }
-        speechLauncher.launch(intent)
-    }
-
-    fun toggleRecording() {
-        if (isRecording) {
-            val path = audioRecorder.stop()
-            isRecording = false
-            onPendingAudioChange(path ?: pendingAudioPath)
-        } else {
-            val granted = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.RECORD_AUDIO,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (granted) {
-                audioRecorder.start()?.let { path ->
-                    onPendingAudioChange(path)
-                    isRecording = true
-                }
-            } else {
-                recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
-        }
+        onDispose { audioPlayer.release() }
     }
 
     fun showDatePicker() {
@@ -254,53 +201,17 @@ fun FutureSelfMessageContent(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
         ) {
-            Text(
-                text = "Write, dictate, or record a message for your future self. Choose when you'd like to receive it.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            JournalCaptureFields(
+                text = text,
+                onTextChange = onTextChange,
+                selectedMoodLevel = selectedMoodLevel,
+                onMoodLevelChange = onMoodLevelChange,
+                pendingAudioPath = pendingAudioPath,
+                onPendingAudioChange = onPendingAudioChange,
+                onSpeechResult = onSpeechResult,
+                instructionText = "Write, dictate, or record a message for your future self. Choose when you'd like to receive it.",
+                placeholder = "Dear future me…",
             )
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Dear future me…") },
-                minLines = 6,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = ::launchSpeechToText,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Default.VolumeUp, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Dictate", modifier = Modifier.padding(start = 6.dp))
-                }
-                OutlinedButton(
-                    onClick = ::toggleRecording,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(
-                        if (isRecording) Icons.Default.StopCircle else Icons.Default.Mic,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Text(
-                        if (isRecording) "Stop" else "Record",
-                        modifier = Modifier.padding(start = 6.dp),
-                    )
-                }
-            }
-
-            if (pendingAudioPath != null) {
-                Text(
-                    text = if (isRecording) "Recording in progress…" else "Audio ready to schedule",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
 
             Text(
                 text = "Deliver on",

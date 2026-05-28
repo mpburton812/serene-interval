@@ -23,6 +23,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>Non-Violent Communication</h1>")
+            appendMoodLine(entry.moodLevel)
             appendFieldSection(
                 stepHint = steps.getOrNull(0),
                 heading = "Observation",
@@ -65,6 +66,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>Refactoring</h1>")
+            appendMoodLine(entry.moodLevel)
             appendFieldSection(
                 stepHint = steps.getOrNull(0),
                 heading = "Actual facts",
@@ -112,6 +114,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>Relocate Center of Gravity</h1>")
+            appendMoodLine(entry.moodLevel)
             appendFieldSection(
                 stepHint = steps.getOrNull(0),
                 heading = "Thoughts and feelings",
@@ -143,7 +146,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>${escapeHtml(tool?.title ?: "Capture Thought")}</h1>")
-            appendLine("<p><strong>Mood:</strong> ${entry.moodLevel.coerceIn(1, 5)}/5</p>")
+            appendMoodLine(entry.moodLevel)
             appendParagraph(entry.content)
             appendAudioNote(entry.audioPath)
             appendFooter(entry.id)
@@ -159,6 +162,7 @@ object OneNotePageRenderer {
         val dateLabel = formatDate(entry.createdAt)
         val body = buildString {
             appendLine("<h1>${escapeHtml(tool?.title ?: "Anxiety Log")}</h1>")
+            appendMoodLine(entry.moodLevel)
             appendParagraph(entry.content)
             appendAudioNote(entry.audioPath)
             appendFooter(entry.id)
@@ -177,6 +181,7 @@ object OneNotePageRenderer {
             appendLine("<h1>${escapeHtml(tool?.title ?: "Future Self Message")}</h1>")
             appendLine("<p><strong>Deliver on:</strong> ${escapeHtml(deliverLabel)}</p>")
             appendLine("<p><strong>Written on:</strong> ${escapeHtml(createdLabel)}</p>")
+            appendMoodLine(entry.moodLevel)
             appendParagraph(entry.content)
             appendAudioNote(entry.audioPath)
             appendFooter(entry.id)
@@ -196,6 +201,7 @@ object OneNotePageRenderer {
         val body = buildString {
             appendLine("<h1>Meditation Reflection</h1>")
             appendLine("<p><strong>Duration:</strong> ${entry.durationSeconds / 60} min</p>")
+            appendMoodLine(entry.moodLevel)
             appendParagraph(entry.reflection)
             appendFooter(entry.id)
         }
@@ -229,6 +235,12 @@ object OneNotePageRenderer {
                 '\'' -> append("&#39;")
                 else -> append(char)
             }
+        }
+    }
+
+    private fun StringBuilder.appendMoodLine(moodLevel: Int?) {
+        moodLevel?.let { level ->
+            appendLine("<p><strong>Mood:</strong> ${level.coerceIn(1, 5)}/5</p>")
         }
     }
 

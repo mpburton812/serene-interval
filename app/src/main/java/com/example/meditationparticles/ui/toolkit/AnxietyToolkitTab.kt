@@ -103,7 +103,7 @@ fun AnxietyToolkitTab(
             currentStep = state.currentStep,
             isLastStep = state.isLastStep,
             thoughtDumpText = state.thoughtDumpText,
-            thoughtDumpMoodLevel = state.thoughtDumpMoodLevel,
+            draftMoodLevel = state.draftMoodLevel,
             anxietyLogText = state.anxietyLogText,
             pendingAudioPath = state.pendingAudioPath,
             thoughtDumpEntries = state.thoughtDumpEntries,
@@ -135,7 +135,7 @@ fun AnxietyToolkitTab(
             nvcEntries = state.nvcEntries,
             openedNvcEntry = state.openedNvcEntry,
             onThoughtDumpChange = viewModel::updateThoughtDump,
-            onThoughtDumpMoodLevelChange = viewModel::updateThoughtDumpMoodLevel,
+            onDraftMoodLevelChange = viewModel::updateDraftMoodLevel,
             onAnxietyLogChange = viewModel::updateAnxietyLog,
             onFutureSelfTextChange = viewModel::updateFutureSelfText,
             onFutureSelfScheduledAtChange = viewModel::updateFutureSelfScheduledAt,
@@ -431,7 +431,7 @@ private fun ToolDetailScreen(
     currentStep: String?,
     isLastStep: Boolean,
     thoughtDumpText: String,
-    thoughtDumpMoodLevel: Int,
+    draftMoodLevel: Int?,
     anxietyLogText: String,
     pendingAudioPath: String?,
     thoughtDumpEntries: List<ThoughtDumpEntity>,
@@ -463,7 +463,7 @@ private fun ToolDetailScreen(
     nvcEntries: List<NvcEntryEntity>,
     openedNvcEntry: NvcEntryEntity?,
     onThoughtDumpChange: (String) -> Unit,
-    onThoughtDumpMoodLevelChange: (Int) -> Unit,
+    onDraftMoodLevelChange: (Int?) -> Unit,
     onAnxietyLogChange: (String) -> Unit,
     onFutureSelfTextChange: (String) -> Unit,
     onFutureSelfScheduledAtChange: (Long) -> Unit,
@@ -554,8 +554,8 @@ private fun ToolDetailScreen(
                 ToolkitLogContent(
                     instructionText = "Write everything on your mind. No editing, no judgment.",
                     text = thoughtDumpText,
-                    moodLevel = thoughtDumpMoodLevel,
-                    onMoodLevelChange = onThoughtDumpMoodLevelChange,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     entries = thoughtDumpEntries,
                     pendingAudioPath = pendingAudioPath,
                     openedEntry = openedLogEntry,
@@ -578,8 +578,8 @@ private fun ToolDetailScreen(
                 ToolkitLogContent(
                     instructionText = "Notice, Observe, and Acknowledge. Feelings are temporary. I am Fine. I am Not Fine. I am Fine.",
                     text = anxietyLogText,
-                    moodLevel = null,
-                    onMoodLevelChange = null,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     entries = anxietyLogEntries,
                     pendingAudioPath = pendingAudioPath,
                     openedEntry = openedLogEntry,
@@ -601,6 +601,8 @@ private fun ToolDetailScreen(
             ToolkitToolId.FutureSelfMessage -> {
                 FutureSelfMessageContent(
                     text = futureSelfText,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     scheduledAtMillis = futureSelfScheduledAtMillis,
                     pendingAudioPath = pendingAudioPath,
                     entries = futureSelfEntries,
@@ -626,6 +628,8 @@ private fun ToolDetailScreen(
             ToolkitToolId.Refactoring -> {
                 RefactoringContent(
                     stepIndex = refactoringStepIndex,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     interpretation = refactoringInterpretation,
                     actualFacts = refactoringActualFacts,
                     explanation1 = refactoringExplanation1,
@@ -658,6 +662,8 @@ private fun ToolDetailScreen(
             ToolkitToolId.RelocateCenterOfGravity -> {
                 CenterOfGravityContent(
                     stepIndex = centerOfGravityStepIndex,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     thoughtsAndFeelings = centerOfGravityThoughtsAndFeelings,
                     bodyAndNeeds = centerOfGravityBodyAndNeeds,
                     pendingAudioPath = pendingAudioPath,
@@ -683,6 +689,8 @@ private fun ToolDetailScreen(
             ToolkitToolId.NonViolentCommunication -> {
                 NvcContent(
                     stepIndex = nvcStepIndex,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     observation = nvcObservation,
                     feeling = nvcFeeling,
                     need = nvcNeed,

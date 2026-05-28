@@ -150,7 +150,7 @@ class AppDataExporter(
         put("id", id)
         put("content", content)
         put("logType", logType)
-        put("moodLevel", moodLevel)
+        moodLevel?.let { put("moodLevel", it) }
         put("audioPath", audioPath)
         put("createdAt", createdAt)
     }
@@ -158,6 +158,7 @@ class AppDataExporter(
     private fun FutureSelfMessageEntity.toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("content", content)
+        moodLevel?.let { put("moodLevel", it) }
         put("audioPath", audioPath)
         put("scheduledAtMillis", scheduledAtMillis)
         put("createdAtMillis", createdAtMillis)
@@ -176,6 +177,7 @@ class AppDataExporter(
         put("explanation2AudioPath", explanation2AudioPath)
         put("explanation3", explanation3)
         put("explanation3AudioPath", explanation3AudioPath)
+        moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
     }
 
@@ -185,6 +187,7 @@ class AppDataExporter(
         put("thoughtsAndFeelingsAudioPath", thoughtsAndFeelingsAudioPath)
         put("bodyAndNeeds", bodyAndNeeds)
         put("bodyAndNeedsAudioPath", bodyAndNeedsAudioPath)
+        moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
     }
 
@@ -198,6 +201,7 @@ class AppDataExporter(
         put("needAudioPath", needAudioPath)
         put("request", request)
         put("requestAudioPath", requestAudioPath)
+        moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
     }
 

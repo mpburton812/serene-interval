@@ -10,12 +10,14 @@ class MeditationReflectionRepository(
         reflection: String,
         durationSeconds: Int,
         completedAt: Long,
+        moodLevel: Int? = null,
     ): Long? {
         val trimmed = reflection.trim()
         if (trimmed.isBlank()) return null
         return dao.insert(
             MeditationReflectionEntity(
                 reflection = trimmed,
+                moodLevel = moodLevel?.coerceIn(1, 5),
                 durationSeconds = durationSeconds.coerceAtLeast(0),
                 completedAt = completedAt,
             ),

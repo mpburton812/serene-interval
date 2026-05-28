@@ -354,8 +354,10 @@ fun TimerScreen(
                 if (state.phase == TimerPhase.Complete) {
                     MeditationReflectionCard(
                         reflection = reflection,
+                        reflectionMoodLevel = viewModel.reflectionMoodLevel.collectAsState().value,
                         saved = reflectionSaved,
                         onReflectionChange = viewModel::updateReflection,
+                        onReflectionMoodChange = viewModel::updateReflectionMoodLevel,
                         onSave = viewModel::saveReflection,
                     )
                 }
@@ -585,8 +587,10 @@ fun TimerScreen(
 @Composable
 private fun MeditationReflectionCard(
     reflection: String,
+    reflectionMoodLevel: Int?,
     saved: Boolean,
     onReflectionChange: (String) -> Unit,
+    onReflectionMoodChange: (Int?) -> Unit,
     onSave: () -> Unit,
 ) {
     ControlSection(
@@ -599,13 +603,21 @@ private fun MeditationReflectionCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedTextField(
-                value = reflection,
-                onValueChange = onReflectionChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("How did it feel? What came up?") },
-                minLines = 4,
+            com.example.meditationparticles.ui.components.JournalCaptureFields(
+                text = reflection,
+                onTextChange = onReflectionChange,
+                selectedMoodLevel = reflectionMoodLevel,
+                onMoodLevelChange = onReflectionMoodChange,
+                pendingAudioPath = null,
+                onPendingAudioChange = {},
+                onSpeechResult = { spoken ->
+                    val separator = if (reflection.isBlank()) "" else " "
+                    onReflectionChange(reflection + separator + spoken.trim())
+                },
+                placeholder = "How did it feel? What came up?",
                 enabled = !saved,
+                showAudioControls = false,
+                showDictate = true,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
