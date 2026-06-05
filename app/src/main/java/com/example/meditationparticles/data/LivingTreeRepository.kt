@@ -182,11 +182,19 @@ class LivingTreeRepository(
         personDao.delete(entity)
     }
 
-    suspend fun updatePersonAngle(personId: Long, angleRadians: Double) {
+    suspend fun updatePersonPosition(
+        personId: Long,
+        angleRadians: Double,
+        radiusFraction: Double,
+    ) {
         val person = personDao.getById(personId) ?: return
         personDao.update(
             person.copy(
                 angleRadians = angleRadians,
+                radiusFraction = radiusFraction.coerceIn(
+                    LivingTreeLayout.MIN_RADIUS_FRACTION.toDouble(),
+                    LivingTreeLayout.MAX_RADIUS_FRACTION.toDouble(),
+                ),
                 updatedAtMillis = System.currentTimeMillis(),
             ),
         )

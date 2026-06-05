@@ -268,6 +268,7 @@ class AppDataExporter(
         put("notes", notes)
         put("sortOrder", sortOrder)
         angleRadians?.let { put("angleRadians", it) }
+        radiusFraction?.let { put("radiusFraction", it) }
         put("createdAtMillis", createdAtMillis)
         put("updatedAtMillis", updatedAtMillis)
     }

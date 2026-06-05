@@ -1,5 +1,6 @@
 package com.example.meditationparticles.ui.livingtree
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -7,7 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -28,10 +30,12 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.meditationparticles.domain.livingtree.LivingTreeDefaults
+import com.example.meditationparticles.domain.livingtree.LivingTreeLayout
 import com.example.meditationparticles.domain.livingtree.LivingTreeTextContrast
 import com.example.meditationparticles.ui.theme.isDarkScheme
-import kotlin.math.atan2
 import kotlin.math.hypot
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 data class LivingTreeGraphNode(
     val id: Long,
@@ -52,10 +56,11 @@ fun LivingTreeCanvas(
     modifier: Modifier = Modifier,
     orbitRadius: Float = 0f,
     filterActive: Boolean = false,
-    onPersonDragAngle: ((Long, Double) -> Unit)? = null,
-    onPersonDragEnd: ((Long, Double) -> Unit)? = null,
+    onPersonDragPosition: ((Long, LivingTreeLayout.StoredPosition) -> Unit)? = null,
+    onPersonDragEnd: ((Long, LivingTreeLayout.StoredPosition) -> Unit)? = null,
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val view = LocalView.current
     val scheme = MaterialTheme.colorScheme
     val isDark = isDarkScheme(scheme)
     val labelColors = LivingTreeTextContrast.canvasLabelColors(scheme, isDark)
@@ -74,56 +79,66 @@ fun LivingTreeCanvas(
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(nodes, orbitRadius, onPersonDragAngle, onPersonDragEnd) {
-                if (onPersonDragAngle != null && onPersonDragEnd != null && orbitRadius > 0f) {
-                    var draggingId: Long? = null
-                    var dragMoved = false
-                    var lastAngle = 0.0
-
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            draggingId = nodes.firstOrNull { node ->
+            .pointerInput(nodes, orbitRadius, onPersonDragPosition, onPersonDragEnd) {
+                coroutineScope {
+                    launch {
+                        detectTapGestures { offset ->
+                            nodes.firstOrNull { node ->
                                 hypot(
                                     (offset.x - node.x).toDouble(),
                                     (offset.y - node.y).toDouble(),
                                 ) <= node.radius
-                            }?.id
-                            dragMoved = false
-                        },
-                        onDrag = { change, _ ->
-                            val id = draggingId ?: return@detectDragGestures
-                            dragMoved = true
-                            val centerX = size.width / 2f
-                            val centerY = size.height / 2f
-                            lastAngle = atan2(
-                                (change.position.y - centerY).toDouble(),
-                                (change.position.x - centerX).toDouble(),
+                            }?.let { onPersonTap(it.id) }
+                        }
+                    }
+                    if (onPersonDragPosition != null && onPersonDragEnd != null && orbitRadius > 0f) {
+                        launch {
+                            var draggingId: Long? = null
+                            var dragMoved = false
+                            var lastPosition = LivingTreeLayout.StoredPosition(angleRadians = 0.0)
+
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { offset ->
+                                    draggingId = nodes.firstOrNull { node ->
+                                        hypot(
+                                            (offset.x - node.x).toDouble(),
+                                            (offset.y - node.y).toDouble(),
+                                        ) <= node.radius
+                                    }?.id
+                                    dragMoved = false
+                                    if (draggingId != null) {
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    }
+                                },
+                                onDrag = { change, _ ->
+                                    val id = draggingId ?: return@detectDragGesturesAfterLongPress
+                                    dragMoved = true
+                                    val centerX = size.width / 2f
+                                    val centerY = size.height / 2f
+                                    lastPosition = LivingTreeLayout.positionFromCanvasPoint(
+                                        centerX = centerX,
+                                        centerY = centerY,
+                                        orbitRadius = orbitRadius,
+                                        x = change.position.x,
+                                        y = change.position.y,
+                                    )
+                                    onPersonDragPosition(id, lastPosition)
+                                    change.consume()
+                                },
+                                onDragEnd = {
+                                    draggingId?.let { id ->
+                                        if (dragMoved) {
+                                            onPersonDragEnd(id, lastPosition)
+                                        }
+                                    }
+                                    draggingId = null
+                                },
+                                onDragCancel = {
+                                    draggingId = null
+                                },
                             )
-                            onPersonDragAngle(id, lastAngle)
-                            change.consume()
-                        },
-                        onDragEnd = {
-                            draggingId?.let { id ->
-                                if (dragMoved) {
-                                    onPersonDragEnd(id, lastAngle)
-                                }
-                            }
-                            draggingId = null
-                        },
-                        onDragCancel = {
-                            draggingId = null
-                        },
-                    )
-                }
-            }
-            .pointerInput(nodes) {
-                detectTapGestures { offset ->
-                    nodes.firstOrNull { node ->
-                        hypot(
-                            (offset.x - node.x).toDouble(),
-                            (offset.y - node.y).toDouble(),
-                        ) <= node.radius
-                    }?.let { onPersonTap(it.id) }
+                        }
+                    }
                 }
             },
     ) {
