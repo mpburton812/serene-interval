@@ -58,7 +58,8 @@ fun LivingTreeCanvas(
     val textMeasurer = rememberTextMeasurer()
     val scheme = MaterialTheme.colorScheme
     val isDark = isDarkScheme(scheme)
-    val labelColors = LivingTreeTextContrast.labelColors(scheme, isDark)
+    val labelColors = LivingTreeTextContrast.canvasLabelColors(scheme, isDark)
+    val bubbleBackdrop = Color.Black.copy(alpha = 0.8f)
     val pulseTransition = rememberInfiniteTransition(label = "center_pulse")
     val pulseScale by pulseTransition.animateFloat(
         initialValue = 0.96f,
@@ -151,6 +152,7 @@ fun LivingTreeCanvas(
                 center = Offset(node.x, node.y),
                 radius = node.radius,
                 colors = colors,
+                backdropColor = bubbleBackdrop,
             )
             drawLabel(
                 textMeasurer = textMeasurer,
@@ -168,17 +170,13 @@ fun LivingTreeCanvas(
             colors = emptyList(),
             isCenter = true,
             isDark = isDark,
-        )
-        val centerTextColor = LivingTreeTextContrast.textOnBubbleFill(
-            bubbleColors = emptyList(),
-            scheme = scheme,
-            isDark = isDark,
+            backdropColor = bubbleBackdrop,
         )
         drawLabel(
             textMeasurer = textMeasurer,
             text = LivingTreeDefaults.truncateName(centerLabel, maxLength = 16),
             center = Offset(centerX, centerY),
-            labelColors = labelColors.copy(text = centerTextColor),
+            labelColors = labelColors,
             fontSizeSp = 13f,
             showPlate = true,
             onBubble = true,
@@ -190,9 +188,12 @@ private fun DrawScope.drawPersonBubble(
     center: Offset,
     radius: Float,
     colors: List<Color>,
+    backdropColor: Color,
     isCenter: Boolean = false,
     isDark: Boolean = true,
 ) {
+    drawCircle(color = backdropColor, radius = radius, center = center)
+
     when {
         colors.isEmpty() -> {
             drawCircle(
@@ -208,7 +209,7 @@ private fun DrawScope.drawPersonBubble(
                 color = if (isDark) {
                     Color.White.copy(alpha = if (isCenter) 0.55f else 0.35f)
                 } else {
-                    Color.Black.copy(alpha = if (isCenter) 0.18f else 0.12f)
+                    Color.White.copy(alpha = if (isCenter) 0.35f else 0.28f)
                 },
                 radius = radius,
                 center = center,
@@ -216,7 +217,7 @@ private fun DrawScope.drawPersonBubble(
             )
         }
         colors.size == 1 -> {
-            drawCircle(color = colors.first().copy(alpha = 0.85f), radius = radius, center = center)
+            drawCircle(color = colors.first().copy(alpha = 0.92f), radius = radius, center = center)
             drawCircle(
                 color = Color.White.copy(alpha = 0.35f),
                 radius = radius,
@@ -233,7 +234,7 @@ private fun DrawScope.drawSplitBubble(center: Offset, radius: Float, colors: Lis
     colors.forEachIndexed { index, color ->
         val startAngle = -90f + index * sweep
         drawArc(
-            color = color.copy(alpha = 0.88f),
+            color = color.copy(alpha = 0.92f),
             startAngle = startAngle,
             sweepAngle = sweep,
             useCenter = true,

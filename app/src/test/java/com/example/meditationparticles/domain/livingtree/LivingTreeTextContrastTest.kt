@@ -4,6 +4,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -47,5 +48,13 @@ class LivingTreeTextContrastTest {
         assertTrue(light.plateFill.alpha > 0.5f)
         assertTrue(dark.text.alpha > 0.8f)
         assertTrue(light.text.alpha > 0.8f)
+    }
+
+    @Test
+    fun canvasLabelColors_useDarkReadablePlate() {
+        val canvas = LivingTreeTextContrast.canvasLabelColors(lightColorScheme(), isDark = false)
+
+        assertEquals(0.8f, canvas.plateFill.alpha, 0.001f)
+        assertTrue(canvas.text.red + canvas.text.green + canvas.text.blue > 2.5f)
     }
 }

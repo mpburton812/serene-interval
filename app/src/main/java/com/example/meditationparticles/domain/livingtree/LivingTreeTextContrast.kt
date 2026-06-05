@@ -28,6 +28,18 @@ object LivingTreeTextContrast {
         return LabelColors(text, outline, plateFill, plateBorder)
     }
 
+    fun canvasLabelColors(scheme: ColorScheme, isDark: Boolean): LabelColors {
+        val plateFill = Color.Black.copy(alpha = 0.8f)
+        val text = Color.White.copy(alpha = 0.95f)
+        val outline = Color.Black.copy(alpha = 0.65f)
+        val plateBorder = if (isDark) {
+            Color.White.copy(alpha = 0.28f)
+        } else {
+            scheme.outlineVariant.copy(alpha = 0.45f)
+        }
+        return LabelColors(text, outline, plateFill, plateBorder)
+    }
+
     fun textOnBubbleFill(
         bubbleColors: List<Color>,
         scheme: ColorScheme,

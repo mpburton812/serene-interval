@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -30,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -55,6 +57,7 @@ import com.example.meditationparticles.data.LivingTreeRepository
 import com.example.meditationparticles.data.local.LivingTreePersonEntity
 import com.example.meditationparticles.data.local.LivingTreePersonWithTags
 import com.example.meditationparticles.data.local.LivingTreeTagEntity
+import com.example.meditationparticles.domain.livingtree.LivingTreeColor
 import com.example.meditationparticles.domain.livingtree.LivingTreeDefaults
 import com.example.meditationparticles.domain.livingtree.LivingTreePersonNames
 import com.example.meditationparticles.ui.components.GlassCard
@@ -430,6 +433,19 @@ private fun TagEditorDialog(
     var selectedColor by remember(existing) {
         mutableStateOf(existing?.colorArgb ?: LivingTreeDefaults.presetColors.first())
     }
+    var showRgbPicker by remember(existing) { mutableStateOf(false) }
+    val isCustomSelected = selectedColor !in LivingTreeDefaults.presetColors
+
+    if (showRgbPicker) {
+        RgbColorPickerDialog(
+            initialColorArgb = selectedColor,
+            onDismiss = { showRgbPicker = false },
+            onConfirm = { colorArgb ->
+                selectedColor = colorArgb
+                showRgbPicker = false
+            },
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -459,7 +475,41 @@ private fun TagEditorDialog(
                                 .clickable { selectedColor = color },
                         )
                     }
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isCustomSelected) Color(selectedColor)
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            )
+                            .border(
+                                width = if (isCustomSelected) 2.dp else 1.dp,
+                                color = if (isCustomSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outline
+                                },
+                                shape = CircleShape,
+                            )
+                            .clickable { showRgbPicker = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (!isCustomSelected) {
+                            Text(
+                                text = "C",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
+                Text(
+                    text = "Custom",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clickable { showRgbPicker = true },
+                )
             }
         },
         confirmButton = {
@@ -472,6 +522,97 @@ private fun TagEditorDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@Composable
+private fun RgbColorPickerDialog(
+    initialColorArgb: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+) {
+    var red by remember(initialColorArgb) {
+        mutableStateOf(LivingTreeColor.redFromArgb(initialColorArgb).toFloat())
+    }
+    var green by remember(initialColorArgb) {
+        mutableStateOf(LivingTreeColor.greenFromArgb(initialColorArgb).toFloat())
+    }
+    var blue by remember(initialColorArgb) {
+        mutableStateOf(LivingTreeColor.blueFromArgb(initialColorArgb).toFloat())
+    }
+    val previewColor = Color(
+        LivingTreeColor.colorArgb(
+            red = red.toInt(),
+            green = green.toInt(),
+            blue = blue.toInt(),
+        ),
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Custom color") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(previewColor)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outline,
+                            shape = RoundedCornerShape(12.dp),
+                        ),
+                )
+                RgbSliderRow(label = "Red", value = red, onValueChange = { red = it })
+                RgbSliderRow(label = "Green", value = green, onValueChange = { green = it })
+                RgbSliderRow(label = "Blue", value = blue, onValueChange = { blue = it })
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        LivingTreeColor.colorArgb(
+                            red = red.toInt(),
+                            green = green.toInt(),
+                            blue = blue.toInt(),
+                        ),
+                    )
+                },
+            ) { Text("Apply") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun RgbSliderRow(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(text = label, style = MaterialTheme.typography.labelMedium)
+            Text(
+                text = value.toInt().toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 0f..255f,
+            steps = 254,
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

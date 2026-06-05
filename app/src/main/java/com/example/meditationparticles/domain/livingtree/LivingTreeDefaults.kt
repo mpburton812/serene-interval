@@ -5,36 +5,30 @@ import androidx.compose.ui.graphics.Color
 object LivingTreeDefaults {
     data class DefaultTag(val name: String, val colorArgb: Int)
 
-    val defaultTags: List<DefaultTag> = listOf(
-        DefaultTag("Family", 0xFF4A654E.toInt()),
-        DefaultTag("Partner", 0xFFE07A5F.toInt()),
-        DefaultTag("Lover", 0xFFC1666B.toInt()),
-        DefaultTag("Friend", 0xFF3D5A80.toInt()),
-        DefaultTag("Chosen Family", 0xFF9B5DE5.toInt()),
-        DefaultTag("Work", 0xFF6B705C.toInt()),
-        DefaultTag("Support", 0xFF5B8C5A.toInt()),
-        DefaultTag("Poly", 0xFFE9B44C.toInt()),
-        DefaultTag("Queer", 0xFFF7A8B8.toInt()),
-        DefaultTag("Trans", 0xFF55CDFC.toInt()),
-        DefaultTag("Long Distance", 0xFF9A8C98.toInt()),
-        DefaultTag("Local", 0xFF81B29A.toInt()),
+    private val defaultTagNames = listOf(
+        "Family",
+        "Partner",
+        "Lover",
+        "Friend",
+        "Chosen Family",
+        "Work",
+        "Support",
+        "Poly",
+        "Queer",
+        "Trans",
+        "Long Distance",
+        "Local",
     )
 
-    val presetColors: List<Int> = listOf(
-        0xFF4A654E.toInt(),
-        0xFF3D5A80.toInt(),
-        0xFF457B9D.toInt(),
-        0xFF81B29A.toInt(),
-        0xFF5B8C5A.toInt(),
-        0xFFE07A5F.toInt(),
-        0xFFC1666B.toInt(),
-        0xFF9B5DE5.toInt(),
-        0xFF55CDFC.toInt(),
-        0xFFF7A8B8.toInt(),
-        0xFFE9B44C.toInt(),
-        0xFF6B705C.toInt(),
-        0xFF9A8C98.toInt(),
-    )
+    // Twelve tags at 30° hue steps (360/12); S=68% L=48% for legibility on light/dark UI.
+    private val defaultTagColors: List<Int> =
+        LivingTreeColor.distinctDefaultTagColors(defaultTagNames.size)
+
+    val defaultTags: List<DefaultTag> = defaultTagNames.mapIndexed { index, name ->
+        DefaultTag(name = name, colorArgb = defaultTagColors[index])
+    }
+
+    val presetColors: List<Int> = defaultTagColors
 
     const val MAX_FILTER_TAGS = 4
     const val MAX_NAME_LENGTH = 48
