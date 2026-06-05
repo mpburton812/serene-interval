@@ -1,0 +1,491 @@
+package com.example.meditationparticles.ui.livingtree
+
+import android.app.Application
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.data.DuplicateLivingTreeNameException
+import com.example.meditationparticles.data.LivingTreeRepository
+import com.example.meditationparticles.data.local.LivingTreePersonEntity
+import com.example.meditationparticles.data.local.LivingTreePersonWithTags
+import com.example.meditationparticles.data.local.LivingTreeTagEntity
+import com.example.meditationparticles.domain.livingtree.LivingTreeDefaults
+import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.theme.SereneSpacing
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+
+data class LivingTreeSetupUiState(
+    val tags: List<LivingTreeTagEntity> = emptyList(),
+    val people: List<LivingTreePersonWithTags> = emptyList(),
+    val errorMessage: String? = null,
+    val confirmDeleteTag: LivingTreeTagEntity? = null,
+    val confirmDeletePerson: LivingTreePersonEntity? = null,
+)
+
+class LivingTreeSetupViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository: LivingTreeRepository = AppGraph.livingTree(application)
+
+    private val _uiState = MutableStateFlow(LivingTreeSetupUiState())
+    val uiState: StateFlow<LivingTreeSetupUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.seedDefaultTagsIfEmpty()
+        }
+        viewModelScope.launch {
+            combine(repository.tags, repository.peopleWithTags) { tags, people ->
+                _uiState.value.copy(tags = tags, people = people, errorMessage = null)
+            }.collect { next ->
+                _uiState.value = next
+            }
+        }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun requestDeleteTag(tag: LivingTreeTagEntity) {
+        _uiState.value = _uiState.value.copy(confirmDeleteTag = tag)
+    }
+
+    fun requestDeletePerson(person: LivingTreePersonEntity) {
+        _uiState.value = _uiState.value.copy(confirmDeletePerson = person)
+    }
+
+    fun dismissDeleteConfirmations() {
+        _uiState.value = _uiState.value.copy(
+            confirmDeleteTag = null,
+            confirmDeletePerson = null,
+        )
+    }
+
+    fun confirmDeleteTag() {
+        val tag = _uiState.value.confirmDeleteTag ?: return
+        viewModelScope.launch {
+            repository.deleteTag(tag)
+            dismissDeleteConfirmations()
+        }
+    }
+
+    fun confirmDeletePerson() {
+        val person = _uiState.value.confirmDeletePerson ?: return
+        viewModelScope.launch {
+            repository.deletePerson(person)
+            dismissDeleteConfirmations()
+        }
+    }
+
+    fun saveTag(name: String, colorArgb: Int, existing: LivingTreeTagEntity? = null) {
+        viewModelScope.launch {
+            runCatching {
+                if (existing == null) {
+                    repository.createTag(name, colorArgb)
+                } else {
+                    repository.updateTag(existing.copy(name = name, colorArgb = colorArgb))
+                }
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(errorMessage = duplicateMessage(error))
+            }
+        }
+    }
+
+    fun savePerson(
+        name: String,
+        notes: String,
+        tagIds: Set<Long>,
+        existing: LivingTreePersonEntity? = null,
+    ) {
+        viewModelScope.launch {
+            runCatching {
+                if (existing == null) {
+                    repository.createPerson(name, notes, tagIds)
+                } else {
+                    repository.updatePerson(existing.copy(name = name, notes = notes), tagIds)
+                }
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(errorMessage = duplicateMessage(error))
+            }
+        }
+    }
+
+    private fun duplicateMessage(error: Throwable): String = when (error) {
+        is DuplicateLivingTreeNameException -> when (error.kind) {
+            DuplicateLivingTreeNameException.Kind.Person ->
+                "A person with that name already exists."
+            DuplicateLivingTreeNameException.Kind.Tag ->
+                "A tag with that name already exists."
+        }
+        else -> error.message ?: "Something went wrong."
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun LivingTreeSetupScreen(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: LivingTreeSetupViewModel = viewModel(),
+) {
+    val state by viewModel.uiState.collectAsState()
+    var editingTag by remember { mutableStateOf<LivingTreeTagEntity?>(null) }
+    var editingPerson by remember { mutableStateOf<LivingTreePersonWithTags?>(null) }
+    var showNewTag by remember { mutableStateOf(false) }
+    var showNewPerson by remember { mutableStateOf(false) }
+
+    Scaffold(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("Living Tree Setup") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                ),
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
+        ) {
+            state.errorMessage?.let { message ->
+                Text(text = message, color = MaterialTheme.colorScheme.error)
+            }
+
+            SetupSectionHeader(title = "Tags", onAdd = { showNewTag = true })
+            state.tags.forEach { tag ->
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { editingTag = tag },
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(tag.colorArgb)),
+                            )
+                            Text(text = tag.name, style = MaterialTheme.typography.bodyLarge)
+                        }
+                        IconButton(onClick = { viewModel.requestDeleteTag(tag) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete tag")
+                        }
+                    }
+                }
+            }
+
+            SetupSectionHeader(title = "People", onAdd = { showNewPerson = true })
+            state.people.forEach { entry ->
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { editingPerson = entry },
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = entry.person.name, style = MaterialTheme.typography.bodyLarge)
+                            IconButton(onClick = { viewModel.requestDeletePerson(entry.person) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete person")
+                            }
+                        }
+                        if (entry.tags.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                entry.tags.forEach { tag ->
+                                    Text(
+                                        text = tag.name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color(tag.colorArgb),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showNewTag || editingTag != null) {
+        TagEditorDialog(
+            existing = editingTag,
+            onDismiss = {
+                showNewTag = false
+                editingTag = null
+                viewModel.clearError()
+            },
+            onSave = { name, color ->
+                viewModel.saveTag(name, color, editingTag)
+                showNewTag = false
+                editingTag = null
+            },
+        )
+    }
+
+    if (showNewPerson || editingPerson != null) {
+        PersonEditorDialog(
+            existing = editingPerson,
+            tags = state.tags,
+            onDismiss = {
+                showNewPerson = false
+                editingPerson = null
+                viewModel.clearError()
+            },
+            onSave = { name, notes, tagIds ->
+                viewModel.savePerson(name, notes, tagIds, editingPerson?.person)
+                showNewPerson = false
+                editingPerson = null
+            },
+        )
+    }
+
+    state.confirmDeleteTag?.let { tag ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDeleteConfirmations,
+            title = { Text("Delete tag?") },
+            text = { Text("Remove \"${tag.name}\" from Living Tree? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDeleteTag) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDeleteConfirmations) { Text("Cancel") }
+            },
+        )
+    }
+
+    state.confirmDeletePerson?.let { person ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDeleteConfirmations,
+            title = { Text("Delete person?") },
+            text = { Text("Remove \"${person.name}\" from Living Tree? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDeletePerson) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDeleteConfirmations) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SetupSectionHeader(title: String, onAdd: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        IconButton(onClick = onAdd) {
+            Icon(Icons.Default.Add, contentDescription = "Add $title")
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagEditorDialog(
+    existing: LivingTreeTagEntity?,
+    onDismiss: () -> Unit,
+    onSave: (String, Int) -> Unit,
+) {
+    var name by remember(existing) { mutableStateOf(existing?.name ?: "") }
+    var selectedColor by remember(existing) {
+        mutableStateOf(existing?.colorArgb ?: LivingTreeDefaults.presetColors.first())
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (existing == null) "New tag" else "Edit tag") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LivingTreeDefaults.presetColors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(color))
+                                .border(
+                                    width = if (color == selectedColor) 2.dp else 0.dp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape,
+                                )
+                                .clickable { selectedColor = color },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(name, selectedColor) },
+                enabled = name.trim().isNotEmpty(),
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PersonEditorDialog(
+    existing: LivingTreePersonWithTags?,
+    tags: List<LivingTreeTagEntity>,
+    onDismiss: () -> Unit,
+    onSave: (String, String, Set<Long>) -> Unit,
+) {
+    var name by remember(existing) { mutableStateOf(existing?.person?.name ?: "") }
+    var notes by remember(existing) { mutableStateOf(existing?.person?.notes ?: "") }
+    var selectedTagIds by remember(existing) {
+        mutableStateOf(existing?.tags?.map { it.id }?.toSet() ?: emptySet())
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (existing == null) "New person" else "Edit person") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(text = "Tags", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    tags.forEach { tag ->
+                        val selected = tag.id in selectedTagIds
+                        Text(
+                            text = tag.name,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(
+                                    if (selected) Color(tag.colorArgb).copy(alpha = 0.35f)
+                                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                )
+                                .clickable {
+                                    selectedTagIds = selectedTagIds.toMutableSet().apply {
+                                        if (selected) remove(tag.id) else add(tag.id)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            color = if (selected) Color(tag.colorArgb) else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(name, notes, selectedTagIds) },
+                enabled = name.trim().isNotEmpty(),
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}

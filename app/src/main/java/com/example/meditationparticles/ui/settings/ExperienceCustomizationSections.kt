@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
@@ -223,6 +224,7 @@ fun ExperienceSection(
     onTimerChanged: (Boolean) -> Unit,
     onAffirmationsChanged: (Boolean) -> Unit,
     onToolkitChanged: (Boolean) -> Unit,
+    onLivingTreeChanged: (Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
         Text(
@@ -259,6 +261,12 @@ fun ExperienceSection(
             icon = Icons.Default.Handyman,
             checked = settings.enableToolkit,
             onCheckedChange = onToolkitChanged,
+        )
+        SettingsToggleRow(
+            label = "Living Tree",
+            icon = Icons.Default.AccountTree,
+            checked = settings.enableLivingTree,
+            onCheckedChange = onLivingTreeChanged,
         )
     }
 }

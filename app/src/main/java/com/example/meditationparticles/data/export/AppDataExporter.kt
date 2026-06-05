@@ -8,6 +8,9 @@ import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.LivingTreePersonEntity
+import com.example.meditationparticles.data.local.LivingTreePersonTagCrossRef
+import com.example.meditationparticles.data.local.LivingTreeTagEntity
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.data.local.MoodEntryEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
@@ -42,6 +45,7 @@ class AppDataExporter(
         val nvcEntries = db.nvcEntryDao().getAll()
         val meditationReflections = db.meditationReflectionDao().getAll()
         val moodEntries = db.moodEntryDao().getAll()
+        val livingTree = AppGraph.livingTree(context)
 
         JSONObject().apply {
             put("exportVersion", EXPORT_VERSION)
@@ -60,6 +64,7 @@ class AppDataExporter(
                 meditationReflections = meditationReflections,
                 moodEntries = moodEntries,
             ))
+            put("livingTree", buildLivingTreeSection(livingTree))
         }.toString(2)
     }
 
@@ -80,6 +85,7 @@ class AppDataExporter(
             put("enableAffirmations", settings.enableAffirmations)
             put("enableToolkit", settings.enableToolkit)
             put("enableVisuals", settings.enableVisuals)
+            put("enableLivingTree", settings.enableLivingTree)
             put("enabledScenes", JSONArray(settings.enabledScenes.toList()))
             put("meditationRemindersAvailable", settings.meditationRemindersAvailable)
             put("futureSelfSchedulingAvailable", settings.futureSelfSchedulingAvailable)
@@ -228,8 +234,51 @@ class AppDataExporter(
         legacyRowId?.let { put("legacyRowId", it) }
     }
 
+    private suspend fun buildLivingTreeSection(
+        repository: com.example.meditationparticles.data.LivingTreeRepository,
+    ): JSONObject {
+        val tags = repository.getAllTags()
+        val people = repository.getAllPeopleWithTags()
+        val personTags = people.flatMap { entry ->
+            entry.tags.map { tag ->
+                LivingTreePersonTagCrossRef(
+                    personId = entry.person.id,
+                    tagId = tag.id,
+                )
+            }
+        }
+        return JSONObject().apply {
+            put("tags", JSONArray().apply { tags.forEach { put(it.toJson()) } })
+            put("people", JSONArray().apply { people.forEach { put(it.person.toJson()) } })
+            put("personTags", JSONArray().apply { personTags.forEach { put(it.toJson()) } })
+        }
+    }
+
+    private fun LivingTreeTagEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("name", name)
+        put("colorArgb", colorArgb)
+        put("sortOrder", sortOrder)
+        put("createdAtMillis", createdAtMillis)
+    }
+
+    private fun LivingTreePersonEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("name", name)
+        put("notes", notes)
+        put("sortOrder", sortOrder)
+        angleRadians?.let { put("angleRadians", it) }
+        put("createdAtMillis", createdAtMillis)
+        put("updatedAtMillis", updatedAtMillis)
+    }
+
+    private fun LivingTreePersonTagCrossRef.toJson(): JSONObject = JSONObject().apply {
+        put("personId", personId)
+        put("tagId", tagId)
+    }
+
     companion object {
-        const val EXPORT_VERSION = 3
+        const val EXPORT_VERSION = 4
         const val DEFAULT_FILENAME = "serene-interval-export.json"
     }
 }

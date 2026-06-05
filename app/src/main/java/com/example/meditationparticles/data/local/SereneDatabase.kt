@@ -18,8 +18,11 @@ import androidx.room.RoomDatabase
         OneNoteSyncMappingEntity::class,
         OneNoteSyncQueueEntity::class,
         MoodEntryEntity::class,
+        LivingTreeTagEntity::class,
+        LivingTreePersonEntity::class,
+        LivingTreePersonTagCrossRef::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -33,6 +36,9 @@ abstract class SereneDatabase : RoomDatabase() {
     abstract fun nvcEntryDao(): NvcEntryDao
     abstract fun oneNoteSyncDao(): OneNoteSyncDao
     abstract fun moodEntryDao(): MoodEntryDao
+    abstract fun livingTreeTagDao(): LivingTreeTagDao
+    abstract fun livingTreePersonDao(): LivingTreePersonDao
+    abstract fun livingTreePersonTagDao(): LivingTreePersonTagDao
 
     companion object {
         @Volatile

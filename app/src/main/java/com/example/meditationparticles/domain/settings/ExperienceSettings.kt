@@ -12,6 +12,7 @@ data class ExperienceSettings(
     val enableAffirmations: Boolean = true,
     val enableToolkit: Boolean = true,
     val enableVisuals: Boolean = true,
+    val enableLivingTree: Boolean = true,
     val enabledScenes: Set<String> = defaultScenes,
     val meditationRemindersAvailable: Boolean = true,
     val futureSelfSchedulingAvailable: Boolean = true,
