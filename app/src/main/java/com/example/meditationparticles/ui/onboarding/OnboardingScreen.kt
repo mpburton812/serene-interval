@@ -16,7 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.activity.ComponentActivity
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,12 +34,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.R
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
@@ -45,10 +49,9 @@ import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
-import com.example.meditationparticles.ui.settings.PreferredNameField
-import com.example.meditationparticles.ui.settings.SanctuaryNameField
+import com.example.meditationparticles.ui.settings.NamingSection
+import com.example.meditationparticles.ui.settings.QuickStartSelectionSection
 import com.example.meditationparticles.ui.settings.ThemeSection
-import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 
@@ -126,6 +129,24 @@ fun OnboardingScreen(
                     },
                 )
             }
+            OnboardingStep.OneNoteConnect -> {
+                val activity = LocalContext.current as? ComponentActivity
+                OnboardingOneNoteConnectStep(
+                    onConnect = {
+                        activity?.let { host ->
+                            viewModel.connectOneNote(host) { connected ->
+                                if (connected && viewModel.continueFromOneNoteConnect()) {
+                                    onComplete()
+                                }
+                            }
+                        }
+                    },
+                    onSkip = {
+                        viewModel.skipOneNoteConnect()
+                        if (viewModel.continueFromOneNoteConnect()) onComplete()
+                    },
+                )
+            }
         }
     }
 }
@@ -134,12 +155,14 @@ fun OnboardingScreen(
 private fun OnboardingHeader(step: OnboardingStep) {
     val appName = stringResource(R.string.app_name)
     val (title, subtitle) = when (step) {
-        OnboardingStep.Customization -> "Create Your Sanctuary" to
+        OnboardingStep.Customization -> "Let's Build Your Sanctuary" to
             "Let's shape a space that feels uniquely yours."
         OnboardingStep.ExactAlarms -> "Alarms & Reminders" to
             "Scheduled features need permission to deliver on time."
         OnboardingStep.Notifications -> "Notifications" to
             "Allow $appName to notify you when reminders are due."
+        OnboardingStep.OneNoteConnect -> "Connect OneNote" to
+            "Optionally sync saved journal entries to Microsoft OneNote."
     }
 
     Column(
@@ -169,52 +192,52 @@ private fun OnboardingCustomizationStep(
     viewModel: OnboardingViewModel,
     onContinue: () -> Unit,
 ) {
-    GlassCard(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 24.dp,
+        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
     ) {
-        Column(
-            modifier = Modifier.padding(SereneSpacing.containerMargin),
-            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
-        ) {
-            SanctuaryNameField(
-                value = draft.sanctuaryName,
-                onValueChange = viewModel::setSanctuaryName,
+        OnboardingSectionCard {
+            NamingSection(
+                sanctuaryName = draft.sanctuaryName,
+                onSanctuaryNameChange = viewModel::setSanctuaryName,
+                preferredName = draft.preferredName,
+                onPreferredNameChange = viewModel::setPreferredName,
             )
+        }
 
-            PreferredNameField(
-                value = draft.preferredName,
-                onValueChange = viewModel::setPreferredName,
-            )
-
+        OnboardingSectionCard {
             ThemeSection(
                 settings = settingsPreview,
                 onThemeModeSelected = viewModel::setThemeMode,
             )
+        }
 
+        OnboardingSectionCard {
             ExperienceSection(
                 settings = settingsPreview,
                 onBreathingChanged = viewModel::setEnableBreathing,
                 onTimerChanged = viewModel::setEnableTimer,
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
-                onVisualsChanged = viewModel::setEnableVisuals,
             )
+        }
 
-            if (draft.enableVisuals) {
-                VisualSanctuarySection(
-                    enabledScenes = draft.enabledScenes,
-                    onToggleScene = viewModel::toggleScene,
-                )
-            }
+        OnboardingSectionCard {
+            QuickStartSelectionSection(
+                settings = settingsPreview,
+                enabledToolkitTools = draft.enabledToolkitTools,
+                selectedTargets = draft.quickStartTargets,
+                onToggle = viewModel::toggleQuickStart,
+            )
+        }
 
-            if (draft.enableToolkit) {
+        if (draft.enableToolkit) {
+            OnboardingSectionCard {
                 ToolkitToolSelectionContent(
                     proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
                     reactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
                     enabledToolIds = draft.enabledToolkitTools,
                     onToggleTool = viewModel::toggleToolkitTool,
-                    showHeader = false,
                 )
             }
         }
@@ -225,6 +248,8 @@ private fun OnboardingCustomizationStep(
             text = when {
                 draft.enableToolkit && draft.enabledToolkitTools.isEmpty() ->
                     "Enable at least one toolkit tool to continue."
+                draft.quickStartTargets.size < 4 ->
+                    "Choose 4 Quick Start tools to continue."
                 else -> "Keep at least one tool enabled to continue."
             },
             style = MaterialTheme.typography.bodyMedium,
@@ -368,10 +393,81 @@ private fun OnboardingNotificationsStep(
     }
 
     OnboardingPrimaryButton(
-        text = "Enter Your Sanctuary",
+        text = "Continue",
         enabled = true,
         onClick = onContinue,
     )
+}
+
+@Composable
+private fun OnboardingOneNoteConnectStep(
+    onConnect: () -> Unit,
+    onSkip: () -> Unit,
+) {
+    if (!BuildConfig.ONENOTE_SYNC_AVAILABLE) {
+        OnboardingPrimaryButton(
+            text = "Enter Your Sanctuary",
+            enabled = true,
+            onClick = onSkip,
+        )
+        return
+    }
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
+        Column(
+            modifier = Modifier.padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+        ) {
+            Icon(
+                imageVector = Icons.Default.CloudSync,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            Text(
+                text = "When connected, new toolkit journal entries sync to a OneNote section " +
+                    "named \"Serene Interval\". Audio stays in the app only.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(
+                onClick = onConnect,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Connect Microsoft account")
+            }
+        }
+    }
+
+    OnboardingPrimaryButton(
+        text = "Enter Your Sanctuary",
+        enabled = true,
+        onClick = onSkip,
+    )
+
+    OutlinedButton(
+        onClick = onSkip,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text("Skip for now")
+    }
+}
+
+@Composable
+private fun OnboardingSectionCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+            content = { content() },
+        )
+    }
 }
 
 @Composable

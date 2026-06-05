@@ -13,6 +13,19 @@ on:
       - main
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      version_json: ${{ steps.filter.outputs.version_json }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            version_json:
+              - 'release/version.json'
+
   test-and-lint:
     runs-on: ubuntu-latest
     steps:
@@ -26,3 +39,16 @@ jobs:
 
       - name: Run unit tests and lint
         run: ./gradlew testDebugUnitTest lintDebug --no-daemon
+
+  verify-release-manifest:
+    needs: changes
+    if: needs.changes.outputs.version_json == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Self-test manifest verifier
+        run: bash release/verify-manifest.sh --self-test
+
+      - name: Verify release manifest hash against live APK
+        run: bash release/verify-manifest.sh release/version.json

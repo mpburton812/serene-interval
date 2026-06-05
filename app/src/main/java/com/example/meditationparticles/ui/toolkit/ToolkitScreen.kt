@@ -4,25 +4,25 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.navigation.PendingToolkitNavigation
 import com.example.meditationparticles.ui.components.SereneTabBackground
+import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 @Composable
 fun ToolkitScreen(
     pendingNavigation: PendingToolkitNavigation? = null,
     resetSignal: Int = 0,
+    returnToHomeOnComplete: Boolean = false,
+    onPendingNavigationConsumed: () -> Unit = {},
+    onReturnToHome: () -> Unit = {},
     onNavigateToBreathe: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ToolkitViewModel = viewModel(),
@@ -37,19 +37,16 @@ fun ToolkitScreen(
 
     SereneTabBackground(modifier = modifier) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(SereneSpacing.containerMargin),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
         ) {
-        Text(
-            text = "Toolkit",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        SereneTabHeader(title = "Toolkit")
 
-        Box(modifier = Modifier.weight(1f)) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = SereneSpacing.containerMargin),
+        ) {
             if (!state.toolkitConfigured) {
                 ToolkitToolSelectionScreen(
                     proactiveTools = state.selectionProactiveTools,
@@ -63,6 +60,9 @@ fun ToolkitScreen(
                 AnxietyToolkitTab(
                     onNavigateToBreathe = onNavigateToBreathe,
                     pendingNavigation = pendingNavigation,
+                    returnToHomeOnComplete = returnToHomeOnComplete,
+                    onPendingNavigationConsumed = onPendingNavigationConsumed,
+                    onReturnToHome = onReturnToHome,
                     viewModel = viewModel,
                 )
             }

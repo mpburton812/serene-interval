@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.MyLocation
@@ -59,10 +60,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
+import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -79,16 +83,29 @@ import com.example.meditationparticles.ui.theme.SereneTertiaryContainer
 fun AnxietyToolkitTab(
     onNavigateToBreathe: () -> Unit,
     pendingNavigation: PendingToolkitNavigation? = null,
+    returnToHomeOnComplete: Boolean = false,
+    onPendingNavigationConsumed: () -> Unit = {},
+    onReturnToHome: () -> Unit = {},
     viewModel: ToolkitViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    val completeToolFlow: () -> Unit = {
+        viewModel.closeTool()
+        if (returnToHomeOnComplete) {
+            onReturnToHome()
+        }
+    }
+
     LaunchedEffect(pendingNavigation) {
         pendingNavigation?.let { navigation ->
-            viewModel.handlePendingNavigation(
-                toolId = navigation.toolId,
-                futureSelfMessageId = navigation.futureSelfMessageId,
-            )
+            if (navigation.toolId != null || navigation.futureSelfMessageId != null) {
+                viewModel.handlePendingNavigation(
+                    toolId = navigation.toolId,
+                    futureSelfMessageId = navigation.futureSelfMessageId,
+                )
+                onPendingNavigationConsumed()
+            }
         }
     }
 
@@ -99,6 +116,7 @@ fun AnxietyToolkitTab(
             currentStep = state.currentStep,
             isLastStep = state.isLastStep,
             thoughtDumpText = state.thoughtDumpText,
+            draftMoodLevel = state.draftMoodLevel,
             anxietyLogText = state.anxietyLogText,
             pendingAudioPath = state.pendingAudioPath,
             thoughtDumpEntries = state.thoughtDumpEntries,
@@ -122,15 +140,29 @@ fun AnxietyToolkitTab(
             centerOfGravityBodyAndNeeds = state.centerOfGravityBodyAndNeeds,
             centerOfGravityEntries = state.centerOfGravityEntries,
             openedCenterOfGravityEntry = state.openedCenterOfGravityEntry,
+            nvcStepIndex = state.nvcStepIndex,
+            nvcObservation = state.nvcObservation,
+            nvcFeeling = state.nvcFeeling,
+            nvcNeed = state.nvcNeed,
+            nvcRequest = state.nvcRequest,
+            nvcEntries = state.nvcEntries,
+            openedNvcEntry = state.openedNvcEntry,
             onThoughtDumpChange = viewModel::updateThoughtDump,
+            onDraftMoodLevelChange = viewModel::updateDraftMoodLevel,
             onAnxietyLogChange = viewModel::updateAnxietyLog,
             onFutureSelfTextChange = viewModel::updateFutureSelfText,
             onFutureSelfScheduledAtChange = viewModel::updateFutureSelfScheduledAt,
             onPendingAudioChange = viewModel::setPendingAudioPath,
             onSpeechResult = viewModel::appendToActiveLog,
-            onSaveThoughtDump = viewModel::saveThoughtDump,
-            onSaveAnxietyLog = viewModel::saveAnxietyLog,
-            onSaveFutureSelfMessage = viewModel::saveFutureSelfMessage,
+            onSaveThoughtDump = {
+                viewModel.saveThoughtDump(onComplete = completeToolFlow)
+            },
+            onSaveAnxietyLog = {
+                viewModel.saveAnxietyLog(onComplete = completeToolFlow)
+            },
+            onSaveFutureSelfMessage = {
+                viewModel.saveFutureSelfMessage(onComplete = completeToolFlow)
+            },
             onClearDraft = viewModel::clearActiveDraft,
             onOpenLogEntry = viewModel::openLogEntry,
             onDeleteLogEntry = viewModel::deleteLogEntry,
@@ -145,27 +177,50 @@ fun AnxietyToolkitTab(
             onRefactoringExplanation2Change = viewModel::updateRefactoringExplanation2,
             onRefactoringExplanation3Change = viewModel::updateRefactoringExplanation3,
             onRefactoringSpeechResult = viewModel::appendToRefactoringField,
-            onSaveRefactoringEntry = viewModel::saveRefactoringEntry,
+            onSaveRefactoringEntry = {
+                viewModel.saveRefactoringEntry(onComplete = completeToolFlow)
+            },
             onClearRefactoringDraft = viewModel::clearRefactoringDraft,
             onOpenRefactoringEntry = viewModel::openRefactoringEntry,
             onDeleteRefactoringEntry = viewModel::deleteRefactoringEntry,
             onCloseRefactoringEntry = viewModel::closeRefactoringEntry,
             onNextRefactoringStep = viewModel::nextRefactoringStep,
             onPreviousRefactoringStep = viewModel::previousRefactoringStep,
+            onRefactoringStepChange = viewModel::goToRefactoringStep,
             onCenterOfGravityThoughtsAndFeelingsChange = viewModel::updateCenterOfGravityThoughtsAndFeelings,
             onCenterOfGravityBodyAndNeedsChange = viewModel::updateCenterOfGravityBodyAndNeeds,
             onCenterOfGravitySpeechResult = viewModel::appendToCenterOfGravityField,
-            onSaveCenterOfGravityEntry = viewModel::saveCenterOfGravityEntry,
+            onSaveCenterOfGravityEntry = {
+                viewModel.saveCenterOfGravityEntry(onComplete = completeToolFlow)
+            },
             onClearCenterOfGravityDraft = viewModel::clearCenterOfGravityDraft,
             onOpenCenterOfGravityEntry = viewModel::openCenterOfGravityEntry,
             onDeleteCenterOfGravityEntry = viewModel::deleteCenterOfGravityEntry,
             onCloseCenterOfGravityEntry = viewModel::closeCenterOfGravityEntry,
             onNextCenterOfGravityStep = viewModel::nextCenterOfGravityStep,
             onPreviousCenterOfGravityStep = viewModel::previousCenterOfGravityStep,
+            onNvcObservationChange = viewModel::updateNvcObservation,
+            onNvcFeelingChange = viewModel::updateNvcFeeling,
+            onNvcNeedChange = viewModel::updateNvcNeed,
+            onNvcRequestChange = viewModel::updateNvcRequest,
+            onNvcSpeechResult = viewModel::appendToNvcField,
+            onSaveNvcEntry = {
+                viewModel.saveNvcEntry(onComplete = completeToolFlow)
+            },
+            onClearNvcDraft = viewModel::clearNvcDraft,
+            onOpenNvcEntry = viewModel::openNvcEntry,
+            onDeleteNvcEntry = viewModel::deleteNvcEntry,
+            onCloseNvcEntry = viewModel::closeNvcEntry,
+            onNextNvcStep = viewModel::nextNvcStep,
+            onPreviousNvcStep = viewModel::previousNvcStep,
+            onNvcStepChange = viewModel::goToNvcStep,
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
+            onCompleteFlow = completeToolFlow,
             onNavigateToBreathe = onNavigateToBreathe,
+            showOneNoteSync = BuildConfig.ONENOTE_SYNC_AVAILABLE && state.oneNoteConnected,
+            onSyncEntryToOneNote = viewModel::syncEntryToOneNote,
         )
         return
     }
@@ -402,6 +457,7 @@ private fun ToolDetailScreen(
     currentStep: String?,
     isLastStep: Boolean,
     thoughtDumpText: String,
+    draftMoodLevel: Int?,
     anxietyLogText: String,
     pendingAudioPath: String?,
     thoughtDumpEntries: List<ThoughtDumpEntity>,
@@ -425,7 +481,15 @@ private fun ToolDetailScreen(
     centerOfGravityBodyAndNeeds: String,
     centerOfGravityEntries: List<CenterOfGravityEntryEntity>,
     openedCenterOfGravityEntry: CenterOfGravityEntryEntity?,
+    nvcStepIndex: Int,
+    nvcObservation: String,
+    nvcFeeling: String,
+    nvcNeed: String,
+    nvcRequest: String,
+    nvcEntries: List<NvcEntryEntity>,
+    openedNvcEntry: NvcEntryEntity?,
     onThoughtDumpChange: (String) -> Unit,
+    onDraftMoodLevelChange: (Int?) -> Unit,
     onAnxietyLogChange: (String) -> Unit,
     onFutureSelfTextChange: (String) -> Unit,
     onFutureSelfScheduledAtChange: (Long) -> Unit,
@@ -455,6 +519,7 @@ private fun ToolDetailScreen(
     onCloseRefactoringEntry: () -> Unit,
     onNextRefactoringStep: () -> Unit,
     onPreviousRefactoringStep: () -> Unit,
+    onRefactoringStepChange: (Int) -> Unit,
     onCenterOfGravityThoughtsAndFeelingsChange: (String) -> Unit,
     onCenterOfGravityBodyAndNeedsChange: (String) -> Unit,
     onCenterOfGravitySpeechResult: (CenterOfGravitySpeechTarget, String) -> Unit,
@@ -465,10 +530,26 @@ private fun ToolDetailScreen(
     onCloseCenterOfGravityEntry: () -> Unit,
     onNextCenterOfGravityStep: () -> Unit,
     onPreviousCenterOfGravityStep: () -> Unit,
+    onNvcObservationChange: (String) -> Unit,
+    onNvcFeelingChange: (String) -> Unit,
+    onNvcNeedChange: (String) -> Unit,
+    onNvcRequestChange: (String) -> Unit,
+    onNvcSpeechResult: (NvcSpeechTarget, String) -> Unit,
+    onSaveNvcEntry: () -> Unit,
+    onClearNvcDraft: () -> Unit,
+    onOpenNvcEntry: (NvcEntryEntity) -> Unit,
+    onDeleteNvcEntry: (NvcEntryEntity) -> Unit,
+    onCloseNvcEntry: () -> Unit,
+    onNextNvcStep: () -> Unit,
+    onPreviousNvcStep: () -> Unit,
+    onNvcStepChange: (Int) -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
+    onCompleteFlow: () -> Unit,
     onNavigateToBreathe: () -> Unit,
+    showOneNoteSync: Boolean,
+    onSyncEntryToOneNote: (OneNoteEntryType, Long) -> Unit,
 ) {
     val context = LocalContext.current
     val futureSelfSchedulingAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
@@ -500,6 +581,8 @@ private fun ToolDetailScreen(
                 ToolkitLogContent(
                     instructionText = "Write everything on your mind. No editing, no judgment.",
                     text = thoughtDumpText,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     entries = thoughtDumpEntries,
                     pendingAudioPath = pendingAudioPath,
                     openedEntry = openedLogEntry,
@@ -512,12 +595,18 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenLogEntry,
                     onDeleteEntry = onDeleteLogEntry,
                     onCloseEntry = onCloseLogEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.THOUGHT_DUMP, entry.id)
+                    },
                 )
             }
             ToolkitToolId.AnxietyLog -> {
                 ToolkitLogContent(
                     instructionText = "Notice, Observe, and Acknowledge. Feelings are temporary. I am Fine. I am Not Fine. I am Fine.",
                     text = anxietyLogText,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     entries = anxietyLogEntries,
                     pendingAudioPath = pendingAudioPath,
                     openedEntry = openedLogEntry,
@@ -530,11 +619,17 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenLogEntry,
                     onDeleteEntry = onDeleteLogEntry,
                     onCloseEntry = onCloseLogEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.ANXIETY_LOG, entry.id)
+                    },
                 )
             }
             ToolkitToolId.FutureSelfMessage -> {
                 FutureSelfMessageContent(
                     text = futureSelfText,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     scheduledAtMillis = futureSelfScheduledAtMillis,
                     pendingAudioPath = pendingAudioPath,
                     entries = futureSelfEntries,
@@ -551,11 +646,17 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenFutureSelfEntry,
                     onCloseEntry = onCloseFutureSelfEntry,
                     schedulingAvailable = futureSelfSchedulingAvailable,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.FUTURE_SELF, entry.id)
+                    },
                 )
             }
             ToolkitToolId.Refactoring -> {
                 RefactoringContent(
                     stepIndex = refactoringStepIndex,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     interpretation = refactoringInterpretation,
                     actualFacts = refactoringActualFacts,
                     explanation1 = refactoringExplanation1,
@@ -573,16 +674,23 @@ private fun ToolDetailScreen(
                     onSpeechResult = onRefactoringSpeechResult,
                     onPrevious = onPreviousRefactoringStep,
                     onNext = onNextRefactoringStep,
+                    onStepChange = onRefactoringStepChange,
                     onSave = onSaveRefactoringEntry,
                     onClear = onClearRefactoringDraft,
                     onOpenEntry = onOpenRefactoringEntry,
                     onDeleteEntry = onDeleteRefactoringEntry,
                     onCloseEntry = onCloseRefactoringEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.REFACTORING, entry.id)
+                    },
                 )
             }
             ToolkitToolId.RelocateCenterOfGravity -> {
                 CenterOfGravityContent(
                     stepIndex = centerOfGravityStepIndex,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
                     thoughtsAndFeelings = centerOfGravityThoughtsAndFeelings,
                     bodyAndNeeds = centerOfGravityBodyAndNeeds,
                     pendingAudioPath = pendingAudioPath,
@@ -599,6 +707,42 @@ private fun ToolDetailScreen(
                     onOpenEntry = onOpenCenterOfGravityEntry,
                     onDeleteEntry = onDeleteCenterOfGravityEntry,
                     onCloseEntry = onCloseCenterOfGravityEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.CENTER_OF_GRAVITY, entry.id)
+                    },
+                )
+            }
+            ToolkitToolId.NonViolentCommunication -> {
+                NvcContent(
+                    stepIndex = nvcStepIndex,
+                    selectedMoodLevel = draftMoodLevel,
+                    onMoodLevelChange = onDraftMoodLevelChange,
+                    observation = nvcObservation,
+                    feeling = nvcFeeling,
+                    need = nvcNeed,
+                    request = nvcRequest,
+                    pendingAudioPath = pendingAudioPath,
+                    entries = nvcEntries,
+                    openedEntry = openedNvcEntry,
+                    onObservationChange = onNvcObservationChange,
+                    onFeelingChange = onNvcFeelingChange,
+                    onNeedChange = onNvcNeedChange,
+                    onRequestChange = onNvcRequestChange,
+                    onPendingAudioChange = onPendingAudioChange,
+                    onSpeechResult = onNvcSpeechResult,
+                    onPrevious = onPreviousNvcStep,
+                    onNext = onNextNvcStep,
+                    onStepChange = onNvcStepChange,
+                    onSave = onSaveNvcEntry,
+                    onClear = onClearNvcDraft,
+                    onOpenEntry = onOpenNvcEntry,
+                    onDeleteEntry = onDeleteNvcEntry,
+                    onCloseEntry = onCloseNvcEntry,
+                    showOneNoteSync = showOneNoteSync,
+                    onSyncEntryToOneNote = { entry ->
+                        onSyncEntryToOneNote(OneNoteEntryType.NVC, entry.id)
+                    },
                 )
             }
             else -> {
@@ -642,7 +786,7 @@ private fun ToolDetailScreen(
                     }
 
                     Button(
-                        onClick = if (isLastStep) onClose else onNext,
+                        onClick = if (isLastStep) onCompleteFlow else onNext,
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(if (isLastStep) "Done" else "Next")
@@ -673,6 +817,7 @@ private fun toolIcon(id: ToolkitToolId): ImageVector = when (id) {
     ToolkitToolId.LovingKindness -> Icons.Default.Favorite
     ToolkitToolId.AnxietyLog -> Icons.Default.EditNote
     ToolkitToolId.Refactoring -> Icons.Default.Psychology
+    ToolkitToolId.NonViolentCommunication -> Icons.Default.Forum
     ToolkitToolId.RelocateCenterOfGravity -> Icons.Default.MyLocation
 }
 

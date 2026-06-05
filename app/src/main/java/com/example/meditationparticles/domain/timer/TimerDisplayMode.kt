@@ -18,9 +18,20 @@ enum class TimerSoundOption(val label: String) {
     Rain("Rain"),
     Waves("Waves"),
     Forest("Forest"),
-    Wind("Wind"),
-    Bell("Soft Bell"),
-    Custom("Custom"),
+    ;
+
+    companion object {
+        private val removedOptionNames = setOf("Wind", "Bell", "Custom")
+
+        fun fromStoredName(name: String?): TimerSoundOption {
+            val normalized = when (name) {
+                "Ocean" -> Waves.name
+                in removedOptionNames -> None.name
+                else -> name ?: None.name
+            }
+            return runCatching { valueOf(normalized) }.getOrDefault(None)
+        }
+    }
 }
 
 object TimerPresets {

@@ -16,5 +16,6 @@ data class RefactoringEntryEntity(
     val explanation2AudioPath: String? = null,
     val explanation3: String,
     val explanation3AudioPath: String? = null,
+    val moodLevel: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )

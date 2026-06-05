@@ -23,6 +23,7 @@ class FutureSelfMessageRepository(
         content: String,
         audioPath: String?,
         scheduledAtMillis: Long,
+        moodLevel: Int? = null,
     ): Long? {
         val trimmed = content.trim()
         if (trimmed.isEmpty() && audioPath.isNullOrBlank()) return null
@@ -30,6 +31,7 @@ class FutureSelfMessageRepository(
             return dao.insert(
                 FutureSelfMessageEntity(
                     content = trimmed,
+                    moodLevel = moodLevel?.coerceIn(1, 5),
                     audioPath = audioPath,
                     scheduledAtMillis = scheduledAtMillis,
                 ),
@@ -42,6 +44,7 @@ class FutureSelfMessageRepository(
         dao.update(
             existing.copy(
                 content = trimmed,
+                moodLevel = moodLevel?.coerceIn(1, 5),
                 audioPath = audioPath,
                 scheduledAtMillis = scheduledAtMillis,
                 delivered = false,

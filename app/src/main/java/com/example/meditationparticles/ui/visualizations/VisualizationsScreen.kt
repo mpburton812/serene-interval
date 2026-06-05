@@ -55,6 +55,7 @@ import com.example.meditationparticles.domain.visualizations.CalmingVisualizatio
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneTabBackground
+import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.audio.AmbientAudioPlayer
 import kotlinx.coroutines.CoroutineScope
@@ -74,24 +75,19 @@ fun VisualizationsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(SereneSpacing.containerMargin),
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
         ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "Visual Sanctuary",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = "Choose a landscape to ground your focus.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        SereneTabHeader(
+            title = "Visual Sanctuary",
+            description = "Choose a landscape to ground your focus.",
+        )
 
-        Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
+        ) {
             visualizations.take(2).forEach { viz ->
                 VisualizationGalleryCard(
                     visualization = viz,

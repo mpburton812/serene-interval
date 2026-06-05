@@ -40,6 +40,7 @@ import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import java.io.IOException
+import androidx.activity.ComponentActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,9 +52,14 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val settings by viewModel.settings.collectAsState()
+    val quickStartTargets by viewModel.quickStartTargets.collectAsState()
+    val enabledToolkitTools by viewModel.enabledToolkitTools.collectAsState()
     val settingsUiState by viewModel.uiState.collectAsState()
+    val oneNotePrefs by viewModel.oneNotePrefs.collectAsState()
+    val oneNoteUiState by viewModel.oneNoteUiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -171,15 +177,14 @@ fun SettingsScreen(
                 onTimerChanged = viewModel::setEnableTimer,
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
-                onVisualsChanged = viewModel::setEnableVisuals,
             )
 
-            if (settings.enableVisuals) {
-                VisualSanctuarySection(
-                    enabledScenes = settings.enabledScenes,
-                    onToggleScene = viewModel::toggleScene,
-                )
-            }
+            QuickStartSelectionSection(
+                settings = settings,
+                enabledToolkitTools = enabledToolkitTools,
+                selectedTargets = quickStartTargets,
+                onToggle = viewModel::toggleQuickStart,
+            )
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
@@ -237,7 +242,7 @@ fun SettingsScreen(
                         )
                     } else {
                         Text(
-                            text = "Import configuration & entries",
+                            text = "Import configuration and entries.",
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier.padding(vertical = 8.dp),
                         )
@@ -283,6 +288,21 @@ fun SettingsScreen(
                     },
                 )
             }
+
+            OneNoteIntegrationSection(
+                prefs = oneNotePrefs,
+                uiState = oneNoteUiState,
+                onConnect = {
+                    activity?.let(viewModel::connectOneNote)
+                },
+                onDisconnect = viewModel::disconnectOneNote,
+                onSyncEnabledChange = viewModel::setOneNoteSyncEnabled,
+                onSyncNow = viewModel::syncOneNoteNow,
+                onSyncExistingEntries = viewModel::backfillOneNoteExistingEntries,
+                onEntryTypeSyncChange = viewModel::setOneNoteEntryTypeSyncEnabled,
+                onSelectNotebook = viewModel::selectOneNoteNotebook,
+                onSelectSection = viewModel::selectOneNoteSection,
+            )
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
@@ -340,7 +360,7 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
                 Text(
-                    text = "Onboarding",
+                    text = "Rebuild Your Sanctuary",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -361,7 +381,7 @@ fun SettingsScreen(
                     ),
                 ) {
                     Text(
-                        text = "Reset Onboarding",
+                        text = "Rebuild!",
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )

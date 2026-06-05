@@ -146,7 +146,7 @@ internal fun DrawScope.drawPhotoGlassSphereInterior(
         )
 
         if (fill > 0f) {
-            drawLiquidFill(center, radius, fill, visual.fillDirection, roleColor)
+            drawLiquidFill(center, radius, fill, visual.liquidDirection(), roleColor)
         }
     }
 }

@@ -18,13 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.FormatQuote
-import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Landscape
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Timer
@@ -51,8 +46,10 @@ import com.example.meditationparticles.domain.sessions.HomeProgress
 import com.example.meditationparticles.domain.sessions.MeditationSession
 import com.example.meditationparticles.domain.sessions.SessionType
 import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.navigation.SereneDestination
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.SereneHeaderPlate
 import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.SereneSpacing
@@ -61,12 +58,14 @@ import java.util.Calendar
 @Composable
 fun HomeScreen(
     onNavigate: (SereneDestination, String?) -> Unit,
+    onQuickStart: (QuickStartTarget) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
 ) {
     val dailyAffirmation by viewModel.dailyAffirmation.collectAsState()
     val homeProgress by viewModel.homeProgress.collectAsState()
+    val quickStartTargets by viewModel.quickStartTargets.collectAsState()
     val settings = LocalExperienceSettings.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -82,56 +81,11 @@ fun HomeScreen(
         }
     }
 
-    val quickStartTiles = buildList {
-        if (settings.enableBreathing) {
-            add(
-                QuickStartItem(
-                    label = "Breathing",
-                    icon = Icons.Default.Air,
-                    iconTint = MaterialTheme.colorScheme.secondary,
-                    iconBackground = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-                    onClick = { onNavigate(SereneDestination.Breathe, null) },
-                ),
-            )
-        }
-        if (settings.enableTimer) {
-            add(
-                QuickStartItem(
-                    label = "Meditation",
-                    icon = Icons.Default.SelfImprovement,
-                    iconTint = MaterialTheme.colorScheme.primary,
-                    iconBackground = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                    onClick = { onNavigate(SereneDestination.Timer, null) },
-                ),
-            )
-        }
-        if (settings.enableAffirmations) {
-            add(
-                QuickStartItem(
-                    label = "Affirmations",
-                    icon = Icons.Default.AutoAwesome,
-                    iconTint = MaterialTheme.colorScheme.tertiary,
-                    iconBackground = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
-                    onClick = {
-                        onNavigate(SereneDestination.Affirmations, null)
-                    },
-                ),
-            )
-        }
-        if (settings.enableToolkit) {
-            add(
-                QuickStartItem(
-                    label = "Toolkit",
-                    icon = Icons.Default.Handyman,
-                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    iconBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    onClick = {
-                        onNavigate(SereneDestination.Toolkit, null)
-                    },
-                ),
-            )
-        }
-    }
+    val quickStartTiles = buildQuickStartTiles(
+        selectedTargets = quickStartTargets,
+        settings = settings,
+        onQuickStart = onQuickStart,
+    )
 
     SereneTabBackground(modifier = modifier) {
         Column(
@@ -145,18 +99,21 @@ fun HomeScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
             verticalAlignment = Alignment.Top,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            SereneHeaderPlate(
+                modifier = Modifier.weight(1f),
+                cornerRadius = 20.dp,
+            ) {
                 Text(
-                    text = "${greeting()}, ${settings.displayName}",
+                    text = welcomeHeadline(settings),
                     style = MaterialTheme.typography.displayLarge,
                 )
                 Text(
                     text = homeSubtitle(settings),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -235,8 +192,6 @@ fun HomeScreen(
             }
         }
 
-        DailyProgressCard(progress = homeProgress)
-
         if (homeProgress.recentSessions.isNotEmpty()) {
             RecentActivitiesSection(
                 sessions = homeProgress.recentSessions,
@@ -247,103 +202,6 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(SereneSpacing.stackLg))
-        }
-    }
-}
-
-@Composable
-private fun DailyProgressCard(progress: HomeProgress) {
-    Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
-        Text(
-            text = "Daily Progress",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(start = 4.dp),
-        )
-        GlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 24.dp,
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Column {
-                        Text(
-                            text = progress.streakDays.toString(),
-                            style = MaterialTheme.typography.displayLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = "Day Streak",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocalFireDepartment,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = "Calm Meter",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = "${progress.calmMeterPercent}%",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(10.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(progress.calmMeterPercent / 100f)
-                                .height(10.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
-                        )
-                    }
-                    Text(
-                        text = progress.calmMeterMessage,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (progress.todayMinutes > 0) {
-                        Text(
-                            text = "${progress.todayMinutes} min of calm today",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -463,14 +321,6 @@ private fun navigateToSession(
     }
 }
 
-private data class QuickStartItem(
-    val label: String,
-    val icon: ImageVector,
-    val iconTint: Color,
-    val iconBackground: Color,
-    val onClick: () -> Unit,
-)
-
 @Composable
 private fun QuickStartTile(
     label: String,
@@ -512,6 +362,15 @@ private fun QuickStartTile(
                 modifier = Modifier.padding(top = SereneSpacing.stackMd),
             )
         }
+    }
+}
+
+private fun welcomeHeadline(settings: ExperienceSettings): String {
+    val name = settings.preferredName.trim()
+    return if (name.isNotEmpty()) {
+        "${greeting()}, $name"
+    } else {
+        greeting()
     }
 }
 

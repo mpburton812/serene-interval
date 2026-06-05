@@ -175,4 +175,131 @@ class BreathSphereLayoutTest {
             ),
         )
     }
+
+    @Test
+    fun modeB_resonant_hasTwoSpheresWithVerticalPipe() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.Resonant)
+
+        assertEquals(LayoutMode.ModeB, layout.layoutMode)
+        assertEquals(2, layout.allSpheres.size)
+        assertEquals(null, layout.topHoldId)
+        assertEquals(null, layout.bottomHoldId)
+        assertEquals(1, layout.inhalePath.size)
+        assertEquals(1, layout.exhalePath.size)
+        assertEquals(1, layout.pipes.size)
+
+        val inhale = requireNotNull(layout.sphere(layout.inhalePath.first()))
+        val exhale = requireNotNull(layout.sphere(layout.exhalePath.first()))
+        assertTrue(inhale.center.y < exhale.center.y)
+        assertTrue(kotlin.math.abs(inhale.center.x - exhale.center.x) < 1f)
+        assertTrue(inhale.role.name.contains("Inhale"))
+        assertTrue(exhale.role.name.contains("Exhale"))
+        assertTrue(
+            BreathTestFixtures.pipesConnect(layout, inhale.id, exhale.id),
+        )
+    }
+
+    @Test
+    fun modeB_noHoldPatterns_useVerticalBlueOverRedLayout() {
+        listOf(
+            BreathingPattern.Resonant,
+            BreathingPattern.SamaVritti,
+            BreathingPattern.PhysiologicalSigh,
+        ).forEach { pattern ->
+            val layout = BreathTestFixtures.layoutForModeB(pattern)
+            val inhale = requireNotNull(layout.sphere(layout.inhalePath.first()))
+            val exhale = requireNotNull(layout.sphere(layout.exhalePath.first()))
+            assertTrue("${pattern.name} blue above red", inhale.center.y < exhale.center.y)
+            assertTrue(
+                "${pattern.name} vertical pipe",
+                BreathTestFixtures.pipesConnect(layout, inhale.id, exhale.id),
+            )
+        }
+    }
+
+    @Test
+    fun modeB_fourSevenEight_hasThreeSphereDiamondWithBlueRedPipe() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.FourSevenEight)
+
+        assertEquals(LayoutMode.ModeB, layout.layoutMode)
+        assertEquals(3, layout.allSpheres.size)
+        assertTrue(layout.topHoldId != null)
+        assertEquals(null, layout.bottomHoldId)
+        assertEquals(3, layout.pipes.size)
+
+        val inhale = requireNotNull(layout.sphere(layout.inhalePath.first()))
+        val exhale = requireNotNull(layout.sphere(layout.exhalePath.first()))
+        val topHold = requireNotNull(layout.sphere(layout.topHoldId!!))
+
+        assertTrue(topHold.center.y < inhale.center.y)
+        assertTrue(topHold.center.y < exhale.center.y)
+        assertTrue(inhale.center.x < topHold.center.x)
+        assertTrue(exhale.center.x > topHold.center.x)
+        assertTrue(BreathTestFixtures.pipesConnect(layout, inhale.id, topHold.id))
+        assertTrue(BreathTestFixtures.pipesConnect(layout, topHold.id, exhale.id))
+        assertTrue(BreathTestFixtures.pipesConnect(layout, inhale.id, exhale.id))
+    }
+
+    @Test
+    fun modeB_tactical_hasBlueRedPipeAndTopHoldConnections() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.Tactical)
+        val inhale = requireNotNull(layout.sphere(layout.inhalePath.first()))
+        val exhale = requireNotNull(layout.sphere(layout.exhalePath.first()))
+        val topHold = requireNotNull(layout.sphere(layout.topHoldId!!))
+
+        assertEquals(3, layout.pipes.size)
+        assertTrue(BreathTestFixtures.pipesConnect(layout, inhale.id, exhale.id))
+        assertTrue(BreathTestFixtures.pipesConnect(layout, inhale.id, topHold.id))
+        assertTrue(BreathTestFixtures.pipesConnect(layout, topHold.id, exhale.id))
+    }
+
+    @Test
+    fun modeB_boxBreathing_hasFourSphereDiamond() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+
+        assertEquals(LayoutMode.ModeB, layout.layoutMode)
+        assertEquals(4, layout.allSpheres.size)
+        assertTrue(layout.topHoldId != null)
+        assertTrue(layout.bottomHoldId != null)
+
+        val inhale = requireNotNull(layout.sphere(layout.inhalePath.first()))
+        val exhale = requireNotNull(layout.sphere(layout.exhalePath.first()))
+        val topHold = requireNotNull(layout.sphere(layout.topHoldId!!))
+        val bottomHold = requireNotNull(layout.sphere(layout.bottomHoldId!!))
+
+        assertTrue(topHold.center.y < inhale.center.y)
+        assertTrue(bottomHold.center.y > exhale.center.y)
+        assertTrue(inhale.center.x < exhale.center.x)
+    }
+
+    @Test
+    fun modeB_physiologicalSigh_hasTwoSpheres() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.PhysiologicalSigh)
+
+        assertEquals(LayoutMode.ModeB, layout.layoutMode)
+        assertEquals(2, layout.allSpheres.size)
+        assertEquals(1, layout.inhalePath.size)
+        assertEquals(1, layout.exhalePath.size)
+    }
+
+    @Test
+    fun modeB_allPatterns_fitPhoneMediumAndLargeScreens() {
+        val sizes = listOf(
+            BreathTestFixtures.SMALL_WIDTH to BreathTestFixtures.SMALL_HEIGHT,
+            BreathTestFixtures.PHONE_WIDTH to BreathTestFixtures.PHONE_HEIGHT,
+            BreathTestFixtures.LARGE_WIDTH to BreathTestFixtures.LARGE_HEIGHT,
+        )
+
+        BreathingPattern.All.forEach { pattern ->
+            sizes.forEach { (width, height) ->
+                val layout = BreathTestFixtures.layoutForModeB(pattern, width = width, height = height)
+                assertTrue("${pattern.name} mode B has spheres", layout.allSpheres.isNotEmpty())
+                layout.allSpheres.forEach { sphere ->
+                    assertTrue(sphere.radius >= 8f)
+                    assertTrue(sphere.center.x in 0f..width)
+                    assertTrue(sphere.center.y in BreathTestFixtures.TOP_INSET..(height - BreathTestFixtures.BOTTOM_INSET))
+                }
+            }
+        }
+    }
 }

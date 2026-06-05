@@ -8,6 +8,7 @@ import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -26,6 +27,7 @@ class AppDataExporter(
         val db = SereneDatabase.getInstance(context)
         val settings = AppGraph.settings(context).load()
         val toolkit = AppGraph.toolkit(context).load(settings.onboardingCompleted)
+        val quickStartTargets = AppGraph.quickStart(context).load(settings)
         val affirmationPrefs = AffirmationPreferences(context).load()
         val timerPrefs = TimerPreferences(context).load()
 
@@ -34,19 +36,21 @@ class AppDataExporter(
         val futureSelfMessages = db.futureSelfMessageDao().getAll()
         val refactoringEntries = db.refactoringEntryDao().getAll()
         val centerOfGravityEntries = db.centerOfGravityEntryDao().getAll()
+        val nvcEntries = db.nvcEntryDao().getAll()
 
         JSONObject().apply {
             put("exportVersion", EXPORT_VERSION)
             put("exportedAt", Instant.now().toString())
             put("appVersionName", BuildConfig.VERSION_NAME)
             put("appVersionCode", BuildConfig.VERSION_CODE)
-            put("configuration", buildConfiguration(settings, toolkit, affirmationPrefs, timerPrefs))
+            put("configuration", buildConfiguration(settings, toolkit, quickStartTargets, affirmationPrefs, timerPrefs))
             put("entries", buildEntries(
                 affirmations = affirmations,
                 thoughtDumps = thoughtDumps,
                 futureSelfMessages = futureSelfMessages,
                 refactoringEntries = refactoringEntries,
                 centerOfGravityEntries = centerOfGravityEntries,
+                nvcEntries = nvcEntries,
             ))
         }.toString(2)
     }
@@ -54,6 +58,7 @@ class AppDataExporter(
     private fun buildConfiguration(
         settings: ExperienceSettings,
         toolkit: com.example.meditationparticles.data.ToolkitPrefsSnapshot,
+        quickStartTargets: List<com.example.meditationparticles.domain.quickstart.QuickStartTarget>,
         affirmationPrefs: AffirmationPreferences.AffirmationPrefsSnapshot,
         timerPrefs: TimerPreferences.TimerPrefsSnapshot,
     ): JSONObject = JSONObject().apply {
@@ -76,6 +81,14 @@ class AppDataExporter(
             put("enabledToolIds", JSONArray(toolkit.enabledToolIds.map { it.name }))
             put("proactiveOrder", JSONArray(toolkit.proactiveOrder.map { it.name }))
             put("reactiveOrder", JSONArray(toolkit.reactiveOrder.map { it.name }))
+            put("usageCounts", JSONObject().apply {
+                toolkit.usageCounts.forEach { (id, count) ->
+                    put(id.name, count)
+                }
+            })
+        })
+        put("quickStartPreferences", JSONObject().apply {
+            put("selectedIds", JSONArray(quickStartTargets.map { it.encode() }))
         })
         put("affirmationPreferences", JSONObject().apply {
             put("reminderEnabled", affirmationPrefs.reminderEnabled)
@@ -87,7 +100,8 @@ class AppDataExporter(
             put("displayMode", timerPrefs.displayMode.name)
             put("targetMinutes", timerPrefs.targetMinutes)
             put("sound", timerPrefs.sound.name)
-            put("customSoundUri", timerPrefs.customSoundUri)
+            put("bellSound", timerPrefs.bellSound.name)
+            put("bellSystemUri", timerPrefs.bellSystemUri)
             put("reminderEnabled", timerPrefs.reminderEnabled)
             put("reminderHour", timerPrefs.reminderHour)
             put("reminderMinute", timerPrefs.reminderMinute)
@@ -100,6 +114,7 @@ class AppDataExporter(
         futureSelfMessages: List<FutureSelfMessageEntity>,
         refactoringEntries: List<RefactoringEntryEntity>,
         centerOfGravityEntries: List<CenterOfGravityEntryEntity>,
+        nvcEntries: List<NvcEntryEntity>,
     ): JSONObject = JSONObject().apply {
         put("affirmations", JSONArray().apply {
             affirmations.forEach { put(it.toJson()) }
@@ -123,6 +138,9 @@ class AppDataExporter(
         put("centerOfGravityEntries", JSONArray().apply {
             centerOfGravityEntries.forEach { put(it.toJson()) }
         })
+        put("nvcEntries", JSONArray().apply {
+            nvcEntries.forEach { put(it.toJson()) }
+        })
     }
 
     private fun AffirmationEntity.toJson(): JSONObject = JSONObject().apply {
@@ -137,6 +155,7 @@ class AppDataExporter(
         put("id", id)
         put("content", content)
         put("logType", logType)
+        moodLevel?.let { put("moodLevel", it) }
         put("audioPath", audioPath)
         put("createdAt", createdAt)
     }
@@ -144,6 +163,7 @@ class AppDataExporter(
     private fun FutureSelfMessageEntity.toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("content", content)
+        moodLevel?.let { put("moodLevel", it) }
         put("audioPath", audioPath)
         put("scheduledAtMillis", scheduledAtMillis)
         put("createdAtMillis", createdAtMillis)
@@ -162,6 +182,7 @@ class AppDataExporter(
         put("explanation2AudioPath", explanation2AudioPath)
         put("explanation3", explanation3)
         put("explanation3AudioPath", explanation3AudioPath)
+        moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
     }
 
@@ -171,6 +192,21 @@ class AppDataExporter(
         put("thoughtsAndFeelingsAudioPath", thoughtsAndFeelingsAudioPath)
         put("bodyAndNeeds", bodyAndNeeds)
         put("bodyAndNeedsAudioPath", bodyAndNeedsAudioPath)
+        moodLevel?.let { put("moodLevel", it) }
+        put("createdAt", createdAt)
+    }
+
+    private fun NvcEntryEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("observation", observation)
+        put("observationAudioPath", observationAudioPath)
+        put("feeling", feeling)
+        put("feelingAudioPath", feelingAudioPath)
+        put("need", need)
+        put("needAudioPath", needAudioPath)
+        put("request", request)
+        put("requestAudioPath", requestAudioPath)
+        moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
     }
 

@@ -1,9 +1,11 @@
 package com.example.meditationparticles.navigation
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.FormatQuote
@@ -39,6 +41,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.meditationparticles.domain.quickstart.QuickStartTarget
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationCatalog
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.navigation.SereneDestination.ToolkitTab
@@ -57,7 +61,6 @@ import com.example.meditationparticles.ui.timer.TimerScreen
 import com.example.meditationparticles.ui.toolkit.AffirmationsScreen
 import com.example.meditationparticles.ui.toolkit.ToolkitScreen
 import com.example.meditationparticles.ui.update.UpdateViewModel
-import com.example.meditationparticles.ui.visualizations.VisualizationPlayerScreen
 import com.example.meditationparticles.ui.visualizations.VisualizationsScreen
 
 private val allBottomNavItems = listOf(
@@ -71,7 +74,6 @@ private val allBottomNavItems = listOf(
         Icons.Default.FormatQuote,
     ),
     BottomNavItem(SereneDestination.Toolkit, "Toolkit", Icons.Outlined.Handyman, Icons.Default.Handyman),
-    BottomNavItem(SereneDestination.Visualizations, "Visuals", Icons.Outlined.Landscape, Icons.Default.Landscape),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -80,7 +82,6 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Timer.route,
     SereneDestination.Affirmations.route,
     SereneDestination.Toolkit.route,
-    SereneDestination.Visualizations.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -100,11 +101,14 @@ fun SereneNavHost(
     val lifecycleOwner = LocalLifecycleOwner.current
     var resumeCount by remember { mutableIntStateOf(0) }
     val settings = LocalExperienceSettings.current
+    val isSystemDark = isSystemInDarkTheme()
     var breathingSessionActive by remember { mutableStateOf(false) }
     var timerSessionActive by remember { mutableStateOf(false) }
-    var visualizationPlayerActive by remember { mutableStateOf(false) }
     var activeFutureSelfMessageId by remember { mutableStateOf<Long?>(null) }
     var toolkitResetSignal by remember { mutableIntStateOf(0) }
+    var quickStartBreathingPatternId by remember { mutableStateOf<String?>(null) }
+    var quickStartToolkitToolId by remember { mutableStateOf<ToolkitToolId?>(null) }
+    var quickStartReturnToHome by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -116,15 +120,15 @@ fun SereneNavHost(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(currentRoute) {
+    LaunchedEffect(currentRoute, settings.themeMode, isSystemDark) {
         if (isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance()
+            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
         }
     }
 
-    LaunchedEffect(resumeCount) {
+    LaunchedEffect(resumeCount, settings.themeMode, isSystemDark) {
         if (resumeCount > 1 && isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance()
+            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
         }
     }
 
@@ -148,13 +152,10 @@ fun SereneNavHost(
         if (currentRoute != SereneDestination.Timer.route) {
             timerSessionActive = false
         }
-        if (currentRoute?.startsWith("visualizations/player") != true) {
-            visualizationPlayerActive = false
-        }
     }
 
     KeepScreenOnEffect(
-        active = breathingSessionActive || timerSessionActive || visualizationPlayerActive,
+        active = breathingSessionActive || timerSessionActive,
     )
 
     val bottomNavItems = remember(
@@ -162,7 +163,6 @@ fun SereneNavHost(
         settings.enableTimer,
         settings.enableAffirmations,
         settings.enableToolkit,
-        settings.enableVisuals,
     ) {
         allBottomNavItems.filter { item ->
             when (item.destination) {
@@ -171,23 +171,94 @@ fun SereneNavHost(
                 SereneDestination.Timer -> settings.enableTimer
                 SereneDestination.Affirmations -> settings.enableAffirmations
                 SereneDestination.Toolkit -> settings.enableToolkit
-                SereneDestination.Visualizations -> settings.enableVisuals
                 else -> false
             }
         }
     }
 
+    val tabPagerState = rememberPagerState(
+        initialPage = tabIndexForRoute(currentRoute, bottomNavItems) ?: 0,
+        pageCount = { bottomNavItems.size.coerceAtLeast(1) },
+    )
+
+    val navigateToTab: (SereneDestination) -> Unit = { destination ->
+        if (destination == SereneDestination.Toolkit) {
+            toolkitResetSignal++
+        }
+        if (destination == SereneDestination.Visualizations &&
+            currentRoute?.startsWith("visualizations/player") == true
+        ) {
+            navController.popBackStack(
+                SereneDestination.Visualizations.route,
+                inclusive = false,
+            )
+        }
+        navController.navigate(destination.route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = false
+        }
+    }
+
+    val effectiveToolkitNavigation = remember(pendingNavigation, quickStartToolkitToolId) {
+        if (quickStartToolkitToolId != null) {
+            PendingToolkitNavigation(toolId = quickStartToolkitToolId)
+        } else {
+            pendingNavigation
+        }
+    }
+
+    val handleQuickStart: (QuickStartTarget) -> Unit = { target ->
+        when (target) {
+            is QuickStartTarget.Breathing -> {
+                quickStartBreathingPatternId = target.patternId
+                navigateToTab(SereneDestination.Breathe)
+            }
+            QuickStartTarget.Timer -> navigateToTab(SereneDestination.Timer)
+            QuickStartTarget.Affirmations -> navigateToTab(SereneDestination.Affirmations)
+            QuickStartTarget.Visuals -> navigateToTab(SereneDestination.Visualizations)
+            is QuickStartTarget.Toolkit -> {
+                quickStartToolkitToolId = target.toolId
+                quickStartReturnToHome = true
+                navigateToTab(SereneDestination.Toolkit)
+            }
+        }
+    }
+
+    LaunchedEffect(currentRoute, bottomNavItems) {
+        val index = tabIndexForRoute(currentRoute, bottomNavItems) ?: return@LaunchedEffect
+        if (index != tabPagerState.currentPage && !tabPagerState.isScrollInProgress) {
+            tabPagerState.animateScrollToPage(index)
+        }
+    }
+
+    LaunchedEffect(tabPagerState.settledPage, bottomNavItems) {
+        if (!isTabRoute(currentRoute, bottomNavItems)) return@LaunchedEffect
+        val destination = bottomNavItems.getOrNull(tabPagerState.settledPage)?.destination
+            ?: return@LaunchedEffect
+        if (destination.route != currentRoute) {
+            navigateToTab(destination)
+        }
+    }
+
+    LaunchedEffect(bottomNavItems.size) {
+        if (tabPagerState.currentPage >= bottomNavItems.size && bottomNavItems.isNotEmpty()) {
+            tabPagerState.scrollToPage(0)
+        }
+    }
+
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
-        currentRoute?.startsWith("visualizations/player") != true &&
         !breathingSessionActive
 
     val showAppBanner = currentRoute != SereneDestination.Settings.route &&
-        currentRoute != SereneDestination.Onboarding.route &&
-        currentRoute?.startsWith("visualizations/player") != true
+        currentRoute != SereneDestination.Onboarding.route
 
-    val showBuildFooter = currentRoute?.startsWith("visualizations/player") != true &&
-        !breathingSessionActive
+    val showBuildInfoLabel = !breathingSessionActive
+
+    val showBottomBarSection = showBottomBar || showBuildInfoLabel
 
     val startDestination = if (settings.onboardingCompleted) {
         SereneDestination.Home.route
@@ -233,35 +304,18 @@ fun SereneNavHost(
             }
         },
         bottomBar = {
-            if (showBuildFooter) {
+            if (showBottomBarSection) {
                 Column {
                     if (showBottomBar && bottomNavItems.isNotEmpty()) {
                         SereneBottomBar(
                             items = bottomNavItems,
                             currentRoute = currentRoute,
-                            onNavigate = { destination ->
-                                if (destination == SereneDestination.Toolkit) {
-                                    toolkitResetSignal++
-                                }
-                                if (destination == SereneDestination.Visualizations &&
-                                    currentRoute?.startsWith("visualizations/player") == true
-                                ) {
-                                    navController.popBackStack(
-                                        SereneDestination.Visualizations.route,
-                                        inclusive = false,
-                                    )
-                                }
-                                navController.navigate(destination.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = false
-                                }
-                            },
+                            onNavigate = navigateToTab,
                         )
                     }
-                    BuildInfoFooter()
+                    if (showBuildInfoLabel) {
+                        BuildInfoFooter()
+                    }
                 }
             }
         },
@@ -285,27 +339,7 @@ fun SereneNavHost(
                     },
                 )
             }
-            composable(SereneDestination.Home.route) {
-                HomeScreen(
-                    onNavigate = { destination, toolkitTab ->
-                        val route = if (toolkitTab != null) {
-                            destination.navigationRouteFromLegacyTab(toolkitTab)
-                        } else {
-                            destination.navigationRoute()
-                        }
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onOpenSettings = {
-                        navController.navigate(SereneDestination.Settings.route)
-                    },
-                )
-            }
+            composable(SereneDestination.Home.route) { }
             composable(SereneDestination.Settings.route) {
                 SettingsScreen(
                     updateViewModel = updateViewModel,
@@ -318,38 +352,10 @@ fun SereneNavHost(
                     },
                 )
             }
-            composable(SereneDestination.Breathe.route) {
-                BreathingScreen(
-                    onSessionActiveChange = { active ->
-                        breathingSessionActive = active
-                    },
-                )
-            }
-            composable(SereneDestination.Timer.route) {
-                TimerScreen(
-                    onSessionActiveChange = { active ->
-                        timerSessionActive = active
-                    },
-                )
-            }
-            composable(SereneDestination.Affirmations.route) {
-                AffirmationsScreen()
-            }
-            composable(SereneDestination.Toolkit.route) {
-                ToolkitScreen(
-                    pendingNavigation = pendingNavigation,
-                    resetSignal = toolkitResetSignal,
-                    onNavigateToBreathe = {
-                        navController.navigate(SereneDestination.Breathe.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            }
+            composable(SereneDestination.Breathe.route) { }
+            composable(SereneDestination.Timer.route) { }
+            composable(SereneDestination.Affirmations.route) { }
+            composable(SereneDestination.Toolkit.route) { }
             composable(
                 route = "toolkit/{tab}",
                 arguments = listOf(
@@ -371,30 +377,75 @@ fun SereneNavHost(
                     }
                 }
             }
-            composable(SereneDestination.Visualizations.route) {
-                VisualizationsScreen(
-                    onOpenVisualization = { id ->
-                        navController.navigate(SereneDestination.Visualizations.playerRoute(id.name))
-                    },
-                )
-            }
-            composable(
-                route = "visualizations/player/{vizId}",
-                arguments = listOf(navArgument("vizId") { type = NavType.StringType }),
-            ) { entry ->
-                val vizId = entry.arguments?.getString("vizId")
-                val visualization = vizId?.let { CalmingVisualizationCatalog.byRouteName(it) }
-                if (visualization != null) {
-                    VisualizationPlayerScreen(
-                        visualization = visualization,
-                        onClose = { navController.popBackStack() },
-                        onPlayerActiveChange = { active ->
-                            visualizationPlayerActive = active
-                        },
-                    )
+        }
+            if (isTabRoute(currentRoute, bottomNavItems) && bottomNavItems.isNotEmpty()) {
+                MainTabPager(
+                    items = bottomNavItems,
+                    pagerState = tabPagerState,
+                    userScrollEnabled = !breathingSessionActive,
+                ) { destination ->
+                    when (destination) {
+                        SereneDestination.Home -> {
+                            HomeScreen(
+                                onNavigate = { target, toolkitTab ->
+                                    val route = if (toolkitTab != null) {
+                                        target.navigationRouteFromLegacyTab(toolkitTab)
+                                    } else {
+                                        target.navigationRoute()
+                                    }
+                                    navController.navigate(route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                onQuickStart = handleQuickStart,
+                                onOpenSettings = {
+                                    navController.navigate(SereneDestination.Settings.route)
+                                },
+                            )
+                        }
+                        SereneDestination.Breathe -> {
+                            BreathingScreen(
+                                pendingPatternId = quickStartBreathingPatternId,
+                                onPendingPatternConsumed = { quickStartBreathingPatternId = null },
+                                onSessionActiveChange = { active ->
+                                    breathingSessionActive = active
+                                },
+                            )
+                        }
+                        SereneDestination.Timer -> {
+                            TimerScreen(
+                                onSessionActiveChange = { active ->
+                                    timerSessionActive = active
+                                },
+                            )
+                        }
+                        SereneDestination.Affirmations -> {
+                            AffirmationsScreen()
+                        }
+                        SereneDestination.Toolkit -> {
+                            ToolkitScreen(
+                                pendingNavigation = effectiveToolkitNavigation,
+                                resetSignal = toolkitResetSignal,
+                                returnToHomeOnComplete = quickStartReturnToHome,
+                                onPendingNavigationConsumed = { quickStartToolkitToolId = null },
+                                onReturnToHome = {
+                                    quickStartReturnToHome = false
+                                    quickStartToolkitToolId = null
+                                    navigateToTab(SereneDestination.Home)
+                                },
+                                onNavigateToBreathe = {
+                                    navigateToTab(SereneDestination.Breathe)
+                                },
+                            )
+                        }
+                        else -> Unit
+                    }
                 }
             }
-        }
             activeFutureSelfMessageId?.let { messageId ->
                 FutureSelfNotificationOverlay(
                     messageId = messageId,

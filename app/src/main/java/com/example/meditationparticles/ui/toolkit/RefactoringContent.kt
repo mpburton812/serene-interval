@@ -46,6 +46,7 @@ import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.MoodLevelPicker
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
@@ -60,6 +61,8 @@ enum class RefactoringSpeechTarget {
 @Composable
 fun RefactoringContent(
     stepIndex: Int,
+    selectedMoodLevel: Int?,
+    onMoodLevelChange: (Int?) -> Unit,
     interpretation: String,
     actualFacts: String,
     explanation1: String,
@@ -77,11 +80,14 @@ fun RefactoringContent(
     onSpeechResult: (RefactoringSpeechTarget, String) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onStepChange: (Int) -> Unit,
     onSave: () -> Unit,
     onClear: () -> Unit,
     onOpenEntry: (RefactoringEntryEntity) -> Unit,
     onDeleteEntry: (RefactoringEntryEntity) -> Unit,
     onCloseEntry: () -> Unit,
+    showOneNoteSync: Boolean = false,
+    onSyncEntryToOneNote: (RefactoringEntryEntity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
@@ -182,57 +188,68 @@ fun RefactoringContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            MoodLevelPicker(
+                selectedLevel = selectedMoodLevel,
+                onLevelChange = onMoodLevelChange,
+            )
 
-            when (stepIndex) {
-                0 -> RefactoringFieldEditor(
-                    label = "The actual facts",
-                    text = actualFacts,
-                    onTextChange = onActualFactsChange,
-                    onDictate = { launchSpeechToText(RefactoringSpeechTarget.ActualFacts) },
-                    onToggleRecord = ::toggleRecording,
-                    isRecording = isRecording,
-                    pendingAudioPath = pendingAudioPath,
-                )
-                1 -> RefactoringFieldEditor(
-                    label = "Interpretation",
-                    text = interpretation,
-                    onTextChange = onInterpretationChange,
-                    onDictate = { launchSpeechToText(RefactoringSpeechTarget.Interpretation) },
-                    onToggleRecord = ::toggleRecording,
-                    isRecording = isRecording,
-                    pendingAudioPath = pendingAudioPath,
-                )
-                else -> {
-                    RefactoringFieldEditor(
-                        label = "Explanation 1",
-                        text = explanation1,
-                        onTextChange = onExplanation1Change,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation1) },
+            ToolkitStepPager(
+                stepIndex = stepIndex,
+                pageCount = stepCount,
+                onStepChange = onStepChange,
+                modifier = Modifier.fillMaxWidth(),
+            ) { page ->
+                when (page) {
+                    0 -> RefactoringFieldEditor(
+                        label = "The actual facts",
+                        text = actualFacts,
+                        onTextChange = onActualFactsChange,
+                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.ActualFacts) },
                         onToggleRecord = ::toggleRecording,
                         isRecording = isRecording,
                         pendingAudioPath = pendingAudioPath,
-                        minLines = 3,
                     )
-                    RefactoringFieldEditor(
-                        label = "Explanation 2",
-                        text = explanation2,
-                        onTextChange = onExplanation2Change,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation2) },
+                    1 -> RefactoringFieldEditor(
+                        label = "Interpretation",
+                        text = interpretation,
+                        onTextChange = onInterpretationChange,
+                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Interpretation) },
                         onToggleRecord = ::toggleRecording,
                         isRecording = isRecording,
                         pendingAudioPath = pendingAudioPath,
-                        minLines = 3,
                     )
-                    RefactoringFieldEditor(
-                        label = "Explanation 3",
-                        text = explanation3,
-                        onTextChange = onExplanation3Change,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation3) },
-                        onToggleRecord = ::toggleRecording,
-                        isRecording = isRecording,
-                        pendingAudioPath = pendingAudioPath,
-                        minLines = 3,
-                    )
+                    else -> Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
+                        RefactoringFieldEditor(
+                            label = "Explanation 1",
+                            text = explanation1,
+                            onTextChange = onExplanation1Change,
+                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation1) },
+                            onToggleRecord = ::toggleRecording,
+                            isRecording = isRecording,
+                            pendingAudioPath = pendingAudioPath,
+                            minLines = 3,
+                        )
+                        RefactoringFieldEditor(
+                            label = "Explanation 2",
+                            text = explanation2,
+                            onTextChange = onExplanation2Change,
+                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation2) },
+                            onToggleRecord = ::toggleRecording,
+                            isRecording = isRecording,
+                            pendingAudioPath = pendingAudioPath,
+                            minLines = 3,
+                        )
+                        RefactoringFieldEditor(
+                            label = "Explanation 3",
+                            text = explanation3,
+                            onTextChange = onExplanation3Change,
+                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation3) },
+                            onToggleRecord = ::toggleRecording,
+                            isRecording = isRecording,
+                            pendingAudioPath = pendingAudioPath,
+                            minLines = 3,
+                        )
+                    }
                 }
             }
 
@@ -315,6 +332,8 @@ fun RefactoringContent(
         RefactoringEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
+            showOneNoteSync = showOneNoteSync,
+            onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
         )
     }
@@ -329,7 +348,7 @@ private fun RefactoringFieldEditor(
     onToggleRecord: () -> Unit,
     isRecording: Boolean,
     pendingAudioPath: String?,
-    minLines: Int = 6,
+    minLines: Int = 8,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -341,7 +360,7 @@ private fun RefactoringFieldEditor(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Write here…") },
+            placeholder = { Text("What's on your mind…") },
             minLines = minLines,
         )
         Row(
@@ -415,6 +434,8 @@ private fun RefactoringEntryRow(
 private fun RefactoringEntryDetailDialog(
     entry: RefactoringEntryEntity,
     audioPlayer: ToolkitAudioPlayer,
+    showOneNoteSync: Boolean,
+    onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var playingPath by remember(entry.id) { mutableStateOf<String?>(null) }
@@ -506,6 +527,9 @@ private fun RefactoringEntryDetailDialog(
                         }
                     },
                 )
+                if (showOneNoteSync) {
+                    OneNoteEntrySyncButton(onClick = onSyncToOneNote)
+                }
             }
         },
         confirmButton = {

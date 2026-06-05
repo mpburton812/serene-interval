@@ -15,6 +15,7 @@ enum class ToolkitToolId {
     LovingKindness,
     AnxietyLog,
     Refactoring,
+    NonViolentCommunication,
     RelocateCenterOfGravity,
 }
 
@@ -30,8 +31,8 @@ object ToolkitCatalog {
     val all: List<ToolkitTool> = listOf(
         ToolkitTool(
             id = ToolkitToolId.ThoughtDump,
-            title = "Daily Thought Dump",
-            description = "Clear cognitive clutter before it builds.",
+            title = "Capture Thought",
+            description = "Jot down a thought and mood.",
             category = ToolkitCategory.Proactive,
             steps = listOf(
                 "Find a quiet moment. This is a judgment-free space.",
@@ -44,7 +45,7 @@ object ToolkitCatalog {
             id = ToolkitToolId.BoundarySetting,
             title = "Boundary Setting",
             description = "A guide to protecting your mental space.",
-            category = ToolkitCategory.Proactive,
+            category = ToolkitCategory.Reactive,
             steps = listOf(
                 "Notice what is draining your energy right now.",
                 "Name one boundary you need — time, space, or emotional.",
@@ -56,7 +57,7 @@ object ToolkitCatalog {
             id = ToolkitToolId.MicroPause,
             title = "Micro-Pause Practice",
             description = "30-second resets throughout your day.",
-            category = ToolkitCategory.Proactive,
+            category = ToolkitCategory.Reactive,
             steps = listOf(
                 "Unclench your jaw and let your tongue rest softly.",
                 "Drop your shoulders away from your ears.",
@@ -101,7 +102,7 @@ object ToolkitCatalog {
             id = ToolkitToolId.LovingKindness,
             title = "Loving Kindness",
             description = "Send warmth to yourself and others.",
-            category = ToolkitCategory.Reactive,
+            category = ToolkitCategory.Proactive,
             steps = listOf(
                 "Find a comfortable posture. Place a hand on your heart if that feels grounding.",
                 "Silently repeat: May I be safe. May I be happy. May I be healthy. May I live with ease.",
@@ -126,6 +127,18 @@ object ToolkitCatalog {
                 "Write down the actual facts — only what you know for certain.",
                 "Write down your interpretation — the story your mind is telling.",
                 "Write three non-threatening explanations based on logic.",
+            ),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.NonViolentCommunication,
+            title = "Non-Violent Communication",
+            description = "Express yourself clearly with observation, feeling, need, and request.",
+            category = ToolkitCategory.Reactive,
+            steps = listOf(
+                "Describe what happened — just the facts, without judgment.",
+                "Name the feeling this brings up in you.",
+                "What need or value of yours is connected to this feeling?",
+                "What clear, specific request could help meet that need?",
             ),
         ),
         ToolkitTool(

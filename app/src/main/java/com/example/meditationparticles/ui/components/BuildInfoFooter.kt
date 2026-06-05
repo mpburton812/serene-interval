@@ -16,7 +16,7 @@ fun BuildInfoFooter(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = BuildConfig.SHORT_BUILD_LABEL,
+        text = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · ${BuildConfig.SHORT_BUILD_LABEL}",
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f),
         textAlign = TextAlign.Center,

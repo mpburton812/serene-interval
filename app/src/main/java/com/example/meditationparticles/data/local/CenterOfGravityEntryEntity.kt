@@ -10,5 +10,6 @@ data class CenterOfGravityEntryEntity(
     val thoughtsAndFeelingsAudioPath: String? = null,
     val bodyAndNeeds: String,
     val bodyAndNeedsAudioPath: String? = null,
+    val moodLevel: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )

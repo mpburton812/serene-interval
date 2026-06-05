@@ -247,4 +247,252 @@ class BreathSphereFillTest {
             }
         }
     }
+
+    @Test
+    fun modeB_resonantInhale_fillsOverFullPhaseDuration() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.Resonant)
+        val inhaleId = layout.inhalePath.first()
+
+        val empty = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = BreathingPattern.Resonant, phase = BreathPhase.Inhale, progress = 0f),
+            layout,
+        )
+        assertEquals(0f, empty[inhaleId]?.fillLevel ?: -1f, 0.001f)
+
+        val halfway = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = BreathingPattern.Resonant, phase = BreathPhase.Inhale, progress = 0.5f),
+            layout,
+        )
+        assertEquals(0.5f, halfway[inhaleId]?.fillLevel ?: -1f, 0.02f)
+        assertTrue(halfway[inhaleId]?.isActive ?: false)
+
+        val full = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = BreathingPattern.Resonant, phase = BreathPhase.Inhale, progress = 1f),
+            layout,
+        )
+        assertEquals(1f, full[inhaleId]?.fillLevel ?: -1f, 0.001f)
+    }
+
+    @Test
+    fun modeB_boxHoldIn_transfersInhaleIntoTopHold() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+        val inhaleId = layout.inhalePath.first()
+        val holdId = requireNotNull(layout.topHoldId)
+
+        val halfway = computeModeBSphereVisuals(
+            BreathTestFixtures.session(phase = BreathPhase.HoldIn, progress = 0.5f),
+            layout,
+        )
+        assertEquals(0.5f, halfway[holdId]?.fillLevel ?: -1f, 0.02f)
+        assertEquals(0.5f, halfway[inhaleId]?.fillLevel ?: -1f, 0.02f)
+    }
+
+    @Test
+    fun modeB_physiologicalSigh_blueFillsAcrossBothInhales() {
+        val pattern = BreathingPattern.PhysiologicalSigh
+        val layout = BreathTestFixtures.layoutForModeB(pattern)
+        val inhaleId = layout.inhalePath.first()
+        val total = pattern.inhaleSeconds + pattern.secondInhaleSeconds
+
+        val firstInhaleDone = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = pattern, phase = BreathPhase.Inhale, progress = 1f),
+            layout,
+        )
+        assertEquals(
+            pattern.inhaleSeconds / total,
+            firstInhaleDone[inhaleId]?.fillLevel ?: -1f,
+            0.02f,
+        )
+
+        val secondHalf = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = pattern, phase = BreathPhase.SecondInhale, progress = 0.5f),
+            layout,
+        )
+        val expected = (pattern.inhaleSeconds + pattern.secondInhaleSeconds * 0.5f) / total
+        assertEquals(expected, secondHalf[inhaleId]?.fillLevel ?: -1f, 0.03f)
+    }
+
+    @Test
+    fun modeB_prepareAndComplete_allSpheresEmpty() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+
+        listOf(BreathPhase.Prepare, BreathPhase.Complete).forEach { phase ->
+            val visuals = computeModeBSphereVisuals(
+                BreathTestFixtures.session(phase = phase, progress = 0f, isRunning = false),
+                layout,
+            )
+            layout.allSpheres.forEach { sphere ->
+                assertEquals(0f, visuals[sphere.id]?.fillLevel ?: -1f, 0.001f)
+            }
+        }
+    }
+
+    @Test
+    fun modeB_fourSevenEight_holdInUsesFullPhaseProgress() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.FourSevenEight)
+        val holdId = requireNotNull(layout.topHoldId)
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(
+                pattern = BreathingPattern.FourSevenEight,
+                phase = BreathPhase.HoldIn,
+                progress = 0.5f,
+            ),
+            layout,
+        )
+        assertEquals(0.5f, visuals[holdId]?.fillLevel ?: -1f, 0.02f)
+    }
+
+    @Test
+    fun modeB_resonantInhale_fillsFromPipeBelow() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.Resonant)
+        val inhaleId = layout.inhalePath.first()
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = BreathingPattern.Resonant, phase = BreathPhase.Inhale, progress = 0.5f),
+            layout,
+        )
+        assertEquals(FillDirection.BottomToTop, visuals[inhaleId]?.fillDirection)
+    }
+
+    @Test
+    fun modeB_resonantExhale_inhaleDrainsDown_redFillsFromAbove() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.Resonant)
+        val inhaleId = layout.inhalePath.first()
+        val exhaleId = layout.exhalePath.first()
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(pattern = BreathingPattern.Resonant, phase = BreathPhase.Exhale, progress = 0.5f),
+            layout,
+        )
+        val inhale = requireNotNull(visuals[inhaleId])
+        assertTrue(inhale.isDraining)
+        assertEquals(FillDirection.BottomToTop, inhale.drainDirection)
+
+        val exhale = requireNotNull(visuals[exhaleId])
+        assertFalse(exhale.isDraining)
+        assertEquals(FillDirection.TopToBottom, exhale.fillDirection)
+    }
+
+    @Test
+    fun modeB_resonantCycle2_inhaleReceivesFromExhaleBelow() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.Resonant)
+        val inhaleId = layout.inhalePath.first()
+        val exhaleId = layout.exhalePath.first()
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(
+                pattern = BreathingPattern.Resonant,
+                phase = BreathPhase.Inhale,
+                progress = 0.5f,
+                cycleCount = 1,
+            ),
+            layout,
+        )
+        assertEquals(0.5f, visuals[inhaleId]?.fillLevel ?: -1f, 0.02f)
+        assertEquals(0.5f, visuals[exhaleId]?.fillLevel ?: -1f, 0.02f)
+        assertEquals(FillDirection.BottomToTop, visuals[inhaleId]?.fillDirection)
+        assertTrue(visuals[exhaleId]?.isDraining ?: false)
+    }
+
+    @Test
+    fun modeB_fourSevenEightExhale_holdDrainsIntoRed() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.FourSevenEight)
+        val holdId = requireNotNull(layout.topHoldId)
+        val exhaleId = layout.exhalePath.first()
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(
+                pattern = BreathingPattern.FourSevenEight,
+                phase = BreathPhase.Exhale,
+                progress = 0.5f,
+            ),
+            layout,
+        )
+        assertTrue(visuals[holdId]?.isDraining ?: false)
+        assertEquals(FillDirection.BottomToTopHold, visuals[holdId]?.drainDirection)
+        assertEquals(FillDirection.TopToBottom, visuals[exhaleId]?.fillDirection)
+    }
+
+    @Test
+    fun modeB_boxHoldIn_inhaleDrainsBottomFirst() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+        val inhaleId = layout.inhalePath.first()
+        val holdId = requireNotNull(layout.topHoldId)
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(phase = BreathPhase.HoldIn, progress = 0.5f),
+            layout,
+        )
+        val inhale = requireNotNull(visuals[inhaleId])
+        assertTrue(inhale.isDraining)
+        assertEquals(FillDirection.BottomToTop, inhale.fillDirection)
+        assertEquals(FillDirection.TopToBottom, inhale.drainDirection)
+        assertEquals(FillDirection.TopToBottom, inhale.liquidDirection())
+
+        val hold = requireNotNull(visuals[holdId])
+        assertFalse(hold.isDraining)
+        assertEquals(FillDirection.BottomToTopHold, hold.fillDirection)
+    }
+
+    @Test
+    fun modeB_boxExhale_topHoldDrainsTopFirst_redFillsTopDown() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+        val holdId = requireNotNull(layout.topHoldId)
+        val exhaleId = layout.exhalePath.first()
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(phase = BreathPhase.Exhale, progress = 0.5f),
+            layout,
+        )
+        val hold = requireNotNull(visuals[holdId])
+        assertTrue(hold.isDraining)
+        assertEquals(FillDirection.BottomToTopHold, hold.fillDirection)
+        assertEquals(FillDirection.BottomToTopHold, hold.drainDirection)
+
+        val exhale = requireNotNull(visuals[exhaleId])
+        assertFalse(exhale.isDraining)
+        assertEquals(FillDirection.TopToBottom, exhale.fillDirection)
+    }
+
+    @Test
+    fun modeB_boxHoldOut_exhaleDrainsTopFirst_bottomHoldFillsTopDown() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+        val exhaleId = layout.exhalePath.first()
+        val bottomHoldId = requireNotNull(layout.bottomHoldId)
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(phase = BreathPhase.HoldOut, progress = 0.5f),
+            layout,
+        )
+        val exhale = requireNotNull(visuals[exhaleId])
+        assertTrue(exhale.isDraining)
+        assertEquals(FillDirection.TopToBottom, exhale.fillDirection)
+        assertEquals(FillDirection.BottomToTop, exhale.drainDirection)
+        assertEquals(FillDirection.BottomToTop, exhale.liquidDirection())
+
+        val bottomHold = requireNotNull(visuals[bottomHoldId])
+        assertFalse(bottomHold.isDraining)
+        assertEquals(FillDirection.TopToBottom, bottomHold.fillDirection)
+    }
+
+    @Test
+    fun modeB_boxInhale_cycle2_bottomHoldDrainsBottomFirst() {
+        val layout = BreathTestFixtures.layoutForModeB(BreathingPattern.BoxBreathing)
+        val inhaleId = layout.inhalePath.first()
+        val bottomHoldId = requireNotNull(layout.bottomHoldId)
+
+        val visuals = computeModeBSphereVisuals(
+            BreathTestFixtures.session(phase = BreathPhase.Inhale, progress = 0.5f, cycleCount = 1),
+            layout,
+        )
+        val bottomHold = requireNotNull(visuals[bottomHoldId])
+        assertTrue(bottomHold.isDraining)
+        assertEquals(FillDirection.TopToBottom, bottomHold.fillDirection)
+        assertEquals(FillDirection.TopToBottom, bottomHold.drainDirection)
+
+        val inhale = requireNotNull(visuals[inhaleId])
+        assertFalse(inhale.isDraining)
+        assertEquals(FillDirection.BottomToTop, inhale.fillDirection)
+    }
 }

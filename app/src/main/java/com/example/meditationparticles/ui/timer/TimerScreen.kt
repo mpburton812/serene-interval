@@ -1,8 +1,12 @@
 package com.example.meditationparticles.ui.timer
 
 import android.Manifest
+import android.app.Activity
 import android.app.TimePickerDialog
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,14 +24,18 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,6 +50,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +73,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.audio.TimerAudioPlayer
 import com.example.meditationparticles.canvas.HourglassCanvas
 import com.example.meditationparticles.data.TimerPreferences
+import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
 import com.example.meditationparticles.domain.timer.TimerPhase
 import com.example.meditationparticles.domain.timer.TimerPrepareTiming
@@ -72,11 +83,14 @@ import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.reminder.MeditationReminderScheduler
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneTabBackground
+import com.example.meditationparticles.ui.components.SereneTabHeader
+import com.example.meditationparticles.ui.components.SereneTextPlate
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private val TextFadeMs = 650
 private val FabSize = 56.dp
 private val FabClearance = 72.dp
+private val TimerDisplayAreaHeight = 180.dp
 
 @Composable
 fun TimerScreen(
@@ -85,11 +99,18 @@ fun TimerScreen(
     onSessionActiveChange: (Boolean) -> Unit = {},
 ) {
     val state by viewModel.sessionState.collectAsState()
+    val reflection by viewModel.reflectionText.collectAsState()
+    val reflectionMoodLevel by viewModel.reflectionMoodLevel.collectAsState()
+    val pendingAudioPath by viewModel.pendingAudioPath.collectAsState()
+    val showReflectionCapture by viewModel.showReflectionCapture.collectAsState()
+    val reflections by viewModel.reflections.collectAsState()
+    val openedReflection by viewModel.openedReflection.collectAsState()
     val context = LocalContext.current
     val remindersAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
     val preferences = remember { TimerPreferences(context) }
     val audioPlayer = remember { TimerAudioPlayer(context) }
     var controlsVisible by remember { mutableStateOf(true) }
+    val scrollState = rememberScrollState()
     val immersive = state.isRunning && state.phase != TimerPhase.Complete
     val sessionActive = state.isRunning && state.phase != TimerPhase.Complete
     val showStatusHeader = state.phase == TimerPhase.Idle ||
@@ -99,13 +120,16 @@ fun TimerScreen(
         (state.displayMode == TimerDisplayMode.Digital ||
             (state.displayMode == TimerDisplayMode.Blank && controlsVisible && !immersive))
 
+    var previousPhase by remember { mutableStateOf(state.phase) }
+
     LaunchedEffect(Unit) {
         val saved = preferences.load()
         viewModel.restorePreferences(
             displayMode = saved.displayMode,
             targetMinutes = saved.targetMinutes,
             sound = saved.sound,
-            customSoundUri = saved.customSoundUri,
+            bellSound = saved.bellSound,
+            bellSystemUri = saved.bellSystemUri,
             reminderEnabled = saved.reminderEnabled,
             reminderHour = saved.reminderHour,
             reminderMinute = saved.reminderMinute,
@@ -116,7 +140,8 @@ fun TimerScreen(
         state.displayMode,
         state.targetMinutes,
         state.sound,
-        state.customSoundUri,
+        state.bellSound,
+        state.bellSystemUri,
         state.reminderEnabled,
         state.reminderHour,
         state.reminderMinute,
@@ -127,7 +152,8 @@ fun TimerScreen(
                     displayMode = state.displayMode,
                     targetMinutes = state.targetMinutes,
                     sound = state.sound,
-                    customSoundUri = state.customSoundUri,
+                    bellSound = state.bellSound,
+                    bellSystemUri = state.bellSystemUri,
                     reminderEnabled = state.reminderEnabled,
                     reminderHour = state.reminderHour,
                     reminderMinute = state.reminderMinute,
@@ -137,15 +163,21 @@ fun TimerScreen(
         }
     }
 
-    LaunchedEffect(state.isRunning, state.phase, state.sound, state.customSoundUri) {
+    LaunchedEffect(state.isRunning, state.phase, state.sound) {
         val shouldPlay = state.isRunning && state.phase == TimerPhase.Running
-        audioPlayer.sync(state.sound, state.customSoundUri, shouldPlay)
+        audioPlayer.sync(state.sound, shouldPlay)
     }
 
     LaunchedEffect(state.phase) {
-        if (state.phase == TimerPhase.Complete) {
-            audioPlayer.playCompletionChime()
+        when {
+            previousPhase == TimerPhase.Prepare && state.phase == TimerPhase.Running -> {
+                audioPlayer.playBell(state.bellSound, state.bellSystemUri)
+            }
+            state.phase == TimerPhase.Complete && previousPhase != TimerPhase.Complete -> {
+                audioPlayer.playBell(state.bellSound, state.bellSystemUri)
+            }
         }
+        previousPhase = state.phase
     }
 
     LaunchedEffect(state.isRunning) {
@@ -158,8 +190,8 @@ fun TimerScreen(
     }
 
     SideEffect {
-        val keepScreenOn = sessionActive && state.displayMode != TimerDisplayMode.Blank
-        onSessionActiveChange(keepScreenOn)
+        // Allow the screen to sleep normally during meditation.
+        onSessionActiveChange(false)
     }
 
     DisposableEffect(Unit) {
@@ -177,17 +209,53 @@ fun TimerScreen(
         }
     }
 
-    val soundPickerLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent(),
-    ) { uri ->
-        uri?.let { viewModel.setCustomSoundUri(it.toString()) }
+    val ringtonePickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
+        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+        } ?: return@rememberLauncherForActivityResult
+
+        if (uri.scheme == "content") {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+        }
+        viewModel.setBellSound(TimerBellSoundChoice.SystemUri, uri.toString())
+    }
+
+    fun launchBellSoundPicker() {
+        val existingUri = state.bellSystemUri?.let(Uri::parse)
+        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existingUri)
+        }
+        ringtonePickerLauncher.launch(intent)
+    }
+
+    val customBellLabel = remember(state.bellSound, state.bellSystemUri) {
+        if (state.bellSound != TimerBellSoundChoice.SystemUri || state.bellSystemUri.isNullOrBlank()) {
+            TimerBellSoundChoice.SystemUri.label
+        } else {
+            runCatching {
+                RingtoneManager.getRingtone(context, Uri.parse(state.bellSystemUri))?.getTitle(context)
+            }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Custom sound"
+        }
     }
 
     SereneTabBackground(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -196,65 +264,147 @@ fun TimerScreen(
                 controlsVisible = !controlsVisible
             },
     ) {
-        AnimatedVisibility(
-            visible = showStatusHeader,
-            enter = fadeIn(tween(TextFadeMs)),
-            exit = fadeOut(tween(TextFadeMs)),
-        ) {
-            TimerStatusHeader(state = state)
-        }
+        SereneTabHeader(
+            title = "Meditation",
+            descriptionContent = if (showStatusHeader) {
+                { TimerStatusDescription(state = state) }
+            } else {
+                null
+            },
+        )
 
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
         ) {
-            TimerDisplay(
-                state = state,
-                showCountdown = showDisplayCountdown,
-                modifier = Modifier.fillMaxSize(),
-            )
-
-            FloatingActionButton(
-                onClick = { viewModel.toggleRunning() },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp)
-                    .size(FabSize),
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) {
-                Icon(
-                    imageVector = when {
-                        state.phase == TimerPhase.Complete -> Icons.Default.PlayArrow
-                        state.isRunning -> Icons.Default.Pause
-                        else -> Icons.Default.PlayArrow
-                    },
-                    contentDescription = if (state.isRunning) "Pause" else "Start",
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-        }
-
-        AnimatedVisibility(
-            visible = controlsVisible,
-            enter = fadeIn(tween(400)) + slideInVertically { it / 2 },
-            exit = fadeOut(tween(400)) + slideOutVertically { it / 2 },
-        ) {
+            val immersiveDisplayMinHeight = maxHeight
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = SereneSpacing.containerMargin)
-                    .padding(bottom = SereneSpacing.stackMd),
-                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+                    .fillMaxSize()
+                    .verticalScroll(scrollState),
             ) {
-                ControlSection(title = "DISPLAY MODE") {
+                if (controlsVisible) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        FloatingActionButton(
+                            onClick = { viewModel.toggleRunning() },
+                            modifier = Modifier
+                                .padding(top = 4.dp, bottom = 8.dp)
+                                .size(FabSize),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    state.phase == TimerPhase.Complete -> Icons.Default.PlayArrow
+                                    state.isRunning -> Icons.Default.Pause
+                                    else -> Icons.Default.PlayArrow
+                                },
+                                contentDescription = if (state.isRunning) "Pause" else "Start",
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = immersiveDisplayMinHeight),
+                    ) {
+                        TimerDisplay(
+                            state = state,
+                            showCountdown = showDisplayCountdown,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+
+                        FloatingActionButton(
+                            onClick = { viewModel.toggleRunning() },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp)
+                                .size(FabSize),
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    state.phase == TimerPhase.Complete -> Icons.Default.PlayArrow
+                                    state.isRunning -> Icons.Default.Pause
+                                    else -> Icons.Default.PlayArrow
+                                },
+                                contentDescription = if (state.isRunning) "Pause" else "Start",
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = controlsVisible,
+                    enter = fadeIn(tween(400)) + slideInVertically { it / 2 },
+                    exit = fadeOut(tween(400)) + slideOutVertically { it / 2 },
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = SereneSpacing.containerMargin)
+                            .padding(top = SereneSpacing.stackMd, bottom = SereneSpacing.stackMd),
+                        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+                    ) {
+                if (state.phase == TimerPhase.Complete && showReflectionCapture) {
+                    MeditationReflectionCard(
+                        reflection = reflection,
+                        reflectionMoodLevel = reflectionMoodLevel,
+                        pendingAudioPath = pendingAudioPath,
+                        onReflectionChange = viewModel::updateReflection,
+                        onReflectionMoodChange = viewModel::updateReflectionMoodLevel,
+                        onPendingAudioChange = viewModel::updatePendingAudio,
+                        onSave = viewModel::saveReflection,
+                        onSkip = viewModel::skipReflection,
+                    )
+                }
+                ControlSection(
+                    title = "Duration",
+                    subtitle = "Tap to change session length",
+                ) {
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(enabled = !state.isRunning) { viewModel.cycleTargetMinutes() }
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Text(
+                            text = "${state.targetMinutes}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "MIN",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                        )
+                    }
+                }
+
+                ControlSection(
+                    title = "Display Mode",
+                    subtitle = "How time is shown during meditation",
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                             .padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     ) {
                         TimerDisplayMode.entries.forEach { mode ->
                             FilterChip(
@@ -271,23 +421,18 @@ fun TimerScreen(
                     }
                 }
 
-                TimerStatCard(
-                    label = "DURATION",
-                    value = "${state.targetMinutes}",
-                    unit = "MIN",
-                    onClick = { viewModel.cycleTargetMinutes() },
-                    enabled = !state.isRunning,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                ControlSection(title = "AMBIENT SOUND") {
+                ControlSection(
+                    title = "Ambient Sound",
+                    subtitle = "Background audio while the timer runs",
+                ) {
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                             .padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     ) {
-                        (TimerSoundOption.entries - TimerSoundOption.Custom).forEach { sound ->
+                        TimerSoundOption.entries.forEach { sound ->
                             FilterChip(
                                 selected = state.sound == sound,
                                 onClick = { viewModel.setSound(sound) },
@@ -299,14 +444,45 @@ fun TimerScreen(
                                 ),
                             )
                         }
+                    }
+                }
+
+                ControlSection(
+                    title = "Bell Sound",
+                    subtitle = "Plays when your session starts and ends",
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    ) {
                         FilterChip(
-                            selected = state.sound == TimerSoundOption.Custom,
-                            onClick = { soundPickerLauncher.launch("audio/*") },
-                            label = { Text("Custom", style = MaterialTheme.typography.labelMedium) },
+                            selected = state.bellSound == TimerBellSoundChoice.Default,
+                            onClick = { viewModel.setBellSound(TimerBellSoundChoice.Default) },
+                            label = {
+                                Text(
+                                    TimerBellSoundChoice.Default.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            },
                             enabled = !state.isRunning,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
-                                selectedLabelColor = MaterialTheme.colorScheme.secondary,
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                        FilterChip(
+                            selected = state.bellSound == TimerBellSoundChoice.SystemUri,
+                            onClick = { launchBellSoundPicker() },
+                            label = {
+                                Text(customBellLabel, style = MaterialTheme.typography.labelMedium)
+                            },
+                            enabled = !state.isRunning,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
                             ),
                         )
                     }
@@ -398,18 +574,87 @@ fun TimerScreen(
                     }
                 }
 
-                if (immersive) {
-                    Text(
-                        text = "Tap anywhere to show or hide controls",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                    )
+                        MeditationReflectionHistory(
+                            entries = reflections,
+                            openedEntry = openedReflection,
+                            oneNoteConnected = viewModel.oneNoteConnected,
+                            onOpenEntry = viewModel::openReflection,
+                            onDeleteEntry = viewModel::deleteReflection,
+                            onCloseEntry = viewModel::closeReflection,
+                            onSyncEntryToOneNote = viewModel::syncReflectionToOneNote,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        if (immersive) {
+                            Text(
+                                text = "Tap anywhere to show or hide controls",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
                 }
             }
         }
     }
+    }
+}
+
+@Composable
+private fun MeditationReflectionCard(
+    reflection: String,
+    reflectionMoodLevel: Int?,
+    pendingAudioPath: String?,
+    onReflectionChange: (String) -> Unit,
+    onReflectionMoodChange: (Int?) -> Unit,
+    onPendingAudioChange: (String?) -> Unit,
+    onSave: () -> Unit,
+    onSkip: () -> Unit,
+) {
+    val canSave = reflection.isNotBlank() || pendingAudioPath != null
+    ControlSection(
+        title = "Reflection",
+        subtitle = "Jot down what you noticed.",
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            com.example.meditationparticles.ui.components.JournalCaptureFields(
+                text = reflection,
+                onTextChange = onReflectionChange,
+                selectedMoodLevel = reflectionMoodLevel,
+                onMoodLevelChange = onReflectionMoodChange,
+                pendingAudioPath = pendingAudioPath,
+                onPendingAudioChange = onPendingAudioChange,
+                onSpeechResult = { spoken ->
+                    val separator = if (reflection.isBlank()) "" else " "
+                    onReflectionChange(reflection + separator + spoken.trim())
+                },
+                placeholder = "How did it feel? What came up?",
+                showAudioControls = true,
+                showDictate = true,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onSkip) {
+                    Text("Skip")
+                }
+                Button(
+                    onClick = onSave,
+                    enabled = canSave,
+                ) {
+                    Text("Save")
+                }
+            }
+        }
     }
 }
 
@@ -427,6 +672,11 @@ private fun TimerDisplay(
         return
     }
 
+    if (state.phase == TimerPhase.Idle) {
+        Box(modifier = modifier.fillMaxSize())
+        return
+    }
+
     when (state.displayMode) {
         TimerDisplayMode.Hourglass -> {
             HourglassCanvas(
@@ -440,22 +690,26 @@ private fun TimerDisplay(
                 modifier = modifier.padding(bottom = FabClearance),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = state.remainingFormatted,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 72.sp,
-                        letterSpacing = 2.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                )
+                SereneTextPlate(
+                    cornerRadius = 20.dp,
+                    contentPadding = 20.dp,
+                ) {
+                    Text(
+                        text = state.remainingFormatted,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 72.sp,
+                            letterSpacing = 2.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                }
             }
         }
         TimerDisplayMode.Blank -> {
             Box(
-                modifier = modifier
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(bottom = FabClearance),
+                modifier = modifier.padding(bottom = FabClearance),
                 contentAlignment = Alignment.Center,
             ) {
                 AnimatedVisibility(
@@ -463,12 +717,18 @@ private fun TimerDisplay(
                     enter = fadeIn(tween(TextFadeMs)),
                     exit = fadeOut(tween(TextFadeMs)),
                 ) {
-                    Text(
-                        text = state.remainingFormatted,
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                        textAlign = TextAlign.Center,
-                    )
+                    SereneTextPlate(
+                        cornerRadius = 20.dp,
+                        contentPadding = 16.dp,
+                    ) {
+                        Text(
+                            text = state.remainingFormatted,
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
                 }
             }
         }
@@ -497,101 +757,111 @@ private fun PrepareSequenceOverlay(
         contentAlignment = Alignment.Center,
     ) {
         if (inCountdown) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            SereneTextPlate(
+                cornerRadius = 20.dp,
+                contentPadding = 24.dp,
             ) {
-                Text(
-                    text = "Start Meditating In...",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                AnimatedContent(
-                    targetState = state.prepareCountdownSeconds,
-                    transitionSpec = {
-                        fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-                    },
-                    label = "prepare_countdown",
-                ) { seconds ->
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     Text(
-                        text = seconds.toString(),
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 72.sp,
-                            letterSpacing = 2.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
+                        text = "Start Meditating In...",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                     )
+                    AnimatedContent(
+                        targetState = state.prepareCountdownSeconds,
+                        transitionSpec = {
+                            fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
+                        },
+                        label = "prepare_countdown",
+                    ) { seconds ->
+                        Text(
+                            text = seconds.toString(),
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                fontSize = 72.sp,
+                                letterSpacing = 2.sp,
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
         } else if (beginFadeProgress > 0f) {
-            Text(
-                text = "Begin",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 56.sp,
-                    letterSpacing = 1.sp,
-                ),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = beginFadeProgress),
-                textAlign = TextAlign.Center,
-            )
+            SereneTextPlate(
+                cornerRadius = 20.dp,
+                contentPadding = 20.dp,
+            ) {
+                Text(
+                    text = "Begin",
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 56.sp,
+                        letterSpacing = 1.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = beginFadeProgress),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun TimerStatusHeader(state: TimerSessionState) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = SereneSpacing.containerMargin)
-            .padding(top = 4.dp, bottom = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (state.phase == TimerPhase.Idle) {
+private fun TimerStatusDescription(state: TimerSessionState) {
+    if (state.phase == TimerPhase.Idle || state.phase == TimerPhase.Complete) {
+        if (state.statusLabel.isNotEmpty()) {
+            Text(
+                text = state.statusLabel,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        if (state.statusDescription.isNotEmpty()) {
             Text(
                 text = state.statusDescription,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = if (state.statusLabel.isNotEmpty()) Modifier.padding(top = 4.dp) else Modifier,
             )
-            return
         }
+        return
+    }
 
-        if (state.statusLabel.isNotEmpty()) {
-            AnimatedContent(
-                targetState = state.statusLabel,
-                transitionSpec = {
-                    fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-                },
-                label = "timer_status",
-            ) { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                )
-            }
+    if (state.statusLabel.isNotEmpty()) {
+        AnimatedContent(
+            targetState = state.statusLabel,
+            transitionSpec = {
+                fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
+            },
+            label = "timer_status",
+        ) { label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
+    }
 
-        if (state.statusDescription.isNotEmpty()) {
-            AnimatedContent(
-                targetState = state.statusDescription,
-                transitionSpec = {
-                    fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
-                },
-                label = "timer_description",
-                modifier = Modifier.padding(top = 4.dp),
-            ) { description ->
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                    textAlign = TextAlign.Center,
-                )
-            }
+    if (state.statusDescription.isNotEmpty()) {
+        AnimatedContent(
+            targetState = state.statusDescription,
+            transitionSpec = {
+                fadeIn(tween(TextFadeMs)) togetherWith fadeOut(tween(TextFadeMs))
+            },
+            label = "timer_description",
+            modifier = Modifier.padding(top = 4.dp),
+        ) { description ->
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
@@ -599,67 +869,29 @@ private fun TimerStatusHeader(state: TimerSessionState) {
 @Composable
 private fun ControlSection(
     title: String,
+    subtitle: String? = null,
     content: @Composable () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.padding(start = 8.dp),
-        )
-        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
-            content()
-        }
-    }
-}
-
-@Composable
-private fun TimerStatCard(
-    label: String,
-    value: String,
-    unit: String,
-    onClick: () -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    GlassCard(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, onClick = onClick),
-        cornerRadius = 12.dp,
-    ) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (label.isNotEmpty()) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (subtitle != null) {
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                if (unit.isNotEmpty()) {
-                    Text(
-                        text = unit,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 2.dp),
-                    )
-                }
-            }
+            content()
         }
     }
 }

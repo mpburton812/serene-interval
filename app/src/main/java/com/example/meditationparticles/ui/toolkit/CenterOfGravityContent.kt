@@ -46,6 +46,7 @@ import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.MoodLevelPicker
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
@@ -60,6 +61,8 @@ private const val CENTER_OF_GRAVITY_INTRO =
 @Composable
 fun CenterOfGravityContent(
     stepIndex: Int,
+    selectedMoodLevel: Int?,
+    onMoodLevelChange: (Int?) -> Unit,
     thoughtsAndFeelings: String,
     bodyAndNeeds: String,
     pendingAudioPath: String?,
@@ -76,6 +79,8 @@ fun CenterOfGravityContent(
     onOpenEntry: (CenterOfGravityEntryEntity) -> Unit,
     onDeleteEntry: (CenterOfGravityEntryEntity) -> Unit,
     onCloseEntry: () -> Unit,
+    showOneNoteSync: Boolean = false,
+    onSyncEntryToOneNote: (CenterOfGravityEntryEntity) -> Unit = {},
 ) {
     val context = LocalContext.current
     val audioRecorder = remember { ToolkitAudioRecorder(context) }
@@ -175,6 +180,10 @@ fun CenterOfGravityContent(
                 text = stepInstruction,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            MoodLevelPicker(
+                selectedLevel = selectedMoodLevel,
+                onLevelChange = onMoodLevelChange,
             )
 
             when (stepIndex) {
@@ -277,6 +286,8 @@ fun CenterOfGravityContent(
         CenterOfGravityEntryDetailDialog(
             entry = entry,
             audioPlayer = audioPlayer,
+            showOneNoteSync = showOneNoteSync,
+            onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
         )
     }
@@ -291,7 +302,7 @@ private fun CenterOfGravityFieldEditor(
     onToggleRecord: () -> Unit,
     isRecording: Boolean,
     pendingAudioPath: String?,
-    minLines: Int = 6,
+    minLines: Int = 8,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -303,7 +314,7 @@ private fun CenterOfGravityFieldEditor(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Write here…") },
+            placeholder = { Text("What's on your mind…") },
             minLines = minLines,
         )
         Row(
@@ -375,6 +386,8 @@ private fun CenterOfGravityEntryRow(
 private fun CenterOfGravityEntryDetailDialog(
     entry: CenterOfGravityEntryEntity,
     audioPlayer: ToolkitAudioPlayer,
+    showOneNoteSync: Boolean,
+    onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var playingPath by remember(entry.id) { mutableStateOf<String?>(null) }
@@ -421,6 +434,9 @@ private fun CenterOfGravityEntryDetailDialog(
                         }
                     },
                 )
+                if (showOneNoteSync) {
+                    OneNoteEntrySyncButton(onClick = onSyncToOneNote)
+                }
             }
         },
         confirmButton = {

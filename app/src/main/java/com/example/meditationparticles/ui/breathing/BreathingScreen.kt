@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -60,9 +62,12 @@ import com.example.meditationparticles.canvas.BreathingCanvasDisplayMode
 import com.example.meditationparticles.domain.breathing.BreathPhase
 import com.example.meditationparticles.domain.breathing.BreathingPattern
 import com.example.meditationparticles.domain.breathing.BreathingSessionState
+import com.example.meditationparticles.domain.breathing.BreathingVisualMode
 import com.example.meditationparticles.domain.breathing.SessionMode
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.SereneHeaderPlate
 import com.example.meditationparticles.ui.components.SereneTabBackground
+import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private val PhaseTextFadeMs = 650
@@ -74,10 +79,20 @@ private val FabClearance = 72.dp
 @Composable
 fun BreathingScreen(
     modifier: Modifier = Modifier,
+    pendingPatternId: String? = null,
+    onPendingPatternConsumed: () -> Unit = {},
     viewModel: BreathingViewModel = viewModel(),
     onSessionActiveChange: (Boolean) -> Unit = {},
 ) {
+    LaunchedEffect(pendingPatternId) {
+        pendingPatternId?.let { patternId ->
+            viewModel.selectPattern(BreathingPattern.byId(patternId))
+            onPendingPatternConsumed()
+        }
+    }
+
     val state by viewModel.sessionState.collectAsState()
+    val visualMode by viewModel.visualMode.collectAsState()
     var controlsVisible by remember { mutableStateOf(true) }
     val sessionActive = state.isRunning && state.phase != BreathPhase.Complete
     val exerciseBlend by animateFloatAsState(
@@ -110,7 +125,6 @@ fun BreathingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -119,6 +133,69 @@ fun BreathingScreen(
                 controlsVisible = !controlsVisible
             },
     ) {
+        SereneTabHeader(
+            title = "Breath",
+            controls = {
+                BreathingVisualModeToggle(
+                    selected = visualMode,
+                    onSelect = viewModel::setVisualMode,
+                    enabled = !state.isRunning,
+                )
+            },
+            descriptionContent = if (!state.isRunning) {
+                {
+                    AnimatedContent(
+                        targetState = state.pattern.purpose,
+                        transitionSpec = {
+                            fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
+                        },
+                        label = "pattern_purpose",
+                    ) { purpose ->
+                        Text(
+                            text = purpose,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            } else {
+                null
+            },
+        )
+
+        if (controlsVisible) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        if (!state.isRunning) {
+                            onSessionActiveChange(true)
+                        }
+                        viewModel.toggleRunning()
+                    },
+                    modifier = Modifier
+                        .padding(top = 4.dp, bottom = 8.dp)
+                        .size(FabSize)
+                        .onGloballyPositioned { fabClearancePx = 0f },
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Icon(
+                        imageVector = when {
+                            state.phase == BreathPhase.Complete -> Icons.Default.PlayArrow
+                            state.isRunning -> Icons.Default.Pause
+                            else -> Icons.Default.PlayArrow
+                        },
+                        contentDescription = if (state.isRunning) "Pause" else "Start",
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+            }
+        }
+
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -140,8 +217,11 @@ fun BreathingScreen(
                     BreathingCanvas(
                         sessionState = state.copy(pattern = BreathingPattern.byId(patternId)),
                         displayMode = BreathingCanvasDisplayMode.Preview,
+                        visualMode = visualMode,
                         modifier = Modifier.fillMaxSize(),
-                        topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },
+                        topInset = with(density) {
+                            if (sessionActive) (headerHeightPx + 12.dp.toPx()).toDp() else 12.dp
+                        },
                         bottomInset = bottomInset,
                     )
                 }
@@ -151,52 +231,59 @@ fun BreathingScreen(
                 BreathingCanvas(
                     sessionState = state,
                     displayMode = BreathingCanvasDisplayMode.Exercise,
+                    visualMode = visualMode,
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(exerciseBlend),
-                    topInset = with(density) { (headerHeightPx + 12.dp.toPx()).toDp() },
+                    topInset = with(density) {
+                        if (sessionActive) (headerHeightPx + 12.dp.toPx()).toDp() else 12.dp
+                    },
                     bottomInset = bottomInset,
                 )
             }
 
-            BreathingPhaseHeader(
-                state = state,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .onGloballyPositioned { coords ->
-                        headerHeightPx = coords.size.height.toFloat()
-                    },
-            )
-
-            FloatingActionButton(
-                onClick = {
-                    if (!state.isRunning) {
-                        onSessionActiveChange(true)
-                    }
-                    viewModel.toggleRunning()
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = SereneSpacing.containerMargin, bottom = 16.dp)
-                    .size(FabSize)
-                    .onGloballyPositioned {
-                        with(density) {
-                            fabClearancePx = FabSize.toPx() + 16.dp.toPx()
-                        }
-                    },
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) {
-                Icon(
-                    imageVector = when {
-                        state.phase == BreathPhase.Complete -> Icons.Default.PlayArrow
-                        state.isRunning -> Icons.Default.Pause
-                        else -> Icons.Default.PlayArrow
-                    },
-                    contentDescription = if (state.isRunning) "Pause" else "Start",
-                    modifier = Modifier.size(28.dp),
+            if (sessionActive) {
+                BreathingPhaseHeader(
+                    state = state,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .onGloballyPositioned { coords ->
+                            headerHeightPx = coords.size.height.toFloat()
+                        },
                 )
+            }
+
+            if (!controlsVisible) {
+                FloatingActionButton(
+                    onClick = {
+                        if (!state.isRunning) {
+                            onSessionActiveChange(true)
+                        }
+                        viewModel.toggleRunning()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                        .size(FabSize)
+                        .onGloballyPositioned {
+                            with(density) {
+                                fabClearancePx = FabSize.toPx() + 8.dp.toPx()
+                            }
+                        },
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Icon(
+                        imageVector = when {
+                            state.phase == BreathPhase.Complete -> Icons.Default.PlayArrow
+                            state.isRunning -> Icons.Default.Pause
+                            else -> Icons.Default.PlayArrow
+                        },
+                        contentDescription = if (state.isRunning) "Pause" else "Start",
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
         }
 
@@ -219,7 +306,7 @@ fun BreathingScreen(
                 Text(
                     text = "BREATHING PATTERN",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                     modifier = Modifier.padding(start = 8.dp),
                 )
                 GlassCard(
@@ -291,7 +378,7 @@ fun BreathingScreen(
                     Text(
                         text = "Tap anywhere to hide controls",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )
@@ -303,18 +390,69 @@ fun BreathingScreen(
 }
 
 @Composable
+private fun BreathingVisualModeToggle(
+    selected: BreathingVisualMode,
+    onSelect: (BreathingVisualMode) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(8.dp)
+    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    val selectedColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .border(1.dp, borderColor, shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
+    ) {
+        BreathingVisualMode.entries.forEachIndexed { index, mode ->
+            val isSelected = selected == mode
+            Box(
+                modifier = Modifier
+                    .clickable(enabled = enabled) { onSelect(mode) }
+                    .background(if (isSelected) selectedColor else Color.Transparent)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = mode.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 0.75f else 0.35f)
+                    },
+                )
+            }
+            if (index == 0) {
+                Box(
+                    modifier = Modifier
+                        .height(28.dp)
+                        .padding(vertical = 6.dp)
+                        .border(0.5.dp, borderColor),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun BreathingPhaseHeader(
     state: BreathingSessionState,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    SereneHeaderPlate(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.88f))
             .padding(horizontal = SereneSpacing.containerMargin)
             .padding(top = 4.dp, bottom = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        cornerRadius = 20.dp,
     ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
         AnimatedContent(
             targetState = state.phase,
             transitionSpec = {
@@ -330,7 +468,7 @@ private fun BreathingPhaseHeader(
             )
         }
 
-        if (state.isRunning && state.phaseDurationSeconds > 0f) {
+        if (state.phaseDurationSeconds > 0f) {
             AnimatedContent(
                 targetState = state.secondsRemainingInPhase,
                 transitionSpec = {
@@ -342,28 +480,11 @@ private fun BreathingPhaseHeader(
                 Text(
                     text = "${seconds}s",
                     style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
                 )
             }
         }
-
-        if (!state.isRunning) {
-            AnimatedContent(
-                targetState = state.pattern.purpose,
-                transitionSpec = {
-                    fadeIn(tween(PhaseTextFadeMs)) togetherWith fadeOut(tween(PhaseTextFadeMs))
-                },
-                label = "pattern_purpose",
-                modifier = Modifier.padding(top = SereneSpacing.stackSm),
-            ) { purpose ->
-                Text(
-                    text = purpose,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                    textAlign = TextAlign.Center,
-                )
-            }
         }
     }
 }
