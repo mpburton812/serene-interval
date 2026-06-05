@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.14 — 2026-06-05
+
 ### Mood tracker widget
 
 - Home screen widget with four mood buttons matching in-app quick-log colors and icons
