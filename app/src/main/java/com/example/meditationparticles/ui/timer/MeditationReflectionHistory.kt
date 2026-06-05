@@ -5,34 +5,25 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.StopCircle
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.meditationparticles.BuildConfig
-import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
-import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.HistoryGlassCard
+import com.example.meditationparticles.ui.components.MoodDisplay
 import com.example.meditationparticles.ui.toolkit.OneNoteEntrySyncButton
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -51,13 +42,7 @@ fun MeditationReflectionHistory(
 ) {
     if (entries.isEmpty()) return
 
-    val audioPlayer = remember { ToolkitAudioPlayer() }
-
-    DisposableEffect(Unit) {
-        onDispose { audioPlayer.release() }
-    }
-
-    GlassCard(modifier = modifier.fillMaxWidth(), cornerRadius = 20.dp) {
+    HistoryGlassCard(modifier = modifier.fillMaxWidth(), cornerRadius = 20.dp) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -83,7 +68,6 @@ fun MeditationReflectionHistory(
     openedEntry?.let { entry ->
         ReflectionDetailDialog(
             entry = entry,
-            audioPlayer = audioPlayer,
             showOneNoteSync = BuildConfig.ONENOTE_SYNC_AVAILABLE && oneNoteConnected,
             onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
@@ -108,22 +92,13 @@ private fun ReflectionHistoryRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             val preview = entry.reflection.trim()
-            when {
-                preview.isNotBlank() -> {
-                    Text(
-                        text = preview,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                entry.audioPath != null -> {
-                    Text(
-                        text = "Audio recording",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            if (preview.isNotBlank()) {
+                Text(
+                    text = preview,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             Text(
                 text = "${entry.durationSeconds / 60} min session",
@@ -143,20 +118,10 @@ private fun ReflectionHistoryRow(
 @Composable
 private fun ReflectionDetailDialog(
     entry: MeditationReflectionEntity,
-    audioPlayer: ToolkitAudioPlayer,
     showOneNoteSync: Boolean,
     onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var isPlaying by remember(entry.id) { mutableStateOf(false) }
-
-    DisposableEffect(entry.id) {
-        onDispose {
-            audioPlayer.stop()
-            isPlaying = false
-        }
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(formatReflectionTimestamp(entry.completedAt)) },
@@ -167,42 +132,12 @@ private fun ReflectionDetailDialog(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                entry.moodLevel?.let { mood ->
-                    Text(
-                        text = "Mood: ${mood.coerceIn(1, 5)}/5",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                entry.moodLevel?.let { mood -> MoodDisplay(moodLevel = mood) }
                 if (entry.reflection.isNotBlank()) {
                     Text(
                         text = entry.reflection,
                         style = MaterialTheme.typography.bodyLarge,
                     )
-                }
-                entry.audioPath?.let { path ->
-                    OutlinedButton(
-                        onClick = {
-                            if (isPlaying) {
-                                audioPlayer.stop()
-                                isPlaying = false
-                            } else {
-                                audioPlayer.play(path)
-                                isPlaying = true
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            if (isPlaying) Icons.Default.StopCircle else Icons.Default.VolumeUp,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            if (isPlaying) "Stop playback" else "Play recording",
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
                 }
                 if (showOneNoteSync) {
                     OneNoteEntrySyncButton(onClick = onSyncToOneNote)

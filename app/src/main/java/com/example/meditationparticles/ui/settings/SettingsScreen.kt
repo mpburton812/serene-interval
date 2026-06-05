@@ -41,6 +41,7 @@ import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import java.io.IOException
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +60,7 @@ fun SettingsScreen(
     val oneNoteUiState by viewModel.oneNoteUiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
+    val activity = LocalActivity.current as? ComponentActivity
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -177,6 +178,7 @@ fun SettingsScreen(
                 onTimerChanged = viewModel::setEnableTimer,
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
+                onLivingTreeChanged = viewModel::setEnableLivingTree,
             )
 
             QuickStartSelectionSection(
@@ -196,7 +198,8 @@ fun SettingsScreen(
                 )
                 Text(
                     text = "Download a JSON backup of your settings and journal entries, or restore " +
-                        "from a previous export. Audio recordings are referenced by path only and are " +
+                        "from a previous export. Living Tree includes personal names — treat backups " +
+                        "as sensitive. Audio recordings are referenced by path only and are " +
                         "not included in the backup file.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

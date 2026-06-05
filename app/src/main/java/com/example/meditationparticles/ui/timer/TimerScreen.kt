@@ -71,7 +71,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.audio.TimerAudioPlayer
-import com.example.meditationparticles.canvas.HourglassCanvas
 import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
@@ -101,7 +100,6 @@ fun TimerScreen(
     val state by viewModel.sessionState.collectAsState()
     val reflection by viewModel.reflectionText.collectAsState()
     val reflectionMoodLevel by viewModel.reflectionMoodLevel.collectAsState()
-    val pendingAudioPath by viewModel.pendingAudioPath.collectAsState()
     val showReflectionCapture by viewModel.showReflectionCapture.collectAsState()
     val reflections by viewModel.reflections.collectAsState()
     val openedReflection by viewModel.openedReflection.collectAsState()
@@ -360,10 +358,8 @@ fun TimerScreen(
                     MeditationReflectionCard(
                         reflection = reflection,
                         reflectionMoodLevel = reflectionMoodLevel,
-                        pendingAudioPath = pendingAudioPath,
                         onReflectionChange = viewModel::updateReflection,
                         onReflectionMoodChange = viewModel::updateReflectionMoodLevel,
-                        onPendingAudioChange = viewModel::updatePendingAudio,
                         onSave = viewModel::saveReflection,
                         onSkip = viewModel::skipReflection,
                     )
@@ -606,14 +602,12 @@ fun TimerScreen(
 private fun MeditationReflectionCard(
     reflection: String,
     reflectionMoodLevel: Int?,
-    pendingAudioPath: String?,
     onReflectionChange: (String) -> Unit,
     onReflectionMoodChange: (Int?) -> Unit,
-    onPendingAudioChange: (String?) -> Unit,
     onSave: () -> Unit,
     onSkip: () -> Unit,
 ) {
-    val canSave = reflection.isNotBlank() || pendingAudioPath != null
+    val canSave = reflection.isNotBlank()
     ControlSection(
         title = "Reflection",
         subtitle = "Jot down what you noticed.",
@@ -629,15 +623,7 @@ private fun MeditationReflectionCard(
                 onTextChange = onReflectionChange,
                 selectedMoodLevel = reflectionMoodLevel,
                 onMoodLevelChange = onReflectionMoodChange,
-                pendingAudioPath = pendingAudioPath,
-                onPendingAudioChange = onPendingAudioChange,
-                onSpeechResult = { spoken ->
-                    val separator = if (reflection.isBlank()) "" else " "
-                    onReflectionChange(reflection + separator + spoken.trim())
-                },
                 placeholder = "How did it feel? What came up?",
-                showAudioControls = true,
-                showDictate = true,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -678,13 +664,6 @@ private fun TimerDisplay(
     }
 
     when (state.displayMode) {
-        TimerDisplayMode.Hourglass -> {
-            HourglassCanvas(
-                progress = state.progress,
-                isRunning = state.isRunning && state.phase == TimerPhase.Running,
-                modifier = modifier.padding(bottom = FabClearance),
-            )
-        }
         TimerDisplayMode.Digital -> {
             Box(
                 modifier = modifier.padding(bottom = FabClearance),

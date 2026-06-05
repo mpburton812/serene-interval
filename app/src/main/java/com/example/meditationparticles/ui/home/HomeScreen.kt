@@ -14,15 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.FormatQuote
-import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,15 +37,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.meditationparticles.domain.sessions.HomeProgress
-import com.example.meditationparticles.domain.sessions.MeditationSession
-import com.example.meditationparticles.domain.sessions.SessionType
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.navigation.SereneDestination
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneHeaderPlate
 import com.example.meditationparticles.ui.components.SereneTabBackground
+import com.example.meditationparticles.ui.mood.MoodQuickLogCard
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Calendar
@@ -64,7 +57,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
 ) {
     val dailyAffirmation by viewModel.dailyAffirmation.collectAsState()
-    val homeProgress by viewModel.homeProgress.collectAsState()
     val quickStartTargets by viewModel.quickStartTargets.collectAsState()
     val settings = LocalExperienceSettings.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -162,6 +154,10 @@ fun HomeScreen(
             }
         }
 
+        MoodQuickLogCard(
+            onLogMood = viewModel::logMood,
+        )
+
         if (quickStartTiles.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
                 Text(
@@ -192,132 +188,8 @@ fun HomeScreen(
             }
         }
 
-        if (homeProgress.recentSessions.isNotEmpty()) {
-            RecentActivitiesSection(
-                sessions = homeProgress.recentSessions,
-                onSessionClick = { session ->
-                    navigateToSession(session, onNavigate)
-                },
-            )
-        }
-
         Spacer(modifier = Modifier.height(SereneSpacing.stackLg))
         }
-    }
-}
-
-@Composable
-private fun RecentActivitiesSection(
-    sessions: List<MeditationSession>,
-    onSessionClick: (MeditationSession) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
-        Text(
-            text = "Recent Activities",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(start = 4.dp),
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            sessions.forEach { session ->
-                RecentActivityRow(
-                    session = session,
-                    onClick = { onSessionClick(session) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecentActivityRow(
-    session: MeditationSession,
-    onClick: () -> Unit,
-) {
-    val (icon, iconTint, iconBackground) = sessionIconStyle(session.type)
-
-    GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        cornerRadius = 16.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(iconBackground),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                    )
-                }
-                Column {
-                    Text(
-                        text = session.title,
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                    Text(
-                        text = "${formatSessionDuration(session.durationSeconds)} • " +
-                            formatRelativeSessionTime(session.completedAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun sessionIconStyle(type: SessionType): Triple<ImageVector, Color, Color> {
-    val scheme = MaterialTheme.colorScheme
-    return when (type) {
-        SessionType.TIMER -> Triple(
-            Icons.Default.Timer,
-            scheme.secondary,
-            scheme.secondaryContainer.copy(alpha = 0.4f),
-        )
-        SessionType.BREATHING -> Triple(
-            Icons.Default.Spa,
-            scheme.primary,
-            scheme.primaryContainer.copy(alpha = 0.35f),
-        )
-        SessionType.VISUALIZATION -> Triple(
-            Icons.Default.Landscape,
-            scheme.tertiary,
-            scheme.tertiaryContainer.copy(alpha = 0.25f),
-        )
-    }
-}
-
-private fun navigateToSession(
-    session: MeditationSession,
-    onNavigate: (SereneDestination, String?) -> Unit,
-) {
-    when (session.type) {
-        SessionType.TIMER -> onNavigate(SereneDestination.Timer, null)
-        SessionType.BREATHING -> onNavigate(SereneDestination.Breathe, null)
-        SessionType.VISUALIZATION -> onNavigate(SereneDestination.Visualizations, null)
     }
 }
 

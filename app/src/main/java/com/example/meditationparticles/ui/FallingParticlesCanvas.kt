@@ -1,6 +1,7 @@
 package com.example.meditationparticles.ui
 
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -263,7 +264,7 @@ private fun StyledSlider(
 @Composable
 fun FallingParticlesScreen() {
     val density = LocalDensity.current
-    val activity = LocalContext.current as ComponentActivity
+    val activity = LocalActivity.current as ComponentActivity
     var canvasWidth by remember { mutableFloatStateOf(0f) }
     var canvasHeight by remember { mutableFloatStateOf(0f) }
     var particleCount by remember { mutableIntStateOf(DEFAULT_PARTICLES) }

@@ -26,3 +26,20 @@ fun sereneGlassStyle(scheme: ColorScheme): SereneGlassStyle {
         },
     )
 }
+
+/** Darker glass for history / previous-entry lists (vs entry form [GlassCard]). */
+fun sereneHistoryGlassStyle(scheme: ColorScheme): SereneGlassStyle {
+    val isDark = isDarkScheme(scheme)
+    return SereneGlassStyle(
+        fill = if (isDark) {
+            scheme.surfaceContainerHighest.copy(alpha = 0.82f)
+        } else {
+            scheme.surfaceContainer.copy(alpha = 0.94f)
+        },
+        border = if (isDark) {
+            scheme.outlineVariant.copy(alpha = 0.35f)
+        } else {
+            scheme.outlineVariant.copy(alpha = 0.55f)
+        },
+    )
+}

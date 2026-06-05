@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Sway Meditation</string>
+    <string name="mood_widget_name">Mood Tracker</string>
+    <string name="mood_widget_description">Quick-log your mood from the home screen</string>
+    <string name="mood_widget_configure_title">Mood widget</string>
+    <string name="mood_widget_configure_background">Background</string>
+    <string name="mood_widget_background_white">White</string>
+    <string name="mood_widget_background_black">Black</string>
+    <string name="mood_widget_configure_transparency">Transparency</string>
+    <string name="mood_widget_configure_transparency_value">%1$d%% opaque</string>
+    <string name="mood_widget_configure_save">Save</string>
+    <string name="mood_widget_configure_cancel">Cancel</string>
+    <string name="mood_widget_button_description">Log mood %1$s</string>
+    <string name="mood_widget_logged_toast">Mood logged</string>
 </resources>

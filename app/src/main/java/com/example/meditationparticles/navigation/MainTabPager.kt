@@ -12,6 +12,7 @@ internal fun isTabRoute(route: String?, items: List<BottomNavItem>): Boolean {
     return items.any { item ->
         when (item.destination) {
             SereneDestination.Visualizations -> route == SereneDestination.Visualizations.route
+            SereneDestination.LivingTree -> route == SereneDestination.LivingTree.route
             else -> route == item.destination.route
         }
     }
@@ -22,6 +23,7 @@ internal fun tabIndexForRoute(route: String?, items: List<BottomNavItem>): Int? 
     return items.indexOfFirst { item ->
         when (item.destination) {
             SereneDestination.Visualizations -> route == SereneDestination.Visualizations.route
+            SereneDestination.LivingTree -> route == SereneDestination.LivingTree.route
             else -> route == item.destination.route
         }
     }.takeIf { it >= 0 }

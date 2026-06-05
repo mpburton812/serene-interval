@@ -7,19 +7,18 @@ import com.example.meditationparticles.data.AffirmationPreferences
 import com.example.meditationparticles.data.AffirmationRepository
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.local.AffirmationEntity
+import com.example.meditationparticles.domain.affirmations.AffirmationReviewLogic
 import com.example.meditationparticles.reminder.AffirmationReminderScheduler
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class AffirmationViewMode { Card, List }
-
 data class AffirmationsUiState(
     val affirmations: List<AffirmationEntity> = emptyList(),
     val currentIndex: Int = 0,
-    val viewMode: AffirmationViewMode = AffirmationViewMode.Card,
     val reminderEnabled: Boolean = false,
     val reminderHour: Int = 9,
     val reminderMinute: Int = 0,
@@ -27,9 +26,18 @@ data class AffirmationsUiState(
     val showBulkImportDialog: Boolean = false,
     val importMessage: String? = null,
     val editingAffirmation: AffirmationEntity? = null,
+    val showReview: Boolean = false,
+    val reviewIndex: Int = 0,
+    val reviewCompleting: Boolean = false,
 ) {
     val currentAffirmation: AffirmationEntity?
         get() = affirmations.getOrNull(currentIndex.coerceIn(0, (affirmations.size - 1).coerceAtLeast(0)))
+
+    val reviewAffirmation: AffirmationEntity?
+        get() = affirmations.getOrNull(reviewIndex.coerceIn(0, (affirmations.size - 1).coerceAtLeast(0)))
+
+    val canStartReview: Boolean
+        get() = AffirmationReviewLogic.canStartReview(affirmations.size)
 }
 
 class AffirmationsViewModel(application: Application) : AndroidViewModel(application) {
@@ -48,11 +56,6 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
                     reminderEnabled = saved.reminderEnabled,
                     reminderHour = saved.reminderHour,
                     reminderMinute = saved.reminderMinute,
-                    viewMode = if (saved.viewMode == AffirmationPreferences.ViewMode.List.name) {
-                        AffirmationViewMode.List
-                    } else {
-                        AffirmationViewMode.Card
-                    },
                 )
             }
         }
@@ -61,7 +64,12 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
             repository.affirmations.collect { list ->
                 _uiState.update { state ->
                     val index = state.currentIndex.coerceIn(0, (list.size - 1).coerceAtLeast(0))
-                    state.copy(affirmations = list, currentIndex = index)
+                    val reviewIndex = state.reviewIndex.coerceIn(0, (list.size - 1).coerceAtLeast(0))
+                    state.copy(
+                        affirmations = list,
+                        currentIndex = index,
+                        reviewIndex = reviewIndex,
+                    )
                 }
             }
         }
@@ -73,9 +81,61 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
         _uiState.update { it.copy(currentIndex = (it.currentIndex + 1) % size) }
     }
 
-    fun setViewMode(mode: AffirmationViewMode) {
-        _uiState.update { it.copy(viewMode = mode) }
-        persistPrefs()
+    fun startReview() {
+        if (!_uiState.value.canStartReview) return
+        _uiState.update {
+            it.copy(
+                showReview = true,
+                reviewIndex = 0,
+                reviewCompleting = false,
+            )
+        }
+    }
+
+    fun reviewPrevious() {
+        val state = _uiState.value
+        if (!state.showReview || state.reviewCompleting) return
+        AffirmationReviewLogic.previousIndex(state.reviewIndex)?.let { previous ->
+            _uiState.update { it.copy(reviewIndex = previous) }
+        }
+    }
+
+    fun reviewNext() {
+        val state = _uiState.value
+        if (!state.showReview || state.reviewCompleting || state.affirmations.isEmpty()) return
+        val lastIndex = state.affirmations.lastIndex
+        if (AffirmationReviewLogic.shouldCompleteReview(state.reviewIndex, lastIndex)) {
+            completeReview()
+            return
+        }
+        AffirmationReviewLogic.nextIndex(state.reviewIndex, lastIndex)?.let { next ->
+            _uiState.update { it.copy(reviewIndex = next) }
+        }
+    }
+
+    fun exitReview() {
+        if (_uiState.value.reviewCompleting) return
+        _uiState.update {
+            it.copy(
+                showReview = false,
+                reviewIndex = 0,
+                reviewCompleting = false,
+            )
+        }
+    }
+
+    private fun completeReview() {
+        _uiState.update { it.copy(reviewCompleting = true) }
+        viewModelScope.launch {
+            delay(REVIEW_COMPLETION_DELAY_MS)
+            _uiState.update {
+                it.copy(
+                    showReview = false,
+                    reviewIndex = 0,
+                    reviewCompleting = false,
+                )
+            }
+        }
     }
 
     fun showAddDialog() = _uiState.update { it.copy(showAddDialog = true, editingAffirmation = null) }
@@ -126,9 +186,9 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun toggleFavorite(entity: AffirmationEntity) {
+    fun reorderAffirmations(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {
-            repository.toggleFavorite(entity)
+            repository.reorder(fromIndex, toIndex)
         }
     }
 
@@ -155,8 +215,11 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
                 reminderEnabled = state.reminderEnabled,
                 reminderHour = state.reminderHour,
                 reminderMinute = state.reminderMinute,
-                viewMode = state.viewMode.name,
             ),
         )
+    }
+
+    companion object {
+        const val REVIEW_COMPLETION_DELAY_MS = 3_000L
     }
 }

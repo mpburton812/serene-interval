@@ -18,9 +18,37 @@ fun GlassCard(
     cornerRadius: Dp = 16.dp,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    GlassSurfaceCard(
+        modifier = modifier,
+        cornerRadius = cornerRadius,
+        glassStyle = sereneGlassStyle(MaterialTheme.colorScheme),
+        content = content,
+    )
+}
+
+@Composable
+fun HistoryGlassCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 16.dp,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    GlassSurfaceCard(
+        modifier = modifier,
+        cornerRadius = cornerRadius,
+        glassStyle = sereneHistoryGlassStyle(MaterialTheme.colorScheme),
+        content = content,
+    )
+}
+
+@Composable
+private fun GlassSurfaceCard(
+    modifier: Modifier,
+    cornerRadius: Dp,
+    glassStyle: SereneGlassStyle,
+    content: @Composable BoxScope.() -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(cornerRadius)
-    val glass = sereneGlassStyle(scheme)
     Box(
         modifier = modifier
             .shadow(
@@ -30,8 +58,8 @@ fun GlassCard(
                 spotColor = scheme.primary.copy(alpha = 0.08f),
             )
             .clip(shape)
-            .background(glass.fill)
-            .border(1.dp, glass.border, shape),
+            .background(glassStyle.fill)
+            .border(1.dp, glassStyle.border, shape),
         content = content,
     )
 }

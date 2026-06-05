@@ -8,7 +8,13 @@ import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.LivingTreePersonEntity
+import com.example.meditationparticles.data.local.LivingTreePersonTagCrossRef
+import com.example.meditationparticles.data.local.LivingTreeTagEntity
+import com.example.meditationparticles.data.local.MeditationReflectionEntity
+import com.example.meditationparticles.data.local.MoodEntryEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
+import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
@@ -37,9 +43,13 @@ class AppDataExporter(
         val refactoringEntries = db.refactoringEntryDao().getAll()
         val centerOfGravityEntries = db.centerOfGravityEntryDao().getAll()
         val nvcEntries = db.nvcEntryDao().getAll()
+        val meditationReflections = db.meditationReflectionDao().getAll()
+        val moodEntries = db.moodEntryDao().getAll()
+        val livingTree = AppGraph.livingTree(context)
 
         JSONObject().apply {
             put("exportVersion", EXPORT_VERSION)
+            put("moodScaleMax", MoodScale.MAX)
             put("exportedAt", Instant.now().toString())
             put("appVersionName", BuildConfig.VERSION_NAME)
             put("appVersionCode", BuildConfig.VERSION_CODE)
@@ -51,7 +61,10 @@ class AppDataExporter(
                 refactoringEntries = refactoringEntries,
                 centerOfGravityEntries = centerOfGravityEntries,
                 nvcEntries = nvcEntries,
+                meditationReflections = meditationReflections,
+                moodEntries = moodEntries,
             ))
+            put("livingTree", buildLivingTreeSection(livingTree))
         }.toString(2)
     }
 
@@ -72,6 +85,7 @@ class AppDataExporter(
             put("enableAffirmations", settings.enableAffirmations)
             put("enableToolkit", settings.enableToolkit)
             put("enableVisuals", settings.enableVisuals)
+            put("enableLivingTree", settings.enableLivingTree)
             put("enabledScenes", JSONArray(settings.enabledScenes.toList()))
             put("meditationRemindersAvailable", settings.meditationRemindersAvailable)
             put("futureSelfSchedulingAvailable", settings.futureSelfSchedulingAvailable)
@@ -94,7 +108,6 @@ class AppDataExporter(
             put("reminderEnabled", affirmationPrefs.reminderEnabled)
             put("reminderHour", affirmationPrefs.reminderHour)
             put("reminderMinute", affirmationPrefs.reminderMinute)
-            put("viewMode", affirmationPrefs.viewMode)
         })
         put("timerPreferences", JSONObject().apply {
             put("displayMode", timerPrefs.displayMode.name)
@@ -115,6 +128,8 @@ class AppDataExporter(
         refactoringEntries: List<RefactoringEntryEntity>,
         centerOfGravityEntries: List<CenterOfGravityEntryEntity>,
         nvcEntries: List<NvcEntryEntity>,
+        meditationReflections: List<MeditationReflectionEntity>,
+        moodEntries: List<MoodEntryEntity>,
     ): JSONObject = JSONObject().apply {
         put("affirmations", JSONArray().apply {
             affirmations.forEach { put(it.toJson()) }
@@ -141,6 +156,12 @@ class AppDataExporter(
         put("nvcEntries", JSONArray().apply {
             nvcEntries.forEach { put(it.toJson()) }
         })
+        put("meditationReflections", JSONArray().apply {
+            meditationReflections.forEach { put(it.toJson()) }
+        })
+        put("moodEntries", JSONArray().apply {
+            moodEntries.forEach { put(it.toJson()) }
+        })
     }
 
     private fun AffirmationEntity.toJson(): JSONObject = JSONObject().apply {
@@ -148,7 +169,6 @@ class AppDataExporter(
         put("text", text)
         put("createdAt", createdAt)
         put("sortOrder", sortOrder)
-        put("isFavorite", isFavorite)
     }
 
     private fun ThoughtDumpEntity.toJson(): JSONObject = JSONObject().apply {
@@ -156,7 +176,6 @@ class AppDataExporter(
         put("content", content)
         put("logType", logType)
         moodLevel?.let { put("moodLevel", it) }
-        put("audioPath", audioPath)
         put("createdAt", createdAt)
     }
 
@@ -164,7 +183,6 @@ class AppDataExporter(
         put("id", id)
         put("content", content)
         moodLevel?.let { put("moodLevel", it) }
-        put("audioPath", audioPath)
         put("scheduledAtMillis", scheduledAtMillis)
         put("createdAtMillis", createdAtMillis)
         put("delivered", delivered)
@@ -173,15 +191,10 @@ class AppDataExporter(
     private fun RefactoringEntryEntity.toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("interpretation", interpretation)
-        put("interpretationAudioPath", interpretationAudioPath)
         put("actualFacts", actualFacts)
-        put("actualFactsAudioPath", actualFactsAudioPath)
         put("explanation1", explanation1)
-        put("explanation1AudioPath", explanation1AudioPath)
         put("explanation2", explanation2)
-        put("explanation2AudioPath", explanation2AudioPath)
         put("explanation3", explanation3)
-        put("explanation3AudioPath", explanation3AudioPath)
         moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
     }
@@ -189,29 +202,84 @@ class AppDataExporter(
     private fun CenterOfGravityEntryEntity.toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("thoughtsAndFeelings", thoughtsAndFeelings)
-        put("thoughtsAndFeelingsAudioPath", thoughtsAndFeelingsAudioPath)
         put("bodyAndNeeds", bodyAndNeeds)
-        put("bodyAndNeedsAudioPath", bodyAndNeedsAudioPath)
         moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
+    }
+
+    private fun MeditationReflectionEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("reflection", reflection)
+        moodLevel?.let { put("moodLevel", it) }
+        put("durationSeconds", durationSeconds)
+        put("completedAt", completedAt)
     }
 
     private fun NvcEntryEntity.toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("observation", observation)
-        put("observationAudioPath", observationAudioPath)
         put("feeling", feeling)
-        put("feelingAudioPath", feelingAudioPath)
         put("need", need)
-        put("needAudioPath", needAudioPath)
         put("request", request)
-        put("requestAudioPath", requestAudioPath)
         moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
     }
 
+    private fun MoodEntryEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("moodLevel", moodLevel)
+        put("recordedAtMillis", recordedAtMillis)
+        put("source", source)
+        legacyTable?.let { put("legacyTable", it) }
+        legacyRowId?.let { put("legacyRowId", it) }
+    }
+
+    private suspend fun buildLivingTreeSection(
+        repository: com.example.meditationparticles.data.LivingTreeRepository,
+    ): JSONObject {
+        val tags = repository.getAllTags()
+        val people = repository.getAllPeopleWithTags()
+        val personTags = people.flatMap { entry ->
+            entry.tags.map { tag ->
+                LivingTreePersonTagCrossRef(
+                    personId = entry.person.id,
+                    tagId = tag.id,
+                )
+            }
+        }
+        return JSONObject().apply {
+            put("tags", JSONArray().apply { tags.forEach { put(it.toJson()) } })
+            put("people", JSONArray().apply { people.forEach { put(it.person.toJson()) } })
+            put("personTags", JSONArray().apply { personTags.forEach { put(it.toJson()) } })
+        }
+    }
+
+    private fun LivingTreeTagEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("name", name)
+        put("colorArgb", colorArgb)
+        put("sortOrder", sortOrder)
+        put("createdAtMillis", createdAtMillis)
+    }
+
+    private fun LivingTreePersonEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("name", name)
+        put("notes", notes)
+        put("sortOrder", sortOrder)
+        angleRadians?.let { put("angleRadians", it) }
+        radiusFraction?.let { put("radiusFraction", it) }
+        put("createdAtMillis", createdAtMillis)
+        put("updatedAtMillis", updatedAtMillis)
+    }
+
+    private fun LivingTreePersonTagCrossRef.toJson(): JSONObject = JSONObject().apply {
+        put("personId", personId)
+        put("tagId", tagId)
+    }
+
     companion object {
-        const val EXPORT_VERSION = 1
+        const val EXPORT_VERSION = 4
         const val DEFAULT_FILENAME = "serene-interval-export.json"
     }
 }

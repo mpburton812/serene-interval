@@ -2,11 +2,13 @@ package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.FutureSelfMessageDao
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
-import java.io.File
+import com.example.meditationparticles.domain.mood.MoodScale
+import com.example.meditationparticles.domain.mood.MoodSource
 import kotlinx.coroutines.flow.Flow
 
 class FutureSelfMessageRepository(
     private val dao: FutureSelfMessageDao,
+    private val moodTracker: MoodTrackerRepository,
 ) {
     fun observeAll(): Flow<List<FutureSelfMessageEntity>> = dao.observeAll()
 
@@ -21,41 +23,52 @@ class FutureSelfMessageRepository(
     suspend fun save(
         id: Long? = null,
         content: String,
-        audioPath: String?,
         scheduledAtMillis: Long,
         moodLevel: Int? = null,
     ): Long? {
         val trimmed = content.trim()
-        if (trimmed.isEmpty() && audioPath.isNullOrBlank()) return null
+        if (trimmed.isEmpty()) return null
+        val normalizedMood = MoodScale.normalize(moodLevel)
         if (id == null || id == 0L) {
-            return dao.insert(
-                FutureSelfMessageEntity(
-                    content = trimmed,
-                    moodLevel = moodLevel?.coerceIn(1, 5),
-                    audioPath = audioPath,
-                    scheduledAtMillis = scheduledAtMillis,
-                ),
+            val entity = FutureSelfMessageEntity(
+                content = trimmed,
+                moodLevel = normalizedMood,
+                scheduledAtMillis = scheduledAtMillis,
             )
+            val newId = dao.insert(entity)
+            normalizedMood?.let { level ->
+                moodTracker.record(
+                    source = MoodSource.FUTURE_SELF,
+                    level = level,
+                    atMillis = entity.createdAtMillis,
+                    legacyTable = MoodTrackerRepository.TABLE_FUTURE_SELF_MESSAGES,
+                    legacyRowId = newId,
+                )
+            }
+            return newId
         }
         val existing = dao.getById(id) ?: return null
-        if (existing.audioPath != null && existing.audioPath != audioPath) {
-            File(existing.audioPath).delete()
-        }
         dao.update(
             existing.copy(
                 content = trimmed,
-                moodLevel = moodLevel?.coerceIn(1, 5),
-                audioPath = audioPath,
+                moodLevel = normalizedMood,
                 scheduledAtMillis = scheduledAtMillis,
                 delivered = false,
             ),
         )
+        normalizedMood?.let { level ->
+            moodTracker.record(
+                source = MoodSource.FUTURE_SELF,
+                level = level,
+                atMillis = existing.createdAtMillis,
+                legacyTable = MoodTrackerRepository.TABLE_FUTURE_SELF_MESSAGES,
+                legacyRowId = id,
+            )
+        }
         return id
     }
 
     suspend fun delete(id: Long) {
-        val entry = dao.getById(id) ?: return
-        entry.audioPath?.let { path -> File(path).delete() }
         dao.deleteById(id)
     }
 

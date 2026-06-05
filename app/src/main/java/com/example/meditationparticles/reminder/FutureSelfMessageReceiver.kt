@@ -37,11 +37,8 @@ class FutureSelfMessageReceiver : BroadcastReceiver() {
 
             ensureNotificationChannel(context)
 
-            val preview = when {
-                message.content.isNotBlank() -> message.content
-                message.audioPath != null -> "You left yourself an audio message."
-                else -> "A message from your past self is ready."
-            }
+            val preview = message.content.takeIf { it.isNotBlank() }
+                ?: "A message from your past self is ready."
 
             val openIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

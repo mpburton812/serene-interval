@@ -7,9 +7,7 @@ import androidx.room.PrimaryKey
 data class CenterOfGravityEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val thoughtsAndFeelings: String,
-    val thoughtsAndFeelingsAudioPath: String? = null,
     val bodyAndNeeds: String,
-    val bodyAndNeedsAudioPath: String? = null,
     val moodLevel: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )
