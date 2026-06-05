@@ -19,7 +19,7 @@ import androidx.room.RoomDatabase
         OneNoteSyncQueueEntity::class,
         MoodEntryEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {

@@ -2,6 +2,7 @@ package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.AffirmationDao
 import com.example.meditationparticles.data.local.AffirmationEntity
+import com.example.meditationparticles.domain.affirmations.AffirmationReorder
 import kotlinx.coroutines.flow.Flow
 
 class AffirmationRepository(
@@ -24,12 +25,10 @@ class AffirmationRepository(
 
     suspend fun randomAffirmation(): AffirmationEntity? = dao.random()
 
-    suspend fun randomFavoriteAffirmation(): AffirmationEntity? = dao.randomFavorite()
-
     suspend fun add(text: String) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
-        dao.insert(AffirmationEntity(text = trimmed))
+        dao.insert(AffirmationEntity(text = trimmed, sortOrder = dao.count()))
     }
 
     suspend fun bulkAdd(rawText: String): Int {
@@ -47,8 +46,15 @@ class AffirmationRepository(
 
     suspend fun delete(entity: AffirmationEntity) = dao.delete(entity)
 
-    suspend fun toggleFavorite(entity: AffirmationEntity) {
-        dao.setFavorite(entity.id, !entity.isFavorite)
+    suspend fun reorder(fromIndex: Int, toIndex: Int) {
+        val current = dao.getAll()
+        val reordered = AffirmationReorder.reorder(current, fromIndex, toIndex)
+        val updates = reordered.mapIndexedNotNull { index, entity ->
+            if (entity.sortOrder != index) entity.copy(sortOrder = index) else null
+        }
+        if (updates.isNotEmpty()) {
+            dao.updateAll(updates)
+        }
     }
 }
 

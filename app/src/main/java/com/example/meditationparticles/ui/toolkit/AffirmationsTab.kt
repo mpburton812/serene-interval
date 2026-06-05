@@ -14,8 +14,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,15 +29,10 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +41,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,13 +56,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.audio.TimerAudioPlayer
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.parseAffirmationLines
+import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SerenePrimary
 import com.example.meditationparticles.ui.theme.SereneSpacing
-import com.example.meditationparticles.ui.theme.SereneTertiary
 
 private const val TransitionMs = 300
 
@@ -76,203 +74,178 @@ fun AffirmationsTab(
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val audioPlayer = remember { TimerAudioPlayer(context) }
+
+    DisposableEffect(audioPlayer) {
+        onDispose { audioPlayer.release() }
+    }
+
+    LaunchedEffect(state.reviewCompleting) {
+        if (state.reviewCompleting) {
+            audioPlayer.playBell(TimerBellSoundChoice.Default, systemUri = null)
+        }
+    }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { /* handled on next toggle */ }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        SereneTabHeader(
-            title = "Affirmations",
-            controls = {
-                TextButton(onClick = viewModel::showAddDialog) {
-                    Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
-                    Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
-                }
-                TextButton(onClick = viewModel::showBulkImportDialog) {
-                    Text("Bulk Import", maxLines = 1)
-                }
-            },
-        )
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = SereneSpacing.containerMargin),
-            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
-        ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(
-                selected = state.viewMode == AffirmationViewMode.Card,
-                onClick = { viewModel.setViewMode(AffirmationViewMode.Card) },
-                label = { Text("Card") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                    selectedLabelColor = MaterialTheme.colorScheme.primary,
-                ),
-            )
-            FilterChip(
-                selected = state.viewMode == AffirmationViewMode.List,
-                onClick = { viewModel.setViewMode(AffirmationViewMode.List) },
-                label = { Text("List") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                    selectedLabelColor = MaterialTheme.colorScheme.primary,
-                ),
-            )
-        }
-
-        if (state.viewMode == AffirmationViewMode.Card) {
-            AffirmationHeroCard(
-                affirmation = state.currentAffirmation,
-                onNext = viewModel::nextAffirmation,
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            SereneTabHeader(
+                title = "Affirmations",
+                controls = {
+                    TextButton(onClick = viewModel::showAddDialog) {
+                        Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
+                        Text("Add New", modifier = Modifier.padding(start = 4.dp), maxLines = 1)
+                    }
+                    TextButton(onClick = viewModel::showBulkImportDialog) {
+                        Text("Bulk Import", maxLines = 1)
+                    }
+                },
             )
 
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "My Collection",
-                    style = MaterialTheme.typography.headlineMedium,
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = SereneSpacing.containerMargin),
+                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
+            ) {
+                AffirmationHeroCard(
+                    affirmation = state.currentAffirmation,
+                    onNext = viewModel::nextAffirmation,
                 )
-                Text(
-                    text = "Your personal echoes of strength",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                state.importMessage?.let { message ->
+
+                Button(
+                    onClick = viewModel::startReview,
+                    enabled = state.canStartReview,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Affirmations Review")
+                }
+
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp),
+                        text = "My Collection",
+                        style = MaterialTheme.typography.headlineMedium,
                     )
-                }
-            }
-
-            if (state.affirmations.isEmpty()) {
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "No affirmations yet. Add your first one.",
+                        text = "Your personal echoes of strength",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(24.dp),
-                        textAlign = TextAlign.Center,
                     )
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
-                    state.affirmations.forEach { affirmation ->
-                        AffirmationCollectionCard(
-                            affirmation = affirmation,
-                            onFavorite = { viewModel.toggleFavorite(affirmation) },
-                            onEdit = { viewModel.showEditDialog(affirmation) },
-                            onDelete = { viewModel.deleteAffirmation(affirmation) },
+                    if (state.affirmations.isNotEmpty()) {
+                        Text(
+                            text = "Press and hold to reorder",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
                         )
                     }
-                }
-            }
-        } else {
-            if (state.affirmations.isEmpty()) {
-                Text(
-                    text = "No affirmations yet. Add your first one.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    textAlign = TextAlign.Center,
-                )
-            } else {
-                Column(modifier = Modifier.fillMaxWidth()) {
                     state.importMessage?.let { message ->
                         Text(
                             text = message,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(bottom = 8.dp),
+                            modifier = Modifier.padding(top = 4.dp),
                         )
                     }
-                    state.affirmations.forEachIndexed { index, affirmation ->
-                        AffirmationListRow(
-                            affirmation = affirmation,
-                            onFavorite = { viewModel.toggleFavorite(affirmation) },
-                            onEdit = { viewModel.showEditDialog(affirmation) },
-                            onDelete = { viewModel.deleteAffirmation(affirmation) },
+                }
+
+                if (state.affirmations.isEmpty()) {
+                    GlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "No affirmations yet. Add your first one.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(24.dp),
+                            textAlign = TextAlign.Center,
                         )
-                        if (index < state.affirmations.lastIndex) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    }
+                } else {
+                    ReorderableAffirmationList(
+                        affirmations = state.affirmations,
+                        onEdit = viewModel::showEditDialog,
+                        onDelete = viewModel::deleteAffirmation,
+                        onReorder = viewModel::reorderAffirmations,
+                    )
+                }
+
+                GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = if (state.reminderEnabled) {
+                                    Icons.Default.Notifications
+                                } else {
+                                    Icons.Default.NotificationsOff
+                                },
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
                             )
+                            Column {
+                                Text(text = "Daily Reminder", style = MaterialTheme.typography.labelLarge)
+                                Text(
+                                    text = if (state.reminderEnabled) {
+                                        "%02d:%02d".format(state.reminderHour, state.reminderMinute)
+                                    } else {
+                                        "Off"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
+                        Switch(
+                            checked = state.reminderEnabled,
+                            onCheckedChange = { enabled ->
+                                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    val granted = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.POST_NOTIFICATIONS,
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                    if (!granted) {
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                }
+                                if (enabled) {
+                                    TimePickerDialog(
+                                        context,
+                                        { _, hour, minute -> viewModel.setReminder(true, hour, minute) },
+                                        state.reminderHour,
+                                        state.reminderMinute,
+                                        false,
+                                    ).show()
+                                } else {
+                                    viewModel.setReminder(false, state.reminderHour, state.reminderMinute)
+                                }
+                            },
+                        )
                     }
                 }
             }
         }
 
-        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = if (state.reminderEnabled) {
-                            Icons.Default.Notifications
-                        } else {
-                            Icons.Default.NotificationsOff
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Column {
-                        Text(text = "Daily Reminder", style = MaterialTheme.typography.labelLarge)
-                        Text(
-                            text = if (state.reminderEnabled) {
-                                "%02d:%02d".format(state.reminderHour, state.reminderMinute)
-                            } else {
-                                "Off"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                Switch(
-                    checked = state.reminderEnabled,
-                    onCheckedChange = { enabled ->
-                        if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            val granted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.POST_NOTIFICATIONS,
-                            ) == PackageManager.PERMISSION_GRANTED
-                            if (!granted) {
-                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        }
-                        if (enabled) {
-                            TimePickerDialog(
-                                context,
-                                { _, hour, minute -> viewModel.setReminder(true, hour, minute) },
-                                state.reminderHour,
-                                state.reminderMinute,
-                                false,
-                            ).show()
-                        } else {
-                            viewModel.setReminder(false, state.reminderHour, state.reminderMinute)
-                        }
-                    },
-                )
-            }
-        }
+        if (state.showReview) {
+            AffirmationReviewOverlay(
+                affirmations = state.affirmations,
+                currentIndex = state.reviewIndex,
+                isCompleting = state.reviewCompleting,
+                onPrevious = viewModel::reviewPrevious,
+                onNext = viewModel::reviewNext,
+                onExit = viewModel::exitReview,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 
@@ -351,62 +324,15 @@ private fun AffirmationHeroCard(
 }
 
 @Composable
-private fun AffirmationListRow(
+internal fun AffirmationCollectionCard(
     affirmation: AffirmationEntity,
-    onFavorite: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = affirmation.text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = formatSavedAgo(affirmation.createdAt),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-        IconButton(onClick = onFavorite) {
-            Icon(
-                imageVector = if (affirmation.isFavorite) {
-                    Icons.Default.Favorite
-                } else {
-                    Icons.Outlined.FavoriteBorder
-                },
-                contentDescription = "Favorite",
-                tint = if (affirmation.isFavorite) SereneTertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        IconButton(onClick = onEdit) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit")
-        }
-        IconButton(onClick = onDelete) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete")
-        }
-    }
-}
-
-@Composable
-private fun AffirmationCollectionCard(
-    affirmation: AffirmationEntity,
-    onFavorite: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    isDragging: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     GlassCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         cornerRadius = 16.dp,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -430,17 +356,6 @@ private fun AffirmationCollectionCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Row {
-                    IconButton(onClick = onFavorite) {
-                        Icon(
-                            imageVector = if (affirmation.isFavorite) {
-                                Icons.Default.Favorite
-                            } else {
-                                Icons.Outlined.FavoriteBorder
-                            },
-                            contentDescription = "Favorite",
-                            tint = if (affirmation.isFavorite) SereneTertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
                     }

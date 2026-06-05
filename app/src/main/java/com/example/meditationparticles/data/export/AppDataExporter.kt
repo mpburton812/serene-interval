@@ -102,7 +102,6 @@ class AppDataExporter(
             put("reminderEnabled", affirmationPrefs.reminderEnabled)
             put("reminderHour", affirmationPrefs.reminderHour)
             put("reminderMinute", affirmationPrefs.reminderMinute)
-            put("viewMode", affirmationPrefs.viewMode)
         })
         put("timerPreferences", JSONObject().apply {
             put("displayMode", timerPrefs.displayMode.name)
@@ -164,7 +163,6 @@ class AppDataExporter(
         put("text", text)
         put("createdAt", createdAt)
         put("sortOrder", sortOrder)
-        put("isFavorite", isFavorite)
     }
 
     private fun ThoughtDumpEntity.toJson(): JSONObject = JSONObject().apply {

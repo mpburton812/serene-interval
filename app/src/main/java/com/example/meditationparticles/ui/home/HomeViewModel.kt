@@ -43,8 +43,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshDailyAffirmation() {
         viewModelScope.launch {
             affirmationRepository.seedIfEmpty()
-            _dailyAffirmation.value = affirmationRepository.randomFavoriteAffirmation()?.text
-                ?: affirmationRepository.randomAffirmation()?.text
+            _dailyAffirmation.value = affirmationRepository.randomAffirmation()?.text
                 ?: DefaultFallback
         }
     }

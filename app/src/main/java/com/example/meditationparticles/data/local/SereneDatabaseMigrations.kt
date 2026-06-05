@@ -402,6 +402,29 @@ private class Migration15To16 : Migration(15, 16) {
     }
 }
 
+private class Migration16To17 : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS affirmations_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                text TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                sortOrder INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO affirmations_new (id, text, createdAt, sortOrder)
+            SELECT id, text, createdAt, sortOrder FROM affirmations
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE affirmations")
+        db.execSQL("ALTER TABLE affirmations_new RENAME TO affirmations")
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -418,4 +441,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration13To14(),
     Migration14To15(),
     Migration15To16(),
+    Migration16To17(),
 )

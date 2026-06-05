@@ -267,7 +267,6 @@ class AppDataImporter(
             reminderEnabled = json.optBoolean("reminderEnabled", current.reminderEnabled),
             reminderHour = json.optInt("reminderHour", current.reminderHour),
             reminderMinute = json.optInt("reminderMinute", current.reminderMinute),
-            viewMode = json.optString("viewMode", current.viewMode),
         )
     }
 
@@ -405,7 +404,6 @@ class AppDataImporter(
                     text = text,
                     createdAt = createdAt,
                     sortOrder = item.optInt("sortOrder", 0),
-                    isFavorite = item.optBoolean("isFavorite", false),
                 ),
             )
             imported++
