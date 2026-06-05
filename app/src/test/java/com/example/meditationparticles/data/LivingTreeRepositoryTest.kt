@@ -25,8 +25,9 @@ class LivingTreeRepositoryTest {
         repository.seedDefaultTagsIfEmpty()
 
         assertEquals(LivingTreeDefaults.defaultTags.size, tagDao.tags.size)
-        assertTrue(tagDao.tags.any { it.name == "Chosen family" })
-        assertTrue(tagDao.tags.any { it.name == "Trans family" })
+        assertTrue(tagDao.tags.any { it.name == "Chosen Family" })
+        assertTrue(tagDao.tags.any { it.name == "Trans" })
+        assertTrue(tagDao.tags.any { it.name == "Lover" })
     }
 
     @Test

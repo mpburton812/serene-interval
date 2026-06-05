@@ -77,8 +77,10 @@ class LivingTreeFilterLogicTest {
     fun defaultTags_includeQueerAndTransInclusiveSet() {
         val names = LivingTreeDefaults.defaultTags.map { it.name }
 
-        assertTrue(names.contains("Chosen family"))
-        assertTrue(names.contains("Trans family"))
-        assertTrue(names.contains("Queer community"))
+        assertTrue(names.contains("Chosen Family"))
+        assertTrue(names.contains("Trans"))
+        assertTrue(names.contains("Queer"))
+        assertTrue(names.contains("Poly"))
+        assertTrue(names.contains("Long Distance"))
     }
 }

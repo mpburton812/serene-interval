@@ -8,16 +8,16 @@ object LivingTreeDefaults {
     val defaultTags: List<DefaultTag> = listOf(
         DefaultTag("Family", 0xFF4A654E.toInt()),
         DefaultTag("Partner", 0xFFE07A5F.toInt()),
-        DefaultTag("Friends", 0xFF3D5A80.toInt()),
+        DefaultTag("Lover", 0xFFC1666B.toInt()),
+        DefaultTag("Friend", 0xFF3D5A80.toInt()),
+        DefaultTag("Chosen Family", 0xFF9B5DE5.toInt()),
         DefaultTag("Work", 0xFF6B705C.toInt()),
-        DefaultTag("Community", 0xFF81B29A.toInt()),
         DefaultTag("Support", 0xFF5B8C5A.toInt()),
-        DefaultTag("Anchor", 0xFF457B9D.toInt()),
-        DefaultTag("Trigger", 0xFFC1666B.toInt()),
-        DefaultTag("Distance", 0xFF9A8C98.toInt()),
-        DefaultTag("Chosen family", 0xFF9B5DE5.toInt()),
-        DefaultTag("Trans family", 0xFF55CDFC.toInt()),
-        DefaultTag("Queer community", 0xFFF7A8B8.toInt()),
+        DefaultTag("Poly", 0xFFE9B44C.toInt()),
+        DefaultTag("Queer", 0xFFF7A8B8.toInt()),
+        DefaultTag("Trans", 0xFF55CDFC.toInt()),
+        DefaultTag("Long Distance", 0xFF9A8C98.toInt()),
+        DefaultTag("Local", 0xFF81B29A.toInt()),
     )
 
     val presetColors: List<Int> = listOf(
@@ -31,6 +31,7 @@ object LivingTreeDefaults {
         0xFF9B5DE5.toInt(),
         0xFF55CDFC.toInt(),
         0xFFF7A8B8.toInt(),
+        0xFFE9B44C.toInt(),
         0xFF6B705C.toInt(),
         0xFF9A8C98.toInt(),
     )

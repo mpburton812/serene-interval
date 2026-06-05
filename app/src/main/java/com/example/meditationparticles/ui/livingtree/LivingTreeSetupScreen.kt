@@ -510,9 +510,9 @@ private fun PersonEditorDialog(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Names") },
-                        placeholder = { Text("One name per line") },
+                        placeholder = { Text("Alex, Jordan, Sam") },
                         supportingText = {
-                            Text("Enter one name per line. Each name becomes a person with the selected tags.")
+                            Text("Separate names with commas. Each name becomes a person with the selected tags.")
                         },
                         minLines = 3,
                         maxLines = 8,
