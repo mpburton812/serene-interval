@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -76,24 +77,29 @@ fun LivingTreeScreen(
                     .fillMaxWidth()
                     .padding(horizontal = SereneSpacing.containerMargin),
             ) {
-                val minDim = minOf(maxWidth, maxHeight).value
-                val centerX = maxWidth.value / 2f
-                val centerY = maxHeight.value / 2f
+                val density = LocalDensity.current
+                val canvasWidthPx = with(density) { maxWidth.toPx() }
+                val canvasHeightPx = with(density) { maxHeight.toPx() }
+                val minDim = minOf(canvasWidthPx, canvasHeightPx)
+                val centerX = canvasWidthPx / 2f
+                val centerY = canvasHeightPx / 2f
                 val layoutSizing = LivingTreeLayout.computeLayoutSizing(
                     minDimension = minDim,
                     personCount = state.visiblePeople.size,
                 )
+                val personIds = state.visiblePeople.map { it.person.id }
                 val storedPositions = LivingTreeLayout.storedPositionsFromPeople(
                     state.visiblePeople.map {
                         Triple(it.person.id, it.person.angleRadians, it.person.radiusFraction)
                     },
                 ) + state.dragPositionOverrides
                 val positions = LivingTreeLayout.radialPositions(
-                    personIds = state.visiblePeople.map { it.person.id },
+                    personIds = personIds,
                     centerX = centerX,
                     centerY = centerY,
                     orbitRadius = layoutSizing.orbitRadius,
                     nodeRadius = layoutSizing.nodeRadius,
+                    centerRadius = layoutSizing.centerRadius,
                     storedPositions = storedPositions,
                 ).associateBy { it.id }
 
@@ -127,7 +133,20 @@ fun LivingTreeScreen(
                         state.allPeople.find { it.person.id == id }?.let(viewModel::selectPerson)
                     },
                     onPersonDragPosition = viewModel::onPersonDragPosition,
-                    onPersonDragEnd = viewModel::onPersonDragEnd,
+                    onPersonDragEnd = { personId, position ->
+                        val nudged = LivingTreeLayout.nudgeStoredPosition(
+                            draggedId = personId,
+                            proposed = position,
+                            otherStored = storedPositions - personId,
+                            personIds = personIds,
+                            centerX = centerX,
+                            centerY = centerY,
+                            orbitRadius = layoutSizing.orbitRadius,
+                            nodeRadius = layoutSizing.nodeRadius,
+                            centerRadius = layoutSizing.centerRadius,
+                        )
+                        viewModel.onPersonDragEnd(personId, nudged)
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
