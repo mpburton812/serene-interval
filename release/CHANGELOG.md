@@ -2,11 +2,19 @@
 
 ## Unreleased
 
+### Mood tracker widget
+
+- Home screen widget with four mood buttons matching in-app quick-log colors and icons
+- Tap records to `mood_entries` with `WIDGET` source via `MoodTrackerRepository`
+- Configuration activity: white or black background and transparency slider (0–100%)
+- Per-widget preferences stored in `MoodWidgetPreferences`; cleared when widget is removed
+
 ### Mood tracker (Phase 2)
 
 - Home screen quick mood log card with large mood buttons and pulse animation
 - Toolkit header shows day/week/month average mood faces; tap opens period graph
 - Mood graph screen with canvas line chart, entry count, and average subtitle
+- Date and mood axis labels on toolkit mood graphs
 - Dual-write to `mood_entries` when saving mood from toolkit journals and timer reflections
 - JSON export version 3 includes dedicated `moodEntries` array with clear-and-restore import
 
