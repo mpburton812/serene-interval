@@ -11,4 +11,20 @@ object AffirmationReviewLogic {
 
     fun shouldCompleteReview(currentIndex: Int, lastIndex: Int): Boolean =
         currentIndex == lastIndex
+
+    fun textAt(texts: List<String>, index: Int): String? = texts.getOrNull(index)
+
+    /** Every forward navigation step advances the index by exactly one. */
+    fun forwardIndexSequence(lastIndex: Int): List<Int> {
+        if (lastIndex < 0) return emptyList()
+        return buildList {
+            var index = 0
+            add(index)
+            while (true) {
+                val next = nextIndex(index, lastIndex) ?: break
+                add(next)
+                index = next
+            }
+        }
+    }
 }

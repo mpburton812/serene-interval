@@ -91,7 +91,8 @@ fun AffirmationsTab(
     ) { /* handled on next toggle */ }
 
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        if (!state.showReview) {
+            Column(modifier = Modifier.fillMaxSize()) {
             SereneTabHeader(
                 title = "Affirmations",
                 controls = {
@@ -234,12 +235,14 @@ fun AffirmationsTab(
                     }
                 }
             }
+            }
         }
 
         if (state.showReview) {
             AffirmationReviewOverlay(
                 affirmations = state.affirmations,
                 currentIndex = state.reviewIndex,
+                currentAffirmation = state.reviewAffirmation,
                 isCompleting = state.reviewCompleting,
                 onPrevious = viewModel::reviewPrevious,
                 onNext = viewModel::reviewNext,

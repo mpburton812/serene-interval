@@ -14,6 +14,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,23 +34,25 @@ import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.ui.theme.SerenePrimary
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
+private const val ReviewTransitionMs = 200
+
 @Composable
 fun AffirmationReviewOverlay(
     affirmations: List<AffirmationEntity>,
     currentIndex: Int,
+    currentAffirmation: AffirmationEntity?,
     isCompleting: Boolean,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val affirmation = affirmations.getOrNull(currentIndex)
     val lastIndex = affirmations.lastIndex
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.surface),
     ) {
         Column(
             modifier = Modifier
@@ -68,13 +75,21 @@ fun AffirmationReviewOverlay(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = affirmation?.text ?: "",
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                AnimatedContent(
+                    targetState = currentIndex,
+                    transitionSpec = {
+                        fadeIn(tween(ReviewTransitionMs)) togetherWith fadeOut(tween(ReviewTransitionMs))
+                    },
+                    label = "review_affirmation_text",
+                ) { index ->
+                    Text(
+                        text = affirmations.getOrNull(index)?.text.orEmpty(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
             }
 
             Row(
@@ -106,7 +121,7 @@ fun AffirmationReviewOverlay(
 
                 TextButton(
                     onClick = onNext,
-                    enabled = !isCompleting && affirmation != null,
+                    enabled = !isCompleting && currentAffirmation != null,
                 ) {
                     Text(if (currentIndex == lastIndex) "Finish" else "Next")
                     Icon(

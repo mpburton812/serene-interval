@@ -33,4 +33,23 @@ class AffirmationReviewLogicTest {
         assertTrue(AffirmationReviewLogic.shouldCompleteReview(2, 2))
         assertTrue(AffirmationReviewLogic.shouldCompleteReview(0, 0))
     }
+
+    @Test
+    fun forwardIndexSequence_advancesOneIndexPerStep() {
+        assertEquals(listOf(0, 1, 2, 3, 4), AffirmationReviewLogic.forwardIndexSequence(lastIndex = 4))
+        assertEquals(listOf(0), AffirmationReviewLogic.forwardIndexSequence(lastIndex = 0))
+        assertEquals(emptyList<Int>(), AffirmationReviewLogic.forwardIndexSequence(lastIndex = -1))
+    }
+
+    @Test
+    fun navigation_textChangesOnEveryIndexForDistinctAffirmations() {
+        val texts = listOf("Alpha", "Beta", "Gamma", "Delta")
+        val lastIndex = texts.lastIndex
+        val seenTexts = AffirmationReviewLogic.forwardIndexSequence(lastIndex).map { index ->
+            AffirmationReviewLogic.textAt(texts, index)
+        }
+
+        assertEquals(texts, seenTexts)
+        assertEquals(texts.size, seenTexts.distinct().size)
+    }
 }

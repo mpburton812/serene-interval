@@ -33,6 +33,9 @@ data class AffirmationsUiState(
     val currentAffirmation: AffirmationEntity?
         get() = affirmations.getOrNull(currentIndex.coerceIn(0, (affirmations.size - 1).coerceAtLeast(0)))
 
+    val reviewAffirmation: AffirmationEntity?
+        get() = affirmations.getOrNull(reviewIndex.coerceIn(0, (affirmations.size - 1).coerceAtLeast(0)))
+
     val canStartReview: Boolean
         get() = AffirmationReviewLogic.canStartReview(affirmations.size)
 }
