@@ -83,16 +83,18 @@ fun LivingTreeScreen(
                     minDimension = minDim,
                     personCount = state.visiblePeople.size,
                 )
-                val storedAngles = LivingTreeLayout.storedAnglesFromPeople(
-                    state.visiblePeople.map { it.person.id to it.person.angleRadians },
-                ) + state.dragAngleOverrides
+                val storedPositions = LivingTreeLayout.storedPositionsFromPeople(
+                    state.visiblePeople.map {
+                        Triple(it.person.id, it.person.angleRadians, it.person.radiusFraction)
+                    },
+                ) + state.dragPositionOverrides
                 val positions = LivingTreeLayout.radialPositions(
                     personIds = state.visiblePeople.map { it.person.id },
                     centerX = centerX,
                     centerY = centerY,
                     orbitRadius = layoutSizing.orbitRadius,
                     nodeRadius = layoutSizing.nodeRadius,
-                    storedAngles = storedAngles,
+                    storedPositions = storedPositions,
                 ).associateBy { it.id }
 
                 val tagColors = state.tags.associate { it.id to it.colorArgb }
@@ -124,7 +126,7 @@ fun LivingTreeScreen(
                     onPersonTap = { id ->
                         state.allPeople.find { it.person.id == id }?.let(viewModel::selectPerson)
                     },
-                    onPersonDragAngle = viewModel::onPersonDragAngle,
+                    onPersonDragPosition = viewModel::onPersonDragPosition,
                     onPersonDragEnd = viewModel::onPersonDragEnd,
                     modifier = Modifier.fillMaxSize(),
                 )

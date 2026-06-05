@@ -428,6 +428,7 @@ class AppDataImporter(
                         notes = item.optString("notes", ""),
                         sortOrder = item.optInt("sortOrder", size),
                         angleRadians = item.optDouble("angleRadians").takeIf { item.has("angleRadians") },
+                        radiusFraction = item.optDouble("radiusFraction").takeIf { item.has("radiusFraction") },
                         createdAtMillis = item.optLong("createdAtMillis", System.currentTimeMillis()),
                         updatedAtMillis = item.optLong("updatedAtMillis", System.currentTimeMillis()),
                     ),

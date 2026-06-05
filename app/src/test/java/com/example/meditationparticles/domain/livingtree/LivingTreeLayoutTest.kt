@@ -90,9 +90,9 @@ class LivingTreeLayoutTest {
 
     @Test
     fun radialPositions_nullStoredAngles_useEvenSpacingNotZero() {
-        val ids = listOf(10L, 20L, 30L)
-        val stored = LivingTreeLayout.storedAnglesFromPeople(
-            ids.map { it to null },
+        val ids = List(7) { index -> (index + 1).toLong() }
+        val stored = LivingTreeLayout.storedPositionsFromPeople(
+            ids.map { Triple(it, null, null) },
         )
         assertTrue(stored.isEmpty())
 
@@ -102,23 +102,77 @@ class LivingTreeLayoutTest {
             centerY = 0f,
             orbitRadius = 100f,
             nodeRadius = 20f,
-            storedAngles = stored,
+            storedPositions = stored,
         )
 
+        assertEquals(7, positions.size)
         val distinct = positions.map { Pair(it.x.toInt(), it.y.toInt()) }.toSet()
-        assertEquals(3, distinct.size)
+        assertEquals(7, distinct.size)
     }
 
     @Test
-    fun storedAnglesFromPeople_omitsNullDbValues() {
-        val stored = LivingTreeLayout.storedAnglesFromPeople(
-            listOf(1L to 1.5, 2L to null, 3L to 0.0),
+    fun radialPositions_duplicateStoredAngles_reSpreadEvenly() {
+        val ids = List(7) { index -> (index + 1).toLong() }
+        val stored = ids.associateWith {
+            LivingTreeLayout.StoredPosition(angleRadians = 0.0, radiusFraction = 1.0)
+        }
+
+        val positions = LivingTreeLayout.radialPositions(
+            personIds = ids,
+            centerX = 0f,
+            centerY = 0f,
+            orbitRadius = 100f,
+            nodeRadius = 20f,
+            storedPositions = stored,
+        )
+
+        assertEquals(7, positions.size)
+        val distinct = positions.map { Pair(it.x.toInt(), it.y.toInt()) }.toSet()
+        assertEquals(7, distinct.size)
+    }
+
+    @Test
+    fun radialPositions_filteredSubset_evenlySpacesVisiblePeople() {
+        val visibleIds = listOf(1L, 3L, 5L, 7L, 9L, 11L, 13L)
+        val stored = LivingTreeLayout.storedPositionsFromPeople(
+            visibleIds.map { Triple(it, 0.0, 1.0) },
+        )
+
+        val positions = LivingTreeLayout.radialPositions(
+            personIds = visibleIds,
+            centerX = 50f,
+            centerY = 50f,
+            orbitRadius = 80f,
+            nodeRadius = 16f,
+            storedPositions = stored,
+        )
+
+        assertEquals(7, positions.size)
+        val distinct = positions.map { Pair(it.x.toInt(), it.y.toInt()) }.toSet()
+        assertEquals(7, distinct.size)
+    }
+
+    @Test
+    fun storedPositionsFromPeople_omitsNullDbValues() {
+        val stored = LivingTreeLayout.storedPositionsFromPeople(
+            listOf(
+                Triple(1L, 1.5, 0.8),
+                Triple(2L, null, null),
+                Triple(3L, 0.0, 1.0),
+            ),
         )
 
         assertEquals(2, stored.size)
-        assertEquals(1.5, stored[1L]!!, 0.0001)
-        assertEquals(0.0, stored[3L]!!, 0.0001)
+        assertEquals(1.5, stored[1L]!!.angleRadians, 0.0001)
+        assertEquals(0.8, stored[1L]!!.radiusFraction, 0.0001)
+        assertEquals(0.0, stored[3L]!!.angleRadians, 0.0001)
         assertTrue(2L !in stored)
+    }
+
+    @Test
+    fun angleForNewPerson_returnsNullSoLayoutEvenlySpaces() {
+        assertEquals(null, LivingTreeLayout.angleForNewPerson(0))
+        assertEquals(null, LivingTreeLayout.angleForNewPerson(7))
     }
 
     @Test

@@ -8,6 +8,7 @@ import com.example.meditationparticles.data.local.LivingTreePersonWithTags
 import com.example.meditationparticles.data.local.LivingTreeTagEntity
 import com.example.meditationparticles.domain.livingtree.LivingTreeDefaults
 import com.example.meditationparticles.domain.livingtree.LivingTreeFilterLogic
+import com.example.meditationparticles.domain.livingtree.LivingTreeLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,7 +26,7 @@ data class LivingTreeUiState(
     val visiblePeople: List<LivingTreePersonWithTags> = emptyList(),
     val selectedPerson: LivingTreePersonWithTags? = null,
     val filterActive: Boolean = false,
-    val dragAngleOverrides: Map<Long, Double> = emptyMap(),
+    val dragPositionOverrides: Map<Long, LivingTreeLayout.StoredPosition> = emptyMap(),
 )
 
 class LivingTreeViewModel(application: Application) : AndroidViewModel(application) {
@@ -34,16 +35,16 @@ class LivingTreeViewModel(application: Application) : AndroidViewModel(applicati
 
     private val selectedTagIds = MutableStateFlow<List<Long>>(emptyList())
     private val selectedPerson = MutableStateFlow<LivingTreePersonWithTags?>(null)
-    private val dragAngleOverrides = MutableStateFlow<Map<Long, Double>>(emptyMap())
+    private val dragPositionOverrides = MutableStateFlow<Map<Long, LivingTreeLayout.StoredPosition>>(emptyMap())
 
     val uiState: StateFlow<LivingTreeUiState> = combine(
         repository.snapshot,
         settingsFlow,
         selectedTagIds,
         selectedPerson,
-        dragAngleOverrides,
-    ) { snapshot, settings, selected, person, dragAngles ->
-        buildUiState(snapshot.people, snapshot.tagById, settings, selected, person, dragAngles)
+        dragPositionOverrides,
+    ) { snapshot, settings, selected, person, dragPositions ->
+        buildUiState(snapshot.people, snapshot.tagById, settings, selected, person, dragPositions)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
@@ -78,14 +79,18 @@ class LivingTreeViewModel(application: Application) : AndroidViewModel(applicati
         selectedPerson.value = null
     }
 
-    fun onPersonDragAngle(personId: Long, angleRadians: Double) {
-        dragAngleOverrides.value = dragAngleOverrides.value + (personId to angleRadians)
+    fun onPersonDragPosition(personId: Long, position: LivingTreeLayout.StoredPosition) {
+        dragPositionOverrides.value = dragPositionOverrides.value + (personId to position)
     }
 
-    fun onPersonDragEnd(personId: Long, angleRadians: Double) {
-        dragAngleOverrides.value = dragAngleOverrides.value - personId
+    fun onPersonDragEnd(personId: Long, position: LivingTreeLayout.StoredPosition) {
+        dragPositionOverrides.value = dragPositionOverrides.value - personId
         viewModelScope.launch {
-            repository.updatePersonAngle(personId, angleRadians)
+            repository.updatePersonPosition(
+                personId = personId,
+                angleRadians = position.angleRadians,
+                radiusFraction = position.radiusFraction,
+            )
         }
     }
 
@@ -95,7 +100,7 @@ class LivingTreeViewModel(application: Application) : AndroidViewModel(applicati
         settings: ExperienceSettings,
         selected: List<Long>,
         person: LivingTreePersonWithTags?,
-        dragAngles: Map<Long, Double>,
+        dragPositions: Map<Long, LivingTreeLayout.StoredPosition>,
     ): LivingTreeUiState {
         val peopleTagIds = people.associate { entry ->
             entry.person.id to entry.tags.map { it.id }.toSet()
@@ -112,7 +117,7 @@ class LivingTreeViewModel(application: Application) : AndroidViewModel(applicati
             visiblePeople = visiblePeople,
             selectedPerson = person,
             filterActive = selected.isNotEmpty(),
-            dragAngleOverrides = dragAngles,
+            dragPositionOverrides = dragPositions,
         )
     }
 }

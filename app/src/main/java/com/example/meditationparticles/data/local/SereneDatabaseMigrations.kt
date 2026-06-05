@@ -483,6 +483,17 @@ private class Migration17To18 : Migration(17, 18) {
     }
 }
 
+private class Migration18To19 : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            ALTER TABLE living_tree_people
+            ADD COLUMN radiusFraction REAL
+            """.trimIndent(),
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -501,4 +512,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration15To16(),
     Migration16To17(),
     Migration17To18(),
+    Migration18To19(),
 )
