@@ -1,8 +1,8 @@
 package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.MeditationReflectionDao
+import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
-import java.io.File
 import kotlinx.coroutines.flow.Flow
 
 class MeditationReflectionRepository(
@@ -15,15 +15,13 @@ class MeditationReflectionRepository(
         durationSeconds: Int,
         completedAt: Long,
         moodLevel: Int? = null,
-        audioPath: String? = null,
     ): Long? {
         val trimmed = reflection.trim()
-        if (trimmed.isEmpty() && audioPath.isNullOrBlank()) return null
+        if (trimmed.isEmpty()) return null
         return dao.insert(
             MeditationReflectionEntity(
                 reflection = trimmed,
-                moodLevel = moodLevel?.coerceIn(1, 5),
-                audioPath = audioPath,
+                moodLevel = MoodScale.normalize(moodLevel),
                 durationSeconds = durationSeconds.coerceAtLeast(0),
                 completedAt = completedAt,
             ),
@@ -33,8 +31,6 @@ class MeditationReflectionRepository(
     suspend fun getById(id: Long): MeditationReflectionEntity? = dao.getById(id)
 
     suspend fun delete(id: Long) {
-        val entry = dao.getById(id) ?: return
-        entry.audioPath?.let { path -> File(path).delete() }
         dao.deleteById(id)
     }
 }

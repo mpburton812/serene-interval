@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         OneNoteSyncMappingEntity::class,
         OneNoteSyncQueueEntity::class,
     ],
-    version = 13,
+    version = 15,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -226,6 +226,164 @@ abstract class SereneDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS thought_dumps_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        logType TEXT NOT NULL,
+                        moodLevel INTEGER,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO thought_dumps_new (id, content, logType, moodLevel, createdAt)
+                    SELECT id, content, logType, moodLevel, createdAt FROM thought_dumps
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE thought_dumps")
+                db.execSQL("ALTER TABLE thought_dumps_new RENAME TO thought_dumps")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS future_self_messages_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        moodLevel INTEGER,
+                        scheduledAtMillis INTEGER NOT NULL,
+                        createdAtMillis INTEGER NOT NULL,
+                        delivered INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO future_self_messages_new (
+                        id, content, moodLevel, scheduledAtMillis, createdAtMillis, delivered
+                    )
+                    SELECT id, content, moodLevel, scheduledAtMillis, createdAtMillis, delivered
+                    FROM future_self_messages
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE future_self_messages")
+                db.execSQL("ALTER TABLE future_self_messages_new RENAME TO future_self_messages")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS refactoring_entries_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        interpretation TEXT NOT NULL,
+                        actualFacts TEXT NOT NULL,
+                        explanation1 TEXT NOT NULL,
+                        explanation2 TEXT NOT NULL,
+                        explanation3 TEXT NOT NULL,
+                        moodLevel INTEGER,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO refactoring_entries_new (
+                        id, interpretation, actualFacts, explanation1, explanation2, explanation3,
+                        moodLevel, createdAt
+                    )
+                    SELECT id, interpretation, actualFacts, explanation1, explanation2, explanation3,
+                        moodLevel, createdAt
+                    FROM refactoring_entries
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE refactoring_entries")
+                db.execSQL("ALTER TABLE refactoring_entries_new RENAME TO refactoring_entries")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS center_of_gravity_entries_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        thoughtsAndFeelings TEXT NOT NULL,
+                        bodyAndNeeds TEXT NOT NULL,
+                        moodLevel INTEGER,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO center_of_gravity_entries_new (
+                        id, thoughtsAndFeelings, bodyAndNeeds, moodLevel, createdAt
+                    )
+                    SELECT id, thoughtsAndFeelings, bodyAndNeeds, moodLevel, createdAt
+                    FROM center_of_gravity_entries
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE center_of_gravity_entries")
+                db.execSQL("ALTER TABLE center_of_gravity_entries_new RENAME TO center_of_gravity_entries")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS nvc_entries_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        observation TEXT NOT NULL,
+                        feeling TEXT NOT NULL,
+                        need TEXT NOT NULL,
+                        request TEXT NOT NULL,
+                        moodLevel INTEGER,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO nvc_entries_new (
+                        id, observation, feeling, need, request, moodLevel, createdAt
+                    )
+                    SELECT id, observation, feeling, need, request, moodLevel, createdAt
+                    FROM nvc_entries
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE nvc_entries")
+                db.execSQL("ALTER TABLE nvc_entries_new RENAME TO nvc_entries")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS meditation_reflections_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        reflection TEXT NOT NULL,
+                        moodLevel INTEGER,
+                        durationSeconds INTEGER NOT NULL,
+                        completedAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO meditation_reflections_new (
+                        id, reflection, moodLevel, durationSeconds, completedAt
+                    )
+                    SELECT id, reflection, moodLevel, durationSeconds, completedAt
+                    FROM meditation_reflections
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE meditation_reflections")
+                db.execSQL("ALTER TABLE meditation_reflections_new RENAME TO meditation_reflections")
+            }
+        }
+
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("UPDATE thought_dumps SET moodLevel = 4 WHERE moodLevel = 5")
+                db.execSQL("UPDATE future_self_messages SET moodLevel = 4 WHERE moodLevel = 5")
+                db.execSQL("UPDATE refactoring_entries SET moodLevel = 4 WHERE moodLevel = 5")
+                db.execSQL("UPDATE center_of_gravity_entries SET moodLevel = 4 WHERE moodLevel = 5")
+                db.execSQL("UPDATE nvc_entries SET moodLevel = 4 WHERE moodLevel = 5")
+                db.execSQL("UPDATE meditation_reflections SET moodLevel = 4 WHERE moodLevel = 5")
+            }
+        }
+
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -276,6 +434,8 @@ abstract class SereneDatabase : RoomDatabase() {
                         MIGRATION_10_11,
                         MIGRATION_11_12,
                         MIGRATION_12_13,
+                        MIGRATION_13_14,
+                        MIGRATION_14_15,
                     )
                     .build()
                     .also { instance = it }

@@ -69,6 +69,27 @@ class OneNoteSyncRepository(
         processQueue(force = true)
     }
 
+    suspend fun backfillSyncedMoodEntries(): Int = withContext(Dispatchers.IO) {
+        if (!canAutoSync()) return@withContext 0
+
+        var queuedCount = 0
+        for (entryType in OneNoteEntryType.entries) {
+            if (!preferences.isEntryTypeEnabled(entryType)) continue
+            for (entryId in loadMoodEntryIds(entryType)) {
+                val mapping = syncDao.getMapping(entryId, entryType.name)
+                if (
+                    mapping?.syncStatus != OneNoteSyncStatus.SYNCED.name ||
+                    mapping.oneNotePageId.isNullOrBlank()
+                ) {
+                    continue
+                }
+                enqueueInternal(entryType, entryId)
+                queuedCount++
+            }
+        }
+        queuedCount
+    }
+
     suspend fun backfillExistingEntries(): Int = withContext(Dispatchers.IO) {
         if (!isConnected()) return@withContext 0
         ensureSection().getOrElse { return@withContext 0 }
@@ -361,6 +382,30 @@ class OneNoteSyncRepository(
 
     private suspend fun existingMappingPageId(item: OneNoteSyncQueueEntity): String? =
         syncDao.getMapping(item.localEntryId, item.entryType)?.oneNotePageId
+
+    private suspend fun loadMoodEntryIds(entryType: OneNoteEntryType): List<Long> = when (entryType) {
+        OneNoteEntryType.NVC -> database.nvcEntryDao().getAll()
+            .filter { it.moodLevel != null }
+            .map { it.id }
+        OneNoteEntryType.REFACTORING -> database.refactoringEntryDao().getAll()
+            .filter { it.moodLevel != null }
+            .map { it.id }
+        OneNoteEntryType.CENTER_OF_GRAVITY -> database.centerOfGravityEntryDao().getAll()
+            .filter { it.moodLevel != null }
+            .map { it.id }
+        OneNoteEntryType.THOUGHT_DUMP -> database.thoughtDumpDao().getAll()
+            .filter { it.logType == ToolkitLogType.THOUGHT_DUMP.name && it.moodLevel != null }
+            .map { it.id }
+        OneNoteEntryType.ANXIETY_LOG -> database.thoughtDumpDao().getAll()
+            .filter { it.logType == ToolkitLogType.ANXIETY_LOG.name && it.moodLevel != null }
+            .map { it.id }
+        OneNoteEntryType.FUTURE_SELF -> database.futureSelfMessageDao().getAll()
+            .filter { it.moodLevel != null }
+            .map { it.id }
+        OneNoteEntryType.MEDITATION_REFLECTION -> database.meditationReflectionDao().getAll()
+            .filter { it.moodLevel != null }
+            .map { it.id }
+    }
 
     private suspend fun loadAllEntryIds(entryType: OneNoteEntryType): List<Long> = when (entryType) {
         OneNoteEntryType.NVC -> database.nvcEntryDao().getAll().map { it.id }

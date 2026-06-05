@@ -1,12 +1,5 @@
 package com.example.meditationparticles.ui.toolkit
 
-import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.speech.RecognizerIntent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,9 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.StopCircle
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -31,32 +21,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import com.example.meditationparticles.audio.ToolkitAudioPlayer
-import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.ui.components.GlassCard
-import com.example.meditationparticles.ui.components.MoodLevelPicker
+import com.example.meditationparticles.ui.components.HistoryGlassCard
+import com.example.meditationparticles.ui.components.MoodDisplay
+import com.example.meditationparticles.ui.components.MoodPicker
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
-
-enum class RefactoringSpeechTarget {
-    Interpretation,
-    ActualFacts,
-    Explanation1,
-    Explanation2,
-    Explanation3,
-}
 
 @Composable
 fun RefactoringContent(
@@ -68,7 +43,6 @@ fun RefactoringContent(
     explanation1: String,
     explanation2: String,
     explanation3: String,
-    pendingAudioPath: String?,
     entries: List<RefactoringEntryEntity>,
     openedEntry: RefactoringEntryEntity?,
     onInterpretationChange: (String) -> Unit,
@@ -76,8 +50,6 @@ fun RefactoringContent(
     onExplanation1Change: (String) -> Unit,
     onExplanation2Change: (String) -> Unit,
     onExplanation3Change: (String) -> Unit,
-    onPendingAudioChange: (String?) -> Unit,
-    onSpeechResult: (RefactoringSpeechTarget, String) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onStepChange: (Int) -> Unit,
@@ -89,71 +61,6 @@ fun RefactoringContent(
     showOneNoteSync: Boolean = false,
     onSyncEntryToOneNote: (RefactoringEntryEntity) -> Unit = {},
 ) {
-    val context = LocalContext.current
-    val audioRecorder = remember { ToolkitAudioRecorder(context) }
-    val audioPlayer = remember { ToolkitAudioPlayer() }
-    var isRecording by remember { mutableStateOf(false) }
-    var speechTarget by remember { mutableStateOf(RefactoringSpeechTarget.Interpretation) }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            if (isRecording) audioRecorder.stop()
-            audioPlayer.release()
-        }
-    }
-
-    val recordPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            audioRecorder.start()?.let { path ->
-                onPendingAudioChange(path)
-                isRecording = true
-            }
-        }
-    }
-
-    val speechLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val spoken = result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-            spoken?.let { onSpeechResult(speechTarget, it) }
-        }
-    }
-
-    fun launchSpeechToText(target: RefactoringSpeechTarget) {
-        speechTarget = target
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your thoughts…")
-        }
-        speechLauncher.launch(intent)
-    }
-
-    fun toggleRecording() {
-        if (isRecording) {
-            val path = audioRecorder.stop()
-            isRecording = false
-            onPendingAudioChange(path ?: pendingAudioPath)
-        } else {
-            val granted = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.RECORD_AUDIO,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (granted) {
-                audioRecorder.start()?.let { path ->
-                    onPendingAudioChange(path)
-                    isRecording = true
-                }
-            } else {
-                recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
-        }
-    }
-
     val stepCount = 3
     val isLastStep = stepIndex >= stepCount - 1
     val stepInstruction = when (stepIndex) {
@@ -163,14 +70,9 @@ fun RefactoringContent(
     }
 
     fun stepHasContent(): Boolean = when (stepIndex) {
-        0 -> actualFacts.isNotBlank() || pendingAudioPath != null
-        1 -> interpretation.isNotBlank() || pendingAudioPath != null
-        else -> {
-            val hasText = explanation1.isNotBlank() ||
-                explanation2.isNotBlank() ||
-                explanation3.isNotBlank()
-            hasText || pendingAudioPath != null
-        }
+        0 -> actualFacts.isNotBlank()
+        1 -> interpretation.isNotBlank()
+        else -> explanation1.isNotBlank() || explanation2.isNotBlank() || explanation3.isNotBlank()
     }
 
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
@@ -188,7 +90,7 @@ fun RefactoringContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            MoodLevelPicker(
+            MoodPicker(
                 selectedLevel = selectedMoodLevel,
                 onLevelChange = onMoodLevelChange,
             )
@@ -204,61 +106,33 @@ fun RefactoringContent(
                         label = "The actual facts",
                         text = actualFacts,
                         onTextChange = onActualFactsChange,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.ActualFacts) },
-                        onToggleRecord = ::toggleRecording,
-                        isRecording = isRecording,
-                        pendingAudioPath = pendingAudioPath,
                     )
                     1 -> RefactoringFieldEditor(
                         label = "Interpretation",
                         text = interpretation,
                         onTextChange = onInterpretationChange,
-                        onDictate = { launchSpeechToText(RefactoringSpeechTarget.Interpretation) },
-                        onToggleRecord = ::toggleRecording,
-                        isRecording = isRecording,
-                        pendingAudioPath = pendingAudioPath,
                     )
-                    else -> Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
+                    else -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         RefactoringFieldEditor(
                             label = "Explanation 1",
                             text = explanation1,
                             onTextChange = onExplanation1Change,
-                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation1) },
-                            onToggleRecord = ::toggleRecording,
-                            isRecording = isRecording,
-                            pendingAudioPath = pendingAudioPath,
-                            minLines = 3,
+                            minLines = 4,
                         )
                         RefactoringFieldEditor(
                             label = "Explanation 2",
                             text = explanation2,
                             onTextChange = onExplanation2Change,
-                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation2) },
-                            onToggleRecord = ::toggleRecording,
-                            isRecording = isRecording,
-                            pendingAudioPath = pendingAudioPath,
-                            minLines = 3,
+                            minLines = 4,
                         )
                         RefactoringFieldEditor(
                             label = "Explanation 3",
                             text = explanation3,
                             onTextChange = onExplanation3Change,
-                            onDictate = { launchSpeechToText(RefactoringSpeechTarget.Explanation3) },
-                            onToggleRecord = ::toggleRecording,
-                            isRecording = isRecording,
-                            pendingAudioPath = pendingAudioPath,
-                            minLines = 3,
+                            minLines = 4,
                         )
                     }
                 }
-            }
-
-            if (pendingAudioPath != null) {
-                Text(
-                    text = if (isRecording) "Recording in progress…" else "Audio ready to save with this step",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
             }
 
             Row(
@@ -304,7 +178,7 @@ fun RefactoringContent(
     }
 
     if (entries.isNotEmpty()) {
-        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
+        HistoryGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -331,7 +205,6 @@ fun RefactoringContent(
     openedEntry?.let { entry ->
         RefactoringEntryDetailDialog(
             entry = entry,
-            audioPlayer = audioPlayer,
             showOneNoteSync = showOneNoteSync,
             onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
@@ -344,10 +217,6 @@ private fun RefactoringFieldEditor(
     label: String,
     text: String,
     onTextChange: (String) -> Unit,
-    onDictate: () -> Unit,
-    onToggleRecord: () -> Unit,
-    isRecording: Boolean,
-    pendingAudioPath: String?,
     minLines: Int = 8,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -363,33 +232,6 @@ private fun RefactoringFieldEditor(
             placeholder = { Text("What's on your mind…") },
             minLines = minLines,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedButton(onClick = onDictate, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Default.VolumeUp, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text("Dictate", modifier = Modifier.padding(start = 6.dp))
-            }
-            OutlinedButton(onClick = onToggleRecord, modifier = Modifier.weight(1f)) {
-                Icon(
-                    if (isRecording) Icons.Default.StopCircle else Icons.Default.Mic,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    if (isRecording) "Stop" else "Record",
-                    modifier = Modifier.padding(start = 6.dp),
-                )
-            }
-        }
-        if (pendingAudioPath != null && isRecording) {
-            Text(
-                text = "Recording…",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
     }
 }
 
@@ -433,100 +275,21 @@ private fun RefactoringEntryRow(
 @Composable
 private fun RefactoringEntryDetailDialog(
     entry: RefactoringEntryEntity,
-    audioPlayer: ToolkitAudioPlayer,
     showOneNoteSync: Boolean,
     onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var playingPath by remember(entry.id) { mutableStateOf<String?>(null) }
-
-    DisposableEffect(entry.id) {
-        onDispose {
-            audioPlayer.stop()
-            playingPath = null
-        }
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(formatRefactoringTimestamp(entry.createdAt)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                RefactoringReadOnlySection(
-                    label = "The actual facts",
-                    text = entry.actualFacts,
-                    audioPath = entry.actualFactsAudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
-                RefactoringReadOnlySection(
-                    label = "Interpretation",
-                    text = entry.interpretation,
-                    audioPath = entry.interpretationAudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
-                RefactoringReadOnlySection(
-                    label = "Explanation 1",
-                    text = entry.explanation1,
-                    audioPath = entry.explanation1AudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
-                RefactoringReadOnlySection(
-                    label = "Explanation 2",
-                    text = entry.explanation2,
-                    audioPath = entry.explanation2AudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
-                RefactoringReadOnlySection(
-                    label = "Explanation 3",
-                    text = entry.explanation3,
-                    audioPath = entry.explanation3AudioPath,
-                    playingPath = playingPath,
-                    onPlayToggle = { path ->
-                        if (playingPath == path) {
-                            audioPlayer.stop()
-                            playingPath = null
-                        } else {
-                            audioPlayer.play(path)
-                            playingPath = path
-                        }
-                    },
-                )
+                entry.moodLevel?.let { mood -> MoodDisplay(moodLevel = mood) }
+                RefactoringReadOnlySection(label = "The actual facts", text = entry.actualFacts)
+                RefactoringReadOnlySection(label = "Interpretation", text = entry.interpretation)
+                RefactoringReadOnlySection(label = "Explanation 1", text = entry.explanation1)
+                RefactoringReadOnlySection(label = "Explanation 2", text = entry.explanation2)
+                RefactoringReadOnlySection(label = "Explanation 3", text = entry.explanation3)
                 if (showOneNoteSync) {
                     OneNoteEntrySyncButton(onClick = onSyncToOneNote)
                 }
@@ -544,11 +307,8 @@ private fun RefactoringEntryDetailDialog(
 private fun RefactoringReadOnlySection(
     label: String,
     text: String,
-    audioPath: String?,
-    playingPath: String?,
-    onPlayToggle: (String) -> Unit,
 ) {
-    if (text.isBlank() && audioPath.isNullOrBlank()) return
+    if (text.isBlank()) return
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
@@ -556,25 +316,7 @@ private fun RefactoringReadOnlySection(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
-        if (text.isNotBlank()) {
-            Text(text = text, style = MaterialTheme.typography.bodyMedium)
-        }
-        audioPath?.let { path ->
-            OutlinedButton(
-                onClick = { onPlayToggle(path) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    if (playingPath == path) Icons.Default.StopCircle else Icons.Default.VolumeUp,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    if (playingPath == path) "Stop playback" else "Play recording",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-        }
+        Text(text = text, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

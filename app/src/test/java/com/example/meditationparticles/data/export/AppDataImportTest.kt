@@ -1,5 +1,6 @@
 package com.example.meditationparticles.data.export
 
+import com.example.meditationparticles.domain.mood.MoodScale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -70,4 +71,17 @@ class AppDataImportTest {
     fun parseExportDocument_rejectsEmptyFile() {
         AppDataImporter.parseExportDocument("   ")
     }
+
+    @Test
+    fun validateExportJson_readsVersionTwo() {
+        val json = """{"exportVersion": 2, "configuration": {}, "entries": {}}"""
+
+        assertEquals(2, AppDataImporter.validateExportJson(json))
+    }
+
+    @Test
+    fun legacyMoodLevelFiveNormalizesToFour() {
+        assertEquals(4, MoodScale.normalize(5))
+    }
 }
+

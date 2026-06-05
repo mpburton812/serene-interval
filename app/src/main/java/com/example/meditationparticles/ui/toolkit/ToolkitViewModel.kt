@@ -15,6 +15,7 @@ import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
+import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.reminder.FutureSelfMessageScheduler
 import kotlinx.coroutines.delay
@@ -38,7 +39,6 @@ data class ToolkitUiState(
     val thoughtDumpText: String = "",
     val draftMoodLevel: Int? = null,
     val anxietyLogText: String = "",
-    val pendingAudioPath: String? = null,
     val thoughtDumpEntries: List<ThoughtDumpEntity> = emptyList(),
     val anxietyLogEntries: List<ThoughtDumpEntity> = emptyList(),
     val openedLogEntry: ThoughtDumpEntity? = null,
@@ -53,18 +53,11 @@ data class ToolkitUiState(
     val refactoringExplanation1: String = "",
     val refactoringExplanation2: String = "",
     val refactoringExplanation3: String = "",
-    val refactoringInterpretationAudio: String? = null,
-    val refactoringActualFactsAudio: String? = null,
-    val refactoringExplanation1Audio: String? = null,
-    val refactoringExplanation2Audio: String? = null,
-    val refactoringExplanation3Audio: String? = null,
     val refactoringEntries: List<RefactoringEntryEntity> = emptyList(),
     val openedRefactoringEntry: RefactoringEntryEntity? = null,
     val centerOfGravityStepIndex: Int = 0,
     val centerOfGravityThoughtsAndFeelings: String = "",
     val centerOfGravityBodyAndNeeds: String = "",
-    val centerOfGravityThoughtsAndFeelingsAudio: String? = null,
-    val centerOfGravityBodyAndNeedsAudio: String? = null,
     val centerOfGravityEntries: List<CenterOfGravityEntryEntity> = emptyList(),
     val openedCenterOfGravityEntry: CenterOfGravityEntryEntity? = null,
     val nvcStepIndex: Int = 0,
@@ -72,10 +65,6 @@ data class ToolkitUiState(
     val nvcFeeling: String = "",
     val nvcNeed: String = "",
     val nvcRequest: String = "",
-    val nvcObservationAudio: String? = null,
-    val nvcFeelingAudio: String? = null,
-    val nvcNeedAudio: String? = null,
-    val nvcRequestAudio: String? = null,
     val nvcEntries: List<NvcEntryEntity> = emptyList(),
     val openedNvcEntry: NvcEntryEntity? = null,
     val randomToolState: RandomToolState = RandomToolState.Idle,
@@ -211,7 +200,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 thoughtDumpText = "",
                 draftMoodLevel = null,
                 anxietyLogText = "",
-                pendingAudioPath = null,
                 openedLogEntry = null,
                 futureSelfText = "",
                 futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
@@ -223,27 +211,16 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 refactoringExplanation1 = "",
                 refactoringExplanation2 = "",
                 refactoringExplanation3 = "",
-                refactoringInterpretationAudio = null,
-                refactoringActualFactsAudio = null,
-                refactoringExplanation1Audio = null,
-                refactoringExplanation2Audio = null,
-                refactoringExplanation3Audio = null,
                 openedRefactoringEntry = null,
                 centerOfGravityStepIndex = 0,
                 centerOfGravityThoughtsAndFeelings = "",
                 centerOfGravityBodyAndNeeds = "",
-                centerOfGravityThoughtsAndFeelingsAudio = null,
-                centerOfGravityBodyAndNeedsAudio = null,
                 openedCenterOfGravityEntry = null,
                 nvcStepIndex = 0,
                 nvcObservation = "",
                 nvcFeeling = "",
                 nvcNeed = "",
                 nvcRequest = "",
-                nvcObservationAudio = null,
-                nvcFeelingAudio = null,
-                nvcNeedAudio = null,
-                nvcRequestAudio = null,
                 openedNvcEntry = null,
             )
         }
@@ -262,7 +239,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     futureSelfText = "",
                     futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
                     editingFutureSelfId = null,
-                    pendingAudioPath = null,
                 )
             }
         }
@@ -290,7 +266,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 thoughtDumpText = "",
                 draftMoodLevel = null,
                 anxietyLogText = "",
-                pendingAudioPath = null,
                 openedLogEntry = null,
                 futureSelfText = "",
                 futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
@@ -302,27 +277,16 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 refactoringExplanation1 = "",
                 refactoringExplanation2 = "",
                 refactoringExplanation3 = "",
-                refactoringInterpretationAudio = null,
-                refactoringActualFactsAudio = null,
-                refactoringExplanation1Audio = null,
-                refactoringExplanation2Audio = null,
-                refactoringExplanation3Audio = null,
                 openedRefactoringEntry = null,
                 centerOfGravityStepIndex = 0,
                 centerOfGravityThoughtsAndFeelings = "",
                 centerOfGravityBodyAndNeeds = "",
-                centerOfGravityThoughtsAndFeelingsAudio = null,
-                centerOfGravityBodyAndNeedsAudio = null,
                 openedCenterOfGravityEntry = null,
                 nvcStepIndex = 0,
                 nvcObservation = "",
                 nvcFeeling = "",
                 nvcNeed = "",
                 nvcRequest = "",
-                nvcObservationAudio = null,
-                nvcFeelingAudio = null,
-                nvcNeedAudio = null,
-                nvcRequestAudio = null,
                 openedNvcEntry = null,
             )
         }
@@ -346,7 +310,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun updateDraftMoodLevel(level: Int?) {
-        _uiState.update { it.copy(draftMoodLevel = level?.coerceIn(1, 5)) }
+        _uiState.update { it.copy(draftMoodLevel = MoodScale.normalize(level)) }
     }
 
     fun updateAnxietyLog(text: String) {
@@ -381,108 +345,32 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(refactoringExplanation3 = text) }
     }
 
-    fun appendToRefactoringField(target: RefactoringSpeechTarget, text: String) {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
-        _uiState.update { state ->
-            when (target) {
-                RefactoringSpeechTarget.Interpretation -> {
-                    val current = state.refactoringInterpretation
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(refactoringInterpretation = current + separator + trimmed)
-                }
-                RefactoringSpeechTarget.ActualFacts -> {
-                    val current = state.refactoringActualFacts
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(refactoringActualFacts = current + separator + trimmed)
-                }
-                RefactoringSpeechTarget.Explanation1 -> {
-                    val current = state.refactoringExplanation1
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(refactoringExplanation1 = current + separator + trimmed)
-                }
-                RefactoringSpeechTarget.Explanation2 -> {
-                    val current = state.refactoringExplanation2
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(refactoringExplanation2 = current + separator + trimmed)
-                }
-                RefactoringSpeechTarget.Explanation3 -> {
-                    val current = state.refactoringExplanation3
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(refactoringExplanation3 = current + separator + trimmed)
-                }
-            }
-        }
-    }
-
     fun nextRefactoringStep() {
-        commitPendingRefactoringAudio()
         if (_uiState.value.refactoringStepIndex < 2) {
             _uiState.update { it.copy(refactoringStepIndex = it.refactoringStepIndex + 1) }
         }
     }
 
     fun previousRefactoringStep() {
-        commitPendingRefactoringAudio()
         if (_uiState.value.refactoringStepIndex > 0) {
             _uiState.update { it.copy(refactoringStepIndex = it.refactoringStepIndex - 1) }
         }
     }
 
     fun goToRefactoringStep(index: Int) {
-        commitPendingRefactoringAudio()
         _uiState.update { it.copy(refactoringStepIndex = index.coerceIn(0, 2)) }
-    }
-
-    private fun commitPendingRefactoringAudio() {
-        val state = _uiState.value
-        val pending = state.pendingAudioPath ?: return
-        _uiState.update {
-            when (state.refactoringStepIndex) {
-                0 -> it.copy(
-                    refactoringActualFactsAudio = pending,
-                    pendingAudioPath = null,
-                )
-                1 -> it.copy(
-                    refactoringInterpretationAudio = pending,
-                    pendingAudioPath = null,
-                )
-                else -> {
-                    when {
-                        state.refactoringExplanation1Audio == null -> it.copy(
-                            refactoringExplanation1Audio = pending,
-                            pendingAudioPath = null,
-                        )
-                        state.refactoringExplanation2Audio == null -> it.copy(
-                            refactoringExplanation2Audio = pending,
-                            pendingAudioPath = null,
-                        )
-                        else -> it.copy(
-                            refactoringExplanation3Audio = pending,
-                            pendingAudioPath = null,
-                        )
-                    }
-                }
-            }
-        }
     }
 
     fun saveRefactoringEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            commitPendingRefactoringAudio()
             val state = _uiState.value
             val entryId = refactoringRepository.save(
                 RefactoringEntryEntity(
                     interpretation = state.refactoringInterpretation.trim(),
-                    interpretationAudioPath = state.refactoringInterpretationAudio,
                     actualFacts = state.refactoringActualFacts.trim(),
-                    actualFactsAudioPath = state.refactoringActualFactsAudio,
                     explanation1 = state.refactoringExplanation1.trim(),
-                    explanation1AudioPath = state.refactoringExplanation1Audio,
                     explanation2 = state.refactoringExplanation2.trim(),
-                    explanation2AudioPath = state.refactoringExplanation2Audio,
                     explanation3 = state.refactoringExplanation3.trim(),
-                    explanation3AudioPath = state.refactoringExplanation3Audio,
                     moodLevel = state.draftMoodLevel,
                 ),
             )
@@ -495,12 +383,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     refactoringExplanation1 = "",
                     refactoringExplanation2 = "",
                     refactoringExplanation3 = "",
-                    refactoringInterpretationAudio = null,
-                    refactoringActualFactsAudio = null,
-                    refactoringExplanation1Audio = null,
-                    refactoringExplanation2Audio = null,
-                    refactoringExplanation3Audio = null,
-                    pendingAudioPath = null,
                 )
             }
             onComplete()
@@ -516,12 +398,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 refactoringExplanation1 = "",
                 refactoringExplanation2 = "",
                 refactoringExplanation3 = "",
-                refactoringInterpretationAudio = null,
-                refactoringActualFactsAudio = null,
-                refactoringExplanation1Audio = null,
-                refactoringExplanation2Audio = null,
-                refactoringExplanation3Audio = null,
-                pendingAudioPath = null,
             )
         }
     }
@@ -552,66 +428,25 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(centerOfGravityBodyAndNeeds = text) }
     }
 
-    fun appendToCenterOfGravityField(target: CenterOfGravitySpeechTarget, text: String) {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
-        _uiState.update { state ->
-            when (target) {
-                CenterOfGravitySpeechTarget.ThoughtsAndFeelings -> {
-                    val current = state.centerOfGravityThoughtsAndFeelings
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(centerOfGravityThoughtsAndFeelings = current + separator + trimmed)
-                }
-                CenterOfGravitySpeechTarget.BodyAndNeeds -> {
-                    val current = state.centerOfGravityBodyAndNeeds
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(centerOfGravityBodyAndNeeds = current + separator + trimmed)
-                }
-            }
-        }
-    }
-
     fun nextCenterOfGravityStep() {
-        commitPendingCenterOfGravityAudio()
         if (_uiState.value.centerOfGravityStepIndex < 1) {
             _uiState.update { it.copy(centerOfGravityStepIndex = it.centerOfGravityStepIndex + 1) }
         }
     }
 
     fun previousCenterOfGravityStep() {
-        commitPendingCenterOfGravityAudio()
         if (_uiState.value.centerOfGravityStepIndex > 0) {
             _uiState.update { it.copy(centerOfGravityStepIndex = it.centerOfGravityStepIndex - 1) }
         }
     }
 
-    private fun commitPendingCenterOfGravityAudio() {
-        val state = _uiState.value
-        val pending = state.pendingAudioPath ?: return
-        _uiState.update {
-            when (state.centerOfGravityStepIndex) {
-                0 -> it.copy(
-                    centerOfGravityThoughtsAndFeelingsAudio = pending,
-                    pendingAudioPath = null,
-                )
-                else -> it.copy(
-                    centerOfGravityBodyAndNeedsAudio = pending,
-                    pendingAudioPath = null,
-                )
-            }
-        }
-    }
-
     fun saveCenterOfGravityEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            commitPendingCenterOfGravityAudio()
             val state = _uiState.value
             val entryId = centerOfGravityRepository.save(
                 CenterOfGravityEntryEntity(
                     thoughtsAndFeelings = state.centerOfGravityThoughtsAndFeelings.trim(),
-                    thoughtsAndFeelingsAudioPath = state.centerOfGravityThoughtsAndFeelingsAudio,
                     bodyAndNeeds = state.centerOfGravityBodyAndNeeds.trim(),
-                    bodyAndNeedsAudioPath = state.centerOfGravityBodyAndNeedsAudio,
                     moodLevel = state.draftMoodLevel,
                 ),
             )
@@ -621,9 +456,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     centerOfGravityStepIndex = 0,
                     centerOfGravityThoughtsAndFeelings = "",
                     centerOfGravityBodyAndNeeds = "",
-                    centerOfGravityThoughtsAndFeelingsAudio = null,
-                    centerOfGravityBodyAndNeedsAudio = null,
-                    pendingAudioPath = null,
                 )
             }
             onComplete()
@@ -636,9 +468,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 centerOfGravityStepIndex = 0,
                 centerOfGravityThoughtsAndFeelings = "",
                 centerOfGravityBodyAndNeeds = "",
-                centerOfGravityThoughtsAndFeelingsAudio = null,
-                centerOfGravityBodyAndNeedsAudio = null,
-                pendingAudioPath = null,
             )
         }
     }
@@ -677,81 +506,31 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(nvcRequest = text) }
     }
 
-    fun appendToNvcField(target: NvcSpeechTarget, text: String) {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
-        _uiState.update { state ->
-            when (target) {
-                NvcSpeechTarget.Observation -> {
-                    val current = state.nvcObservation
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(nvcObservation = current + separator + trimmed)
-                }
-                NvcSpeechTarget.Feeling -> {
-                    val current = state.nvcFeeling
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(nvcFeeling = current + separator + trimmed)
-                }
-                NvcSpeechTarget.Need -> {
-                    val current = state.nvcNeed
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(nvcNeed = current + separator + trimmed)
-                }
-                NvcSpeechTarget.Request -> {
-                    val current = state.nvcRequest
-                    val separator = if (current.isBlank()) "" else " "
-                    state.copy(nvcRequest = current + separator + trimmed)
-                }
-            }
-        }
-    }
-
     fun nextNvcStep() {
-        commitPendingNvcAudio()
         if (_uiState.value.nvcStepIndex < 3) {
             _uiState.update { it.copy(nvcStepIndex = it.nvcStepIndex + 1) }
         }
     }
 
     fun previousNvcStep() {
-        commitPendingNvcAudio()
         if (_uiState.value.nvcStepIndex > 0) {
             _uiState.update { it.copy(nvcStepIndex = it.nvcStepIndex - 1) }
         }
     }
 
     fun goToNvcStep(index: Int) {
-        commitPendingNvcAudio()
         _uiState.update { it.copy(nvcStepIndex = index.coerceIn(0, 3)) }
-    }
-
-    private fun commitPendingNvcAudio() {
-        val state = _uiState.value
-        val pending = state.pendingAudioPath ?: return
-        _uiState.update {
-            when (state.nvcStepIndex) {
-                0 -> it.copy(nvcObservationAudio = pending, pendingAudioPath = null)
-                1 -> it.copy(nvcFeelingAudio = pending, pendingAudioPath = null)
-                2 -> it.copy(nvcNeedAudio = pending, pendingAudioPath = null)
-                else -> it.copy(nvcRequestAudio = pending, pendingAudioPath = null)
-            }
-        }
     }
 
     fun saveNvcEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            commitPendingNvcAudio()
             val state = _uiState.value
             val entryId = nvcRepository.save(
                 NvcEntryEntity(
                     observation = state.nvcObservation.trim(),
-                    observationAudioPath = state.nvcObservationAudio,
                     feeling = state.nvcFeeling.trim(),
-                    feelingAudioPath = state.nvcFeelingAudio,
                     need = state.nvcNeed.trim(),
-                    needAudioPath = state.nvcNeedAudio,
                     request = state.nvcRequest.trim(),
-                    requestAudioPath = state.nvcRequestAudio,
                     moodLevel = state.draftMoodLevel,
                 ),
             )
@@ -763,11 +542,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     nvcFeeling = "",
                     nvcNeed = "",
                     nvcRequest = "",
-                    nvcObservationAudio = null,
-                    nvcFeelingAudio = null,
-                    nvcNeedAudio = null,
-                    nvcRequestAudio = null,
-                    pendingAudioPath = null,
                 )
             }
             onComplete()
@@ -782,11 +556,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 nvcFeeling = "",
                 nvcNeed = "",
                 nvcRequest = "",
-                nvcObservationAudio = null,
-                nvcFeelingAudio = null,
-                nvcNeedAudio = null,
-                nvcRequestAudio = null,
-                pendingAudioPath = null,
             )
         }
     }
@@ -807,10 +576,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 _uiState.update { it.copy(openedNvcEntry = null) }
             }
         }
-    }
-
-    fun setPendingAudioPath(path: String?) {
-        _uiState.update { it.copy(pendingAudioPath = path) }
     }
 
     fun appendToActiveLog(text: String) {
@@ -842,10 +607,9 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 type = ToolkitLogType.THOUGHT_DUMP,
                 content = _uiState.value.thoughtDumpText,
                 moodLevel = _uiState.value.draftMoodLevel,
-                audioPath = _uiState.value.pendingAudioPath,
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.THOUGHT_DUMP, it) }
-            _uiState.update { it.copy(thoughtDumpText = "", draftMoodLevel = null, pendingAudioPath = null) }
+            _uiState.update { it.copy(thoughtDumpText = "", draftMoodLevel = null) }
             onComplete()
         }
     }
@@ -856,10 +620,9 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 type = ToolkitLogType.ANXIETY_LOG,
                 content = _uiState.value.anxietyLogText,
                 moodLevel = _uiState.value.draftMoodLevel,
-                audioPath = _uiState.value.pendingAudioPath,
             )
             entryId?.let { enqueueOneNoteSync(OneNoteEntryType.ANXIETY_LOG, it) }
-            _uiState.update { it.copy(anxietyLogText = "", draftMoodLevel = null, pendingAudioPath = null) }
+            _uiState.update { it.copy(anxietyLogText = "", draftMoodLevel = null) }
             onComplete()
         }
     }
@@ -875,7 +638,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             val savedId = futureSelfRepository.save(
                 id = editingId,
                 content = state.futureSelfText,
-                audioPath = state.pendingAudioPath,
                 scheduledAtMillis = state.futureSelfScheduledAtMillis,
                 moodLevel = state.draftMoodLevel,
             ) ?: return@launch
@@ -897,7 +659,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 draftMoodLevel = null,
                 anxietyLogText = "",
                 futureSelfText = "",
-                pendingAudioPath = null,
                 futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
                 editingFutureSelfId = null,
                 refactoringStepIndex = 0,
@@ -906,25 +667,14 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 refactoringExplanation1 = "",
                 refactoringExplanation2 = "",
                 refactoringExplanation3 = "",
-                refactoringInterpretationAudio = null,
-                refactoringActualFactsAudio = null,
-                refactoringExplanation1Audio = null,
-                refactoringExplanation2Audio = null,
-                refactoringExplanation3Audio = null,
                 centerOfGravityStepIndex = 0,
                 centerOfGravityThoughtsAndFeelings = "",
                 centerOfGravityBodyAndNeeds = "",
-                centerOfGravityThoughtsAndFeelingsAudio = null,
-                centerOfGravityBodyAndNeedsAudio = null,
                 nvcStepIndex = 0,
                 nvcObservation = "",
                 nvcFeeling = "",
                 nvcNeed = "",
                 nvcRequest = "",
-                nvcObservationAudio = null,
-                nvcFeelingAudio = null,
-                nvcNeedAudio = null,
-                nvcRequestAudio = null,
             )
         }
     }
@@ -964,7 +714,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             it.copy(
                 futureSelfText = entry.content,
                 draftMoodLevel = entry.moodLevel,
-                pendingAudioPath = entry.audioPath,
                 futureSelfScheduledAtMillis = entry.scheduledAtMillis,
                 editingFutureSelfId = entry.id,
                 openedFutureSelfEntry = null,
@@ -985,7 +734,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     it.copy(
                         editingFutureSelfId = null,
                         futureSelfText = "",
-                        pendingAudioPath = null,
                         futureSelfScheduledAtMillis = defaultFutureSelfScheduleTime(),
                     )
                 }

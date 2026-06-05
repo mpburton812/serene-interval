@@ -47,7 +47,7 @@ class OneNotePageRendererTest {
     }
 
     @Test
-    fun renderRefactoring_includesAudioAttachmentPlaceholderWhenPathPresent() {
+    fun renderRefactoring_includesAllFields() {
         val page = OneNotePageRenderer.renderRefactoring(
             RefactoringEntryEntity(
                 id = 12L,
@@ -56,14 +56,12 @@ class OneNotePageRendererTest {
                 explanation1 = "Traffic",
                 explanation2 = "Overslept",
                 explanation3 = "Forgot",
-                actualFactsAudioPath = "/data/audio.3gp",
             ),
         )
 
         assertTrue(page.html.contains("Actual facts"))
-        assertTrue(page.html.contains("data-attachment=\"serene_12_actualFacts.3gp\""))
-        assertEquals(1, page.attachments.size)
-        assertEquals("audio_actualFacts", page.attachments.first().partName)
+        assertTrue(page.html.contains("They arrived at 8:20"))
+        assertTrue(page.attachments.isEmpty())
     }
 
     @Test
@@ -112,20 +110,48 @@ class OneNotePageRendererTest {
     }
 
     @Test
-    fun renderMeditationReflection_includesAudioAttachmentPlaceholderWhenPathPresent() {
+    fun renderMeditationReflection_includesReflectionText() {
         val page = OneNotePageRenderer.renderMeditationReflection(
             MeditationReflectionEntity(
                 id = 99L,
                 reflection = "Calm and focused",
                 durationSeconds = 600,
                 completedAt = 1_735_689_600_000L,
-                audioPath = "/data/reflection.3gp",
             ),
         )
 
         assertTrue(page.html.contains("Calm and focused"))
-        assertTrue(page.html.contains("data-attachment=\"serene_99_audio.3gp\""))
-        assertEquals(1, page.attachments.size)
+        assertTrue(page.attachments.isEmpty())
+    }
+
+    @Test
+    fun renderNvc_moodUsesFourPointScaleWithLabel() {
+        val html = OneNotePageRenderer.renderNvc(
+            NvcEntryEntity(
+                observation = "Rain",
+                feeling = "Calm",
+                need = "Rest",
+                request = "Pause",
+                moodLevel = 3,
+            ),
+        ).html
+
+        assertTrue(html.contains("Mood:</strong> 3/4 (Blue)"))
+    }
+
+    @Test
+    fun renderNvc_legacyMoodFiveRendersAsFour() {
+        val html = OneNotePageRenderer.renderNvc(
+            NvcEntryEntity(
+                observation = "Done",
+                feeling = "Good",
+                need = "Joy",
+                request = "Celebrate",
+                moodLevel = 5,
+            ),
+        ).html
+
+        assertTrue(html.contains("Mood:</strong> 4/4 (Green)"))
     }
 
     @Test

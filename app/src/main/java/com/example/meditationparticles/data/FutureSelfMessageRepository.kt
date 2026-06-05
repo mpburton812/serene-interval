@@ -1,8 +1,8 @@
 package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.FutureSelfMessageDao
+import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
-import java.io.File
 import kotlinx.coroutines.flow.Flow
 
 class FutureSelfMessageRepository(
@@ -21,31 +21,25 @@ class FutureSelfMessageRepository(
     suspend fun save(
         id: Long? = null,
         content: String,
-        audioPath: String?,
         scheduledAtMillis: Long,
         moodLevel: Int? = null,
     ): Long? {
         val trimmed = content.trim()
-        if (trimmed.isEmpty() && audioPath.isNullOrBlank()) return null
+        if (trimmed.isEmpty()) return null
         if (id == null || id == 0L) {
             return dao.insert(
                 FutureSelfMessageEntity(
                     content = trimmed,
-                    moodLevel = moodLevel?.coerceIn(1, 5),
-                    audioPath = audioPath,
+                    moodLevel = MoodScale.normalize(moodLevel),
                     scheduledAtMillis = scheduledAtMillis,
                 ),
             )
         }
         val existing = dao.getById(id) ?: return null
-        if (existing.audioPath != null && existing.audioPath != audioPath) {
-            File(existing.audioPath).delete()
-        }
         dao.update(
             existing.copy(
                 content = trimmed,
-                moodLevel = moodLevel?.coerceIn(1, 5),
-                audioPath = audioPath,
+                moodLevel = MoodScale.normalize(moodLevel),
                 scheduledAtMillis = scheduledAtMillis,
                 delivered = false,
             ),
@@ -54,8 +48,6 @@ class FutureSelfMessageRepository(
     }
 
     suspend fun delete(id: Long) {
-        val entry = dao.getById(id) ?: return
-        entry.audioPath?.let { path -> File(path).delete() }
         dao.deleteById(id)
     }
 

@@ -19,19 +19,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.example.meditationparticles.domain.mood.MoodScale
 
-fun moodLevelColor(level: Int): Color = when (level.coerceIn(1, 5)) {
-    1 -> Color(0xFFE53935)
-    2 -> Color(0xFFF9A825)
-    3 -> Color(0xFF1E88E5)
-    4 -> Color(0xFF8BC34A)
-    else -> Color(0xFF2E7D32)
+fun moodColor(level: Int): Color = Color(MoodScale.colorArgb(level))
+
+private fun moodIcon(level: Int): ImageVector = when (MoodScale.migrateFromLegacy(level)) {
+    1 -> Icons.Default.SentimentVeryDissatisfied
+    2 -> Icons.Default.SentimentDissatisfied
+    3 -> Icons.Default.SentimentNeutral
+    4 -> Icons.Default.SentimentVerySatisfied
+    else -> Icons.Default.SentimentVerySatisfied
 }
 
 @Composable
-fun MoodLevelPicker(
+fun MoodPicker(
     selectedLevel: Int?,
     onLevelChange: (Int?) -> Unit,
     modifier: Modifier = Modifier,
@@ -50,19 +54,12 @@ fun MoodLevelPicker(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            (1..5).forEach { value ->
-                val icon = when (value) {
-                    1 -> Icons.Default.SentimentVeryDissatisfied
-                    2 -> Icons.Default.SentimentDissatisfied
-                    3 -> Icons.Default.SentimentNeutral
-                    4 -> Icons.Default.SentimentSatisfied
-                    else -> Icons.Default.SentimentVerySatisfied
-                }
+            (MoodScale.MIN..MoodScale.MAX).forEach { value ->
                 val selected = value == selectedLevel
                 Icon(
-                    imageVector = icon,
-                    contentDescription = "Mood $value of 5",
-                    tint = if (selected) moodLevelColor(value) else MaterialTheme.colorScheme.outline,
+                    imageVector = moodIcon(value),
+                    contentDescription = "Mood $value of ${MoodScale.MAX}",
+                    tint = if (selected) moodColor(value) else MaterialTheme.colorScheme.outline,
                     modifier = Modifier
                         .size(28.dp)
                         .selectable(

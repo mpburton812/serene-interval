@@ -18,10 +18,11 @@ data class ImportCounts(
     val refactoringEntries: Int = 0,
     val centerOfGravityEntries: Int = 0,
     val nvcEntries: Int = 0,
+    val meditationReflections: Int = 0,
 ) {
     val totalEntries: Int
         get() = affirmations + thoughtDumps + anxietyLogs + futureSelfMessages +
-            refactoringEntries + centerOfGravityEntries + nvcEntries
+            refactoringEntries + centerOfGravityEntries + nvcEntries + meditationReflections
 }
 
 data class ImportResult(
@@ -66,6 +67,12 @@ data class ImportResult(
                 add(
                     "${counts.nvcEntries} NVC entr" +
                         if (counts.nvcEntries == 1) "y" else "ies",
+                )
+            }
+            if (counts.meditationReflections > 0) {
+                add(
+                    "${counts.meditationReflections} meditation reflection" +
+                        counts.meditationReflections.pluralSuffix(),
                 )
             }
         }

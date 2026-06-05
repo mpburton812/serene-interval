@@ -7,10 +7,12 @@ import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
+import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
@@ -27,8 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-
 /**
  * Restores settings and journal entries from an export JSON file.
  *
@@ -358,6 +358,13 @@ class AppDataImporter(
                 skips = skips,
             ),
         )
+        updated = updated.copy(
+            meditationReflections = importMeditationReflections(
+                array = entries.optJSONArray("meditationReflections"),
+                dao = db.meditationReflectionDao(),
+                skips = skips,
+            ),
+        )
 
         return updated
     }
@@ -424,19 +431,12 @@ class AppDataImporter(
                 continue
             }
 
-            val (audioPath, audioSkips) = resolveAudioPath(
-                exportedPath = item.optionalString("audioPath"),
-                category = categoryLabel,
-            )
-            skips += audioSkips
-
             val moodLevel = item.optionalMoodLevel()
             dao.insert(
                 ThoughtDumpEntity(
                     content = content,
                     logType = logType.name,
                     moodLevel = moodLevel,
-                    audioPath = audioPath,
                     createdAt = createdAt,
                 ),
             )
@@ -477,17 +477,11 @@ class AppDataImporter(
             }
 
             val delivered = item.optBoolean("delivered", false)
-            val (audioPath, audioSkips) = resolveAudioPath(
-                exportedPath = item.optionalString("audioPath"),
-                category = "future self message",
-            )
-            skips += audioSkips
 
             val newId = dao.insert(
                 FutureSelfMessageEntity(
                     content = content,
                     moodLevel = item.optionalMoodLevel(),
-                    audioPath = audioPath,
                     scheduledAtMillis = scheduledAtMillis,
                     createdAtMillis = createdAtMillis,
                     delivered = delivered,
@@ -538,43 +532,13 @@ class AppDataImporter(
                 continue
             }
 
-            val audioSkips = mutableListOf<ImportSkip>()
-            val interpretationAudio = resolveAudioPath(
-                item.optionalString("interpretationAudioPath"),
-                "refactoring entry",
-            )
-            val actualFactsAudio = resolveAudioPath(
-                item.optionalString("actualFactsAudioPath"),
-                "refactoring entry",
-            )
-            val explanation1Audio = resolveAudioPath(
-                item.optionalString("explanation1AudioPath"),
-                "refactoring entry",
-            )
-            val explanation2Audio = resolveAudioPath(
-                item.optionalString("explanation2AudioPath"),
-                "refactoring entry",
-            )
-            val explanation3Audio = resolveAudioPath(
-                item.optionalString("explanation3AudioPath"),
-                "refactoring entry",
-            )
-            audioSkips += interpretationAudio.second + actualFactsAudio.second +
-                explanation1Audio.second + explanation2Audio.second + explanation3Audio.second
-            skips += audioSkips
-
             dao.insert(
                 RefactoringEntryEntity(
                     interpretation = interpretation,
-                    interpretationAudioPath = interpretationAudio.first,
                     actualFacts = actualFacts,
-                    actualFactsAudioPath = actualFactsAudio.first,
                     explanation1 = item.optString("explanation1", ""),
-                    explanation1AudioPath = explanation1Audio.first,
                     explanation2 = item.optString("explanation2", ""),
-                    explanation2AudioPath = explanation2Audio.first,
                     explanation3 = item.optString("explanation3", ""),
-                    explanation3AudioPath = explanation3Audio.first,
                     moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
                 ),
@@ -612,24 +576,48 @@ class AppDataImporter(
                 continue
             }
 
-            val thoughtsAudio = resolveAudioPath(
-                item.optionalString("thoughtsAndFeelingsAudioPath"),
-                "center of gravity entry",
-            )
-            val bodyAudio = resolveAudioPath(
-                item.optionalString("bodyAndNeedsAudioPath"),
-                "center of gravity entry",
-            )
-            skips += thoughtsAudio.second + bodyAudio.second
-
             dao.insert(
                 CenterOfGravityEntryEntity(
                     thoughtsAndFeelings = thoughtsAndFeelings,
-                    thoughtsAndFeelingsAudioPath = thoughtsAudio.first,
                     bodyAndNeeds = bodyAndNeeds,
-                    bodyAndNeedsAudioPath = bodyAudio.first,
                     moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
+                ),
+            )
+            imported++
+        }
+        return imported
+    }
+
+    private suspend fun importMeditationReflections(
+        array: JSONArray?,
+        dao: com.example.meditationparticles.data.local.MeditationReflectionDao,
+        skips: MutableList<ImportSkip>,
+    ): Int {
+        if (array == null || array.length() == 0) return 0
+        val existing = dao.getAll()
+        var imported = 0
+
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val reflection = item.optString("reflection", "").trim()
+            if (reflection.isEmpty()) {
+                skips += ImportSkip("meditation reflection", "missing content")
+                continue
+            }
+            val completedAt = item.optLong("completedAt", System.currentTimeMillis())
+            val durationSeconds = item.optInt("durationSeconds", 0).coerceAtLeast(0)
+            if (existing.any { it.reflection == reflection && it.completedAt == completedAt }) {
+                skips += ImportSkip("meditation reflection", "duplicate", detail = reflection.take(40))
+                continue
+            }
+
+            dao.insert(
+                MeditationReflectionEntity(
+                    reflection = reflection,
+                    moodLevel = item.optionalMoodLevel(),
+                    durationSeconds = durationSeconds,
+                    completedAt = completedAt,
                 ),
             )
             imported++
@@ -669,34 +657,12 @@ class AppDataImporter(
                 continue
             }
 
-            val observationAudio = resolveAudioPath(
-                item.optionalString("observationAudioPath"),
-                "NVC entry",
-            )
-            val feelingAudio = resolveAudioPath(
-                item.optionalString("feelingAudioPath"),
-                "NVC entry",
-            )
-            val needAudio = resolveAudioPath(
-                item.optionalString("needAudioPath"),
-                "NVC entry",
-            )
-            val requestAudio = resolveAudioPath(
-                item.optionalString("requestAudioPath"),
-                "NVC entry",
-            )
-            skips += observationAudio.second + feelingAudio.second + needAudio.second + requestAudio.second
-
             dao.insert(
                 NvcEntryEntity(
                     observation = observation,
-                    observationAudioPath = observationAudio.first,
                     feeling = feeling,
-                    feelingAudioPath = feelingAudio.first,
                     need = need,
-                    needAudioPath = needAudio.first,
                     request = request,
-                    requestAudioPath = requestAudio.first,
                     moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
                 ),
@@ -708,26 +674,7 @@ class AppDataImporter(
 
     private fun JSONObject.optionalMoodLevel(): Int? {
         if (!has("moodLevel") || isNull("moodLevel")) return null
-        return optInt("moodLevel").coerceIn(1, 5)
-    }
-
-    private fun resolveAudioPath(
-        exportedPath: String?,
-        category: String,
-    ): Pair<String?, List<ImportSkip>> {
-        if (exportedPath.isNullOrBlank()) return null to emptyList()
-        val file = File(exportedPath)
-        return if (file.exists()) {
-            exportedPath to emptyList()
-        } else {
-            null to listOf(
-                ImportSkip(
-                    category = category,
-                    reason = "audio file missing (text imported)",
-                    detail = exportedPath,
-                ),
-            )
-        }
+        return MoodScale.normalize(optInt("moodLevel"))
     }
 
     private data class ToolkitImportSnapshot(
