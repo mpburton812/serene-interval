@@ -85,29 +85,28 @@ fun MoodGraphScreen(
                 .padding(SereneSpacing.containerMargin),
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
         ) {
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                MoodLineGraph(
+                    entries = state.entries,
+                    period = period,
+                    startMillis = state.startMillis,
+                    endMillis = state.endMillis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                )
+            }
             if (state.entries.isEmpty()) {
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "No mood entries for this period yet.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                    )
-                }
+                Text(
+                    text = "No mood entries for this period yet.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                )
             } else {
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
-                    MoodLineGraph(
-                        entries = state.entries,
-                        startMillis = state.startMillis,
-                        endMillis = state.endMillis,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                    )
-                }
                 Text(
                     text = "${state.entries.size} entr${if (state.entries.size == 1) "y" else "ies"} logged",
                     style = MaterialTheme.typography.labelMedium,
