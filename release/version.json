@@ -2,7 +2,7 @@
   "versionCode": 16,
   "versionName": "1.0.15",
   "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.15/sway_meditation.apk",
-  "expectedSha256": "5688fd1a8c3e3c36baae62587525f56e5a4ea23496b9b2ca2fa69be814d612cc",
+  "expectedSha256": "2605ab0baa670eeadaeec39e8b0dd1b895156c2c0ae960781c9c28818a58e294",
   "releaseNotes": "• Living Tree: radial graph, tags, setup, and export v4\n• Affirmations review mode with reorder; hourglass timer mode removed",
   "minVersionCode": 1
 }
