@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.domain.mood.MoodSource
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,6 +17,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val affirmationRepository = AppGraph.affirmations(application)
     private val settingsPreferences = AppGraph.settings(application)
     private val quickStartPreferences = AppGraph.quickStart(application)
+    private val moodTracker = AppGraph.moodTracker(application)
 
     private val _dailyAffirmation = MutableStateFlow(DefaultFallback)
     val dailyAffirmation: StateFlow<String> = _dailyAffirmation.asStateFlow()
@@ -44,6 +46,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _dailyAffirmation.value = affirmationRepository.randomFavoriteAffirmation()?.text
                 ?: affirmationRepository.randomAffirmation()?.text
                 ?: DefaultFallback
+        }
+    }
+
+    fun logMood(level: Int) {
+        viewModelScope.launch {
+            moodTracker.record(MoodSource.HOME_SCREEN, level)
         }
     }
 

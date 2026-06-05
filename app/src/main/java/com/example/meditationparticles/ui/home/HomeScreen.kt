@@ -43,6 +43,7 @@ import com.example.meditationparticles.navigation.SereneDestination
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneHeaderPlate
 import com.example.meditationparticles.ui.components.SereneTabBackground
+import com.example.meditationparticles.ui.mood.MoodQuickLogCard
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Calendar
@@ -152,6 +153,10 @@ fun HomeScreen(
                 }
             }
         }
+
+        MoodQuickLogCard(
+            onLogMood = viewModel::logMood,
+        )
 
         if (quickStartTiles.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {

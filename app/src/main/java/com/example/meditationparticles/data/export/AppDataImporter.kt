@@ -8,11 +8,13 @@ import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
+import com.example.meditationparticles.data.local.MoodEntryEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.mood.MoodScale
+import com.example.meditationparticles.domain.mood.MoodSource
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
@@ -365,6 +367,13 @@ class AppDataImporter(
                 skips = skips,
             ),
         )
+        updated = updated.copy(
+            moodEntries = importMoodEntries(
+                array = entries.optJSONArray("moodEntries"),
+                dao = db.moodEntryDao(),
+                skips = skips,
+            ),
+        )
 
         return updated
     }
@@ -665,6 +674,54 @@ class AppDataImporter(
                     request = request,
                     moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
+                ),
+            )
+            imported++
+        }
+        return imported
+    }
+
+    private suspend fun importMoodEntries(
+        array: JSONArray?,
+        dao: com.example.meditationparticles.data.local.MoodEntryDao,
+        skips: MutableList<ImportSkip>,
+    ): Int {
+        if (array == null || array.length() == 0) return 0
+        dao.clearAll()
+        var imported = 0
+
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val moodLevel = item.optionalMoodLevel()
+            if (moodLevel == null) {
+                skips += ImportSkip("mood entry", "invalid mood level")
+                continue
+            }
+            val recordedAtMillis = item.optLong("recordedAtMillis", -1L)
+            if (recordedAtMillis <= 0L) {
+                skips += ImportSkip("mood entry", "invalid timestamp")
+                continue
+            }
+            val sourceName = item.optString("source", "").trim()
+            val source = MoodSource.fromDbValue(sourceName)
+            if (source == null) {
+                skips += ImportSkip("mood entry", "invalid source", detail = sourceName)
+                continue
+            }
+            val legacyTable = item.optString("legacyTable").takeIf { it.isNotBlank() }
+            val legacyRowId = if (item.has("legacyRowId") && !item.isNull("legacyRowId")) {
+                item.optLong("legacyRowId")
+            } else {
+                null
+            }
+
+            dao.insert(
+                MoodEntryEntity(
+                    moodLevel = moodLevel,
+                    recordedAtMillis = recordedAtMillis,
+                    source = source.dbValue,
+                    legacyTable = legacyTable,
+                    legacyRowId = legacyRowId,
                 ),
             )
             imported++

@@ -33,4 +33,7 @@ object MoodScale {
         4 -> COLOR_GREEN
         else -> COLOR_GREEN
     }
+
+    fun averageToLevel(average: Double?): Int? =
+        average?.let { migrateFromLegacy(kotlin.math.round(it).toInt()) }
 }

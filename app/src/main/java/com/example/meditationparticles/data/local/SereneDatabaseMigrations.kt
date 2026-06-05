@@ -379,6 +379,29 @@ private class Migration14To15 : Migration(14, 15) {
     }
 }
 
+private class Migration15To16 : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS mood_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                moodLevel INTEGER NOT NULL,
+                recordedAtMillis INTEGER NOT NULL,
+                source TEXT NOT NULL,
+                legacyTable TEXT,
+                legacyRowId INTEGER
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_mood_entries_legacyTable_legacyRowId
+            ON mood_entries (legacyTable, legacyRowId)
+            """.trimIndent(),
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -394,4 +417,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration12To13(),
     Migration13To14(),
     Migration14To15(),
+    Migration15To16(),
 )

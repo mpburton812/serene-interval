@@ -26,7 +26,7 @@ import com.example.meditationparticles.domain.mood.MoodScale
 
 fun moodColor(level: Int): Color = Color(MoodScale.colorArgb(level))
 
-private fun moodIcon(level: Int): ImageVector = when (MoodScale.migrateFromLegacy(level)) {
+fun moodIcon(level: Int): ImageVector = when (MoodScale.migrateFromLegacy(level)) {
     1 -> Icons.Default.SentimentVeryDissatisfied
     2 -> Icons.Default.SentimentDissatisfied
     3 -> Icons.Default.SentimentNeutral

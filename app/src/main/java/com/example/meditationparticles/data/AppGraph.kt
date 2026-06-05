@@ -49,6 +49,12 @@ object AppGraph {
     @Volatile
     private var oneNoteSyncRepository: OneNoteSyncRepository? = null
 
+    @Volatile
+    private var moodTrackerRepository: MoodTrackerRepository? = null
+
+    @Volatile
+    private var moodTrackerPreferences: MoodTrackerPreferences? = null
+
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
             affirmationRepository ?: AffirmationRepository(
@@ -59,7 +65,8 @@ object AppGraph {
     fun thoughtDumps(context: Context): ThoughtDumpRepository =
         thoughtDumpRepository ?: synchronized(this) {
             thoughtDumpRepository ?: ThoughtDumpRepository(
-                SereneDatabase.getInstance(context.applicationContext).thoughtDumpDao(),
+                dao = SereneDatabase.getInstance(context.applicationContext).thoughtDumpDao(),
+                moodTracker = moodTracker(context),
             ).also { thoughtDumpRepository = it }
         }
 
@@ -91,35 +98,40 @@ object AppGraph {
     fun meditationReflections(context: Context): MeditationReflectionRepository =
         meditationReflectionRepository ?: synchronized(this) {
             meditationReflectionRepository ?: MeditationReflectionRepository(
-                SereneDatabase.getInstance(context.applicationContext).meditationReflectionDao(),
+                dao = SereneDatabase.getInstance(context.applicationContext).meditationReflectionDao(),
+                moodTracker = moodTracker(context),
             ).also { meditationReflectionRepository = it }
         }
 
     fun futureSelfMessages(context: Context): FutureSelfMessageRepository =
         futureSelfMessageRepository ?: synchronized(this) {
             futureSelfMessageRepository ?: FutureSelfMessageRepository(
-                SereneDatabase.getInstance(context.applicationContext).futureSelfMessageDao(),
+                dao = SereneDatabase.getInstance(context.applicationContext).futureSelfMessageDao(),
+                moodTracker = moodTracker(context),
             ).also { futureSelfMessageRepository = it }
         }
 
     fun refactoringEntries(context: Context): RefactoringRepository =
         refactoringRepository ?: synchronized(this) {
             refactoringRepository ?: RefactoringRepository(
-                SereneDatabase.getInstance(context.applicationContext).refactoringEntryDao(),
+                dao = SereneDatabase.getInstance(context.applicationContext).refactoringEntryDao(),
+                moodTracker = moodTracker(context),
             ).also { refactoringRepository = it }
         }
 
     fun centerOfGravityEntries(context: Context): CenterOfGravityRepository =
         centerOfGravityRepository ?: synchronized(this) {
             centerOfGravityRepository ?: CenterOfGravityRepository(
-                SereneDatabase.getInstance(context.applicationContext).centerOfGravityEntryDao(),
+                dao = SereneDatabase.getInstance(context.applicationContext).centerOfGravityEntryDao(),
+                moodTracker = moodTracker(context),
             ).also { centerOfGravityRepository = it }
         }
 
     fun nvcEntries(context: Context): NvcRepository =
         nvcRepository ?: synchronized(this) {
             nvcRepository ?: NvcRepository(
-                SereneDatabase.getInstance(context.applicationContext).nvcEntryDao(),
+                dao = SereneDatabase.getInstance(context.applicationContext).nvcEntryDao(),
+                moodTracker = moodTracker(context),
             ).also { nvcRepository = it }
         }
 
@@ -151,5 +163,25 @@ object AppGraph {
                 syncDao = SereneDatabase.getInstance(context.applicationContext).oneNoteSyncDao(),
                 database = SereneDatabase.getInstance(context.applicationContext),
             ).also { oneNoteSyncRepository = it }
+        }
+
+    fun moodTracker(context: Context): MoodTrackerRepository =
+        moodTrackerRepository ?: synchronized(this) {
+            val database = SereneDatabase.getInstance(context.applicationContext)
+            moodTrackerRepository ?: MoodTrackerRepository(
+                moodEntryDao = database.moodEntryDao(),
+                thoughtDumpDao = database.thoughtDumpDao(),
+                meditationReflectionDao = database.meditationReflectionDao(),
+                futureSelfMessageDao = database.futureSelfMessageDao(),
+                refactoringEntryDao = database.refactoringEntryDao(),
+                centerOfGravityEntryDao = database.centerOfGravityEntryDao(),
+                nvcEntryDao = database.nvcEntryDao(),
+            ).also { moodTrackerRepository = it }
+        }
+
+    fun moodTrackerPreferences(context: Context): MoodTrackerPreferences =
+        moodTrackerPreferences ?: synchronized(this) {
+            moodTrackerPreferences ?: MoodTrackerPreferences(context.applicationContext)
+                .also { moodTrackerPreferences = it }
         }
 }

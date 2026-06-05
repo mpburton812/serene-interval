@@ -9,6 +9,7 @@ import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
+import com.example.meditationparticles.data.local.MoodEntryEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
@@ -40,6 +41,7 @@ class AppDataExporter(
         val centerOfGravityEntries = db.centerOfGravityEntryDao().getAll()
         val nvcEntries = db.nvcEntryDao().getAll()
         val meditationReflections = db.meditationReflectionDao().getAll()
+        val moodEntries = db.moodEntryDao().getAll()
 
         JSONObject().apply {
             put("exportVersion", EXPORT_VERSION)
@@ -56,6 +58,7 @@ class AppDataExporter(
                 centerOfGravityEntries = centerOfGravityEntries,
                 nvcEntries = nvcEntries,
                 meditationReflections = meditationReflections,
+                moodEntries = moodEntries,
             ))
         }.toString(2)
     }
@@ -121,6 +124,7 @@ class AppDataExporter(
         centerOfGravityEntries: List<CenterOfGravityEntryEntity>,
         nvcEntries: List<NvcEntryEntity>,
         meditationReflections: List<MeditationReflectionEntity>,
+        moodEntries: List<MoodEntryEntity>,
     ): JSONObject = JSONObject().apply {
         put("affirmations", JSONArray().apply {
             affirmations.forEach { put(it.toJson()) }
@@ -149,6 +153,9 @@ class AppDataExporter(
         })
         put("meditationReflections", JSONArray().apply {
             meditationReflections.forEach { put(it.toJson()) }
+        })
+        put("moodEntries", JSONArray().apply {
+            moodEntries.forEach { put(it.toJson()) }
         })
     }
 
@@ -214,8 +221,17 @@ class AppDataExporter(
         put("createdAt", createdAt)
     }
 
+    private fun MoodEntryEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("moodLevel", moodLevel)
+        put("recordedAtMillis", recordedAtMillis)
+        put("source", source)
+        legacyTable?.let { put("legacyTable", it) }
+        legacyRowId?.let { put("legacyRowId", it) }
+    }
+
     companion object {
-        const val EXPORT_VERSION = 2
+        const val EXPORT_VERSION = 3
         const val DEFAULT_FILENAME = "serene-interval-export.json"
     }
 }

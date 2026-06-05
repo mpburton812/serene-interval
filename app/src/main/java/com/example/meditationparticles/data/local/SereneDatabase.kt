@@ -17,8 +17,9 @@ import androidx.room.RoomDatabase
         NvcEntryEntity::class,
         OneNoteSyncMappingEntity::class,
         OneNoteSyncQueueEntity::class,
+        MoodEntryEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -31,6 +32,7 @@ abstract class SereneDatabase : RoomDatabase() {
     abstract fun centerOfGravityEntryDao(): CenterOfGravityEntryDao
     abstract fun nvcEntryDao(): NvcEntryDao
     abstract fun oneNoteSyncDao(): OneNoteSyncDao
+    abstract fun moodEntryDao(): MoodEntryDao
 
     companion object {
         @Volatile

@@ -1,12 +1,14 @@
 package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.MeditationReflectionDao
-import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
+import com.example.meditationparticles.domain.mood.MoodScale
+import com.example.meditationparticles.domain.mood.MoodSource
 import kotlinx.coroutines.flow.Flow
 
 class MeditationReflectionRepository(
     private val dao: MeditationReflectionDao,
+    private val moodTracker: MoodTrackerRepository,
 ) {
     fun observeAll(): Flow<List<MeditationReflectionEntity>> = dao.observeAll()
 
@@ -18,14 +20,25 @@ class MeditationReflectionRepository(
     ): Long? {
         val trimmed = reflection.trim()
         if (trimmed.isEmpty()) return null
-        return dao.insert(
+        val normalizedMood = MoodScale.normalize(moodLevel)
+        val id = dao.insert(
             MeditationReflectionEntity(
                 reflection = trimmed,
-                moodLevel = MoodScale.normalize(moodLevel),
+                moodLevel = normalizedMood,
                 durationSeconds = durationSeconds.coerceAtLeast(0),
                 completedAt = completedAt,
             ),
         )
+        normalizedMood?.let { level ->
+            moodTracker.record(
+                source = MoodSource.MEDITATION_REFLECTION,
+                level = level,
+                atMillis = completedAt,
+                legacyTable = MoodTrackerRepository.TABLE_MEDITATION_REFLECTIONS,
+                legacyRowId = id,
+            )
+        }
+        return id
     }
 
     suspend fun getById(id: Long): MeditationReflectionEntity? = dao.getById(id)

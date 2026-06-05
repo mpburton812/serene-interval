@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Mood tracker (Phase 2)
+
+- Home screen quick mood log card with large mood buttons and pulse animation
+- Toolkit header shows day/week/month average mood faces; tap opens period graph
+- Mood graph screen with canvas line chart, entry count, and average subtitle
+- Dual-write to `mood_entries` when saving mood from toolkit journals and timer reflections
+- JSON export version 3 includes dedicated `moodEntries` array with clear-and-restore import
+
 ### Toolchain and dependencies
 
 - Bumped compile/target SDK to 36, JVM target to 17, and enabled KSP2

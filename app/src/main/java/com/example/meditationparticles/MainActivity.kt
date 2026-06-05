@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
         consumeNavigationIntent(intent)
         deliverOverdueFutureSelfMessages()
         runMoodScaleOneNoteBackfillIfNeeded()
+        runMoodTrackerBackfillIfNeeded()
         setContent {
             val updateViewModel: UpdateViewModel = viewModel()
             SereneApp(
@@ -68,6 +69,15 @@ class MainActivity : ComponentActivity() {
             val oneNoteSync = AppGraph.oneNoteSync(applicationContext)
             runCatching { oneNoteSync.backfillSyncedMoodEntries() }
             oneNotePrefs.setMoodScaleBackfillDone(true)
+        }
+    }
+
+    private fun runMoodTrackerBackfillIfNeeded() {
+        lifecycleScope.launch {
+            val moodTrackerPrefs = AppGraph.moodTrackerPreferences(applicationContext)
+            if (moodTrackerPrefs.isBackfillDone()) return@launch
+            runCatching { AppGraph.moodTracker(applicationContext).backfillFromLegacyIfNeeded() }
+            moodTrackerPrefs.setBackfillDone(true)
         }
     }
 

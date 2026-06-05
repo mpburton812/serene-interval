@@ -80,6 +80,13 @@ class AppDataImportTest {
     }
 
     @Test
+    fun validateExportJson_readsVersionThree() {
+        val json = """{"exportVersion": 3, "configuration": {}, "entries": {}}"""
+
+        assertEquals(3, AppDataImporter.validateExportJson(json))
+    }
+
+    @Test
     fun legacyMoodLevelFiveNormalizesToFour() {
         assertEquals(4, MoodScale.normalize(5))
     }
