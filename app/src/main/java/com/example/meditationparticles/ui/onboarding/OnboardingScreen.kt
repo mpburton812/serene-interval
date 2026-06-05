@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Notifications
@@ -130,7 +131,7 @@ fun OnboardingScreen(
                 )
             }
             OnboardingStep.OneNoteConnect -> {
-                val activity = LocalContext.current as? ComponentActivity
+                val activity = LocalActivity.current as? ComponentActivity
                 OnboardingOneNoteConnectStep(
                     onConnect = {
                         activity?.let { host ->

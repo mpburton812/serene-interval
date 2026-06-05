@@ -1,8 +1,8 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
@@ -47,7 +47,7 @@ val sideloadProperties = Properties().apply {
 
 android {
     namespace = "com.example.meditationparticles"
-    compileSdk = 35
+    compileSdk = 36
 
     signingConfigs {
         create("sideload") {
@@ -63,7 +63,7 @@ android {
     defaultConfig {
         applicationId = "com.example.meditationparticles"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 14
         versionName = "1.0.13"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -102,17 +102,19 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -132,13 +134,15 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.msal)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.datastore)
+    implementation(libs.tink.android)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation("org.json:json:20240303")
+    testImplementation(libs.org.json)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -44,7 +44,7 @@ class NvcRepositoryTest {
     }
 
     @Test
-    fun deleteEntry_removesRowAndClearsAudioPaths() = runTest {
+    fun deleteEntry_removesRow() = runTest {
         val dao = FakeNvcEntryDao()
         val repository = NvcRepository(dao)
         val id = repository.save(
@@ -53,7 +53,6 @@ class NvcRepositoryTest {
                 feeling = "",
                 need = "",
                 request = "",
-                observationAudioPath = "/tmp/nvc-audio.m4a",
             ),
         )!!
         repository.deleteEntry(id)
