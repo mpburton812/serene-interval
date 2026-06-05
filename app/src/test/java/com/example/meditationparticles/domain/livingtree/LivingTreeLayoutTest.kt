@@ -16,7 +16,7 @@ class LivingTreeLayoutTest {
         val many = LivingTreeLayout.computeNodeRadius(canvas, 50)
 
         assertTrue(few > many)
-        assertTrue(few >= 36f)
+        assertTrue(few >= 100f)
         assertTrue(many >= LivingTreeLayout.absoluteMinNodeRadius)
     }
 
@@ -139,11 +139,14 @@ class LivingTreeLayoutTest {
 
     @Test
     fun computeLayoutSizing_smallGroups_haveComfortableBubbleSizes() {
-        listOf(5 to 36f, 8 to 28f, 10 to 28f).forEach { (count, minRadius) ->
+        val manySizing = LivingTreeLayout.computeLayoutSizing(canvas, 50)
+        assertTrue(LivingTreeLayout.computeLayoutSizing(canvas, 1).nodeRadius >= 100f)
+        assertTrue(LivingTreeLayout.computeLayoutSizing(canvas, 3).nodeRadius >= 65f)
+        listOf(5, 8, 10).forEach { count ->
             val sizing = LivingTreeLayout.computeLayoutSizing(canvas, count)
             assertTrue(
-                "Expected comfortable satellites for $count people",
-                sizing.nodeRadius >= minRadius,
+                "Expected larger satellites for $count people than for 50",
+                sizing.nodeRadius > manySizing.nodeRadius * 1.4f,
             )
             assertNoPairwiseOverlap(count, sizing)
         }

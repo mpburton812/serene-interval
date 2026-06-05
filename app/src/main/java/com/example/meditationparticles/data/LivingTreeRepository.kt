@@ -19,6 +19,11 @@ class DuplicateLivingTreeNameException(
     enum class Kind { Person, Tag }
 }
 
+data class BulkCreatePeopleResult(
+    val createdCount: Int,
+    val skippedDuplicates: List<String>,
+)
+
 class LivingTreeRepository(
     private val tagDao: LivingTreeTagDao,
     private val personDao: LivingTreePersonDao,
@@ -109,6 +114,47 @@ class LivingTreeRepository(
         )
         setPersonTags(personId, tagIds)
         return personId
+    }
+
+    suspend fun createPeople(
+        names: List<String>,
+        notes: String = "",
+        tagIds: Set<Long> = emptySet(),
+    ): BulkCreatePeopleResult {
+        require(names.isNotEmpty()) { "At least one person name is required." }
+        val applyNotes = names.size == 1
+        val trimmedNotes = if (applyNotes) notes.trim() else ""
+        val seen = mutableSetOf<String>()
+        val skipped = mutableListOf<String>()
+        var created = 0
+        for (name in names) {
+            val trimmed = name.trim()
+            if (trimmed.isEmpty()) continue
+            val key = trimmed.lowercase()
+            if (!seen.add(key)) {
+                skipped.add(trimmed)
+                continue
+            }
+            if (personDao.findByNameIgnoreCase(trimmed) != null) {
+                skipped.add(trimmed)
+                continue
+            }
+            val count = personDao.count()
+            val now = System.currentTimeMillis()
+            val personId = personDao.insert(
+                LivingTreePersonEntity(
+                    name = trimmed,
+                    notes = trimmedNotes,
+                    sortOrder = count,
+                    angleRadians = LivingTreeLayout.angleForNewPerson(count),
+                    createdAtMillis = now,
+                    updatedAtMillis = now,
+                ),
+            )
+            setPersonTags(personId, tagIds)
+            created++
+        }
+        return BulkCreatePeopleResult(createdCount = created, skippedDuplicates = skipped)
     }
 
     suspend fun updatePerson(

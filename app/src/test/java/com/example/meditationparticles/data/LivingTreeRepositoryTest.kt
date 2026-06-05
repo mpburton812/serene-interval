@@ -55,6 +55,36 @@ class LivingTreeRepositoryTest {
     }
 
     @Test
+    fun createPeople_addsMultipleWithSharedTags() = runTest {
+        val tagDao = FakeLivingTreeTagDao()
+        val personTagDao = FakeLivingTreePersonTagDao()
+        val repository = LivingTreeRepository(tagDao, FakeLivingTreePersonDao(), personTagDao)
+        val tagId = tagDao.insert(LivingTreeTagEntity(name = "Friends", colorArgb = 1))
+
+        val result = repository.createPeople(
+            names = listOf("Alex", "Jordan", "Sam"),
+            tagIds = setOf(tagId),
+        )
+
+        assertEquals(3, result.createdCount)
+        assertTrue(result.skippedDuplicates.isEmpty())
+        assertEquals(3, personTagDao.refs.size)
+    }
+
+    @Test
+    fun createPeople_skipsDuplicatesWithinBatchAndExisting() = runTest {
+        val repository = createRepository()
+        repository.createPerson("Alex")
+
+        val result = repository.createPeople(
+            names = listOf("Alex", "alex", "Jordan", "Jordan"),
+        )
+
+        assertEquals(1, result.createdCount)
+        assertEquals(listOf("Alex", "alex", "Jordan"), result.skippedDuplicates)
+    }
+
+    @Test
     fun createTag_rejectsDuplicateNamesCaseInsensitive() = runTest {
         val repository = createRepository()
         repository.createTag("Support", colorArgb = 0xFF000000.toInt())

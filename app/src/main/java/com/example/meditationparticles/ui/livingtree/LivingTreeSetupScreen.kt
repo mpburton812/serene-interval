@@ -56,6 +56,7 @@ import com.example.meditationparticles.data.local.LivingTreePersonEntity
 import com.example.meditationparticles.data.local.LivingTreePersonWithTags
 import com.example.meditationparticles.data.local.LivingTreeTagEntity
 import com.example.meditationparticles.domain.livingtree.LivingTreeDefaults
+import com.example.meditationparticles.domain.livingtree.LivingTreePersonNames
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -160,6 +161,46 @@ class LivingTreeSetupViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
+    fun savePeople(namesInput: String, notes: String, tagIds: Set<Long>) {
+        val names = LivingTreePersonNames.parse(namesInput)
+        if (names.isEmpty()) return
+        viewModelScope.launch {
+            runCatching {
+                if (names.size == 1) {
+                    repository.createPerson(names.single(), notes, tagIds)
+                } else {
+                    val result = repository.createPeople(names, tagIds = tagIds)
+                    if (result.createdCount == 0) {
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = bulkSkipMessage(result.skippedDuplicates),
+                        )
+                    } else if (result.skippedDuplicates.isNotEmpty()) {
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = bulkPartialMessage(result.createdCount, result.skippedDuplicates),
+                        )
+                    }
+                }
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(errorMessage = duplicateMessage(error))
+            }
+        }
+    }
+
+    private fun bulkSkipMessage(skipped: List<String>): String {
+        val names = skipped.joinToString(", ") { "\"$it\"" }
+        return if (skipped.size == 1) {
+            "Skipped duplicate name: $names."
+        } else {
+            "Skipped duplicate names: $names."
+        }
+    }
+
+    private fun bulkPartialMessage(created: Int, skipped: List<String>): String {
+        val names = skipped.joinToString(", ") { "\"$it\"" }
+        val personWord = if (created == 1) "person" else "people"
+        return "Added $created $personWord. Skipped duplicates: $names."
+    }
+
     private fun duplicateMessage(error: Throwable): String = when (error) {
         is DuplicateLivingTreeNameException -> when (error.kind) {
             DuplicateLivingTreeNameException.Kind.Person ->
@@ -213,6 +254,48 @@ fun LivingTreeSetupScreen(
                 Text(text = message, color = MaterialTheme.colorScheme.error)
             }
 
+            SetupSectionHeader(
+                title = "People",
+                addContentDescription = "New person or people",
+                onAdd = { showNewPerson = true },
+            )
+            state.people.forEach { entry ->
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { editingPerson = entry },
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = entry.person.name, style = MaterialTheme.typography.bodyLarge)
+                            IconButton(onClick = { viewModel.requestDeletePerson(entry.person) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete person")
+                            }
+                        }
+                        if (entry.tags.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                entry.tags.forEach { tag ->
+                                    Text(
+                                        text = tag.name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color(tag.colorArgb),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             SetupSectionHeader(title = "Tags", onAdd = { showNewTag = true })
             state.tags.forEach { tag ->
                 GlassCard(
@@ -245,44 +328,6 @@ fun LivingTreeSetupScreen(
                     }
                 }
             }
-
-            SetupSectionHeader(title = "People", onAdd = { showNewPerson = true })
-            state.people.forEach { entry ->
-                GlassCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { editingPerson = entry },
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(text = entry.person.name, style = MaterialTheme.typography.bodyLarge)
-                            IconButton(onClick = { viewModel.requestDeletePerson(entry.person) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete person")
-                            }
-                        }
-                        if (entry.tags.isNotEmpty()) {
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                entry.tags.forEach { tag ->
-                                    Text(
-                                        text = tag.name,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = Color(tag.colorArgb),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -311,8 +356,12 @@ fun LivingTreeSetupScreen(
                 editingPerson = null
                 viewModel.clearError()
             },
-            onSave = { name, notes, tagIds ->
-                viewModel.savePerson(name, notes, tagIds, editingPerson?.person)
+            onSave = { namesInput, notes, tagIds ->
+                if (editingPerson == null) {
+                    viewModel.savePeople(namesInput, notes, tagIds)
+                } else {
+                    viewModel.savePerson(namesInput, notes, tagIds, editingPerson?.person)
+                }
                 showNewPerson = false
                 editingPerson = null
             },
@@ -349,7 +398,11 @@ fun LivingTreeSetupScreen(
 }
 
 @Composable
-private fun SetupSectionHeader(title: String, onAdd: () -> Unit) {
+private fun SetupSectionHeader(
+    title: String,
+    onAdd: () -> Unit,
+    addContentDescription: String = "Add $title",
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -361,7 +414,7 @@ private fun SetupSectionHeader(title: String, onAdd: () -> Unit) {
             color = MaterialTheme.colorScheme.primary,
         )
         IconButton(onClick = onAdd) {
-            Icon(Icons.Default.Add, contentDescription = "Add $title")
+            Icon(Icons.Default.Add, contentDescription = addContentDescription)
         }
     }
 }
@@ -429,33 +482,70 @@ private fun PersonEditorDialog(
     onDismiss: () -> Unit,
     onSave: (String, String, Set<Long>) -> Unit,
 ) {
+    val isNew = existing == null
     var name by remember(existing) { mutableStateOf(existing?.person?.name ?: "") }
     var notes by remember(existing) { mutableStateOf(existing?.person?.notes ?: "") }
     var selectedTagIds by remember(existing) {
         mutableStateOf(existing?.tags?.map { it.id }?.toSet() ?: emptySet())
     }
+    val parsedNames = remember(name) { LivingTreePersonNames.parse(name) }
+    val isBulkAdd = isNew && parsedNames.size > 1
+    val notesEnabled = !isBulkAdd
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "New person" else "Edit person") },
+        title = {
+            Text(
+                when {
+                    isNew && parsedNames.size > 1 -> "New people"
+                    isNew -> "New person or people"
+                    else -> "Edit person"
+                },
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (isNew) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Names") },
+                        placeholder = { Text("One name per line") },
+                        supportingText = {
+                            Text("Enter one name per line. Each name becomes a person with the selected tags.")
+                        },
+                        minLines = 3,
+                        maxLines = 8,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 OutlinedTextField(
                     value = notes,
-                    onValueChange = { notes = it },
+                    onValueChange = { if (notesEnabled) notes = it },
                     label = { Text("Notes (optional)") },
+                    enabled = notesEnabled,
+                    supportingText = if (isBulkAdd) {
+                        { Text("Notes apply to single-person add only.") }
+                    } else {
+                        null
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(text = "Tags", style = MaterialTheme.typography.labelMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     tags.forEach { tag ->
                         val selected = tag.id in selectedTagIds
                         Text(
@@ -471,7 +561,7 @@ private fun PersonEditorDialog(
                                         if (selected) remove(tag.id) else add(tag.id)
                                     }
                                 }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
                             color = if (selected) Color(tag.colorArgb) else MaterialTheme.colorScheme.onSurface,
                         )
                     }
@@ -481,7 +571,7 @@ private fun PersonEditorDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(name, notes, selectedTagIds) },
-                enabled = name.trim().isNotEmpty(),
+                enabled = parsedNames.isNotEmpty(),
             ) { Text("Save") }
         },
         dismissButton = {

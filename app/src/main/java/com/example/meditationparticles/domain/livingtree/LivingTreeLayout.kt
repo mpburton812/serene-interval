@@ -6,9 +6,9 @@ import kotlin.math.sin
 
 object LivingTreeLayout {
     const val MIN_NODE_RADIUS = 18f
-    const val MAX_NODE_RADIUS = 52f
+    const val MAX_NODE_RADIUS = 156f
     const val MIN_CENTER_RADIUS = 56f
-    const val MAX_CENTER_RADIUS = 72f
+    const val MAX_CENTER_RADIUS = 216f
     const val CENTER_TO_NODE_RATIO = 1.45f
     const val CANVAS_PADDING = 24f
     const val BUBBLE_GAP = 8f
@@ -37,8 +37,8 @@ object LivingTreeLayout {
         }
 
         var nodeRadius = computeNodeRadius(minDimension, personCount)
-        val maxOrbit = maxOrbitRadius(minDimension, nodeRadius)
-        val spacingCap = maxNodeRadiusForOrbit(maxOrbit, personCount)
+        val canvasOrbit = maxOrbitRadius(minDimension, absoluteMinNodeRadius)
+        val spacingCap = maxNodeRadiusForOrbit(canvasOrbit, personCount)
         nodeRadius = minOf(nodeRadius, spacingCap)
         val countFloor = minNodeRadiusForCount(personCount)
         val effectiveFloor = minOf(countFloor, spacingCap).coerceAtLeast(
@@ -46,7 +46,24 @@ object LivingTreeLayout {
         )
         nodeRadius = nodeRadius.coerceAtLeast(effectiveFloor)
 
-        val orbitRadius = computeOrbitRadius(minDimension, personCount, nodeRadius)
+        var orbitRadius = computeOrbitRadius(minDimension, personCount, nodeRadius)
+        if (personCount > 1 && nodeRadius > 1f) {
+            var low = 1f
+            var high = nodeRadius
+            repeat(20) {
+                val mid = (low + high) / 2f
+                val trialOrbit = computeOrbitRadius(minDimension, personCount, mid)
+                val chord = 2.0 * trialOrbit * sin(PI / personCount)
+                val required = 2.0 * mid + BUBBLE_GAP
+                if (chord >= required - 0.5) {
+                    low = mid
+                } else {
+                    high = mid
+                }
+            }
+            nodeRadius = low
+            orbitRadius = computeOrbitRadius(minDimension, personCount, nodeRadius)
+        }
         val centerRadius = computeCenterRadius(minDimension, nodeRadius)
         return LayoutSizing(nodeRadius, orbitRadius, centerRadius)
     }
@@ -84,7 +101,7 @@ object LivingTreeLayout {
         if (personCount <= 0) return MAX_NODE_RADIUS
         val countScale = countScale(personCount)
         val canvasScale = (minDimension / 400f).coerceIn(0.88f, 1.12f)
-        val raw = minDimension * 0.125f * countScale * canvasScale
+        val raw = minDimension * 0.375f * countScale * canvasScale
         return raw.coerceIn(MIN_NODE_RADIUS, MAX_NODE_RADIUS)
     }
 
@@ -92,7 +109,10 @@ object LivingTreeLayout {
         val fromNode = nodeRadius * CENTER_TO_NODE_RATIO
         val fromCanvas = minDimension * 0.095f
         val minBound = maxOf(MIN_CENTER_RADIUS, nodeRadius * 1.2f)
-        val maxBound = maxOf(minBound, minOf(MAX_CENTER_RADIUS, minDimension * 0.20f))
+        val maxBound = maxOf(
+            minBound,
+            minOf(MAX_CENTER_RADIUS, maxOf(minDimension * 0.20f, fromNode * 1.05f)),
+        )
         return maxOf(fromNode, fromCanvas).coerceIn(minBound, maxBound)
     }
 
@@ -135,19 +155,20 @@ object LivingTreeLayout {
     internal const val absoluteMinNodeRadius = 11f
 
     internal fun minNodeRadiusForCount(personCount: Int): Float = when {
-        personCount <= 10 -> 28f
-        personCount <= 20 -> 22f
-        personCount <= 30 -> 18f
+        personCount <= 5 -> 84f
+        personCount <= 10 -> 72f
+        personCount <= 20 -> 54f
+        personCount <= 30 -> 36f
         else -> absoluteMinNodeRadius
     }
 
     internal fun countScale(personCount: Int): Float = when {
-        personCount <= 3 -> 1.0f
-        personCount <= 10 -> 0.92f
-        personCount <= 20 -> 0.78f
-        personCount <= 30 -> 0.66f
-        personCount <= 45 -> 0.54f
-        else -> 0.46f
+        personCount <= 5 -> 1.0f
+        personCount <= 10 -> 0.88f
+        personCount <= 20 -> 0.72f
+        personCount <= 30 -> 0.58f
+        personCount <= 45 -> 0.48f
+        else -> 0.40f
     }
 
     internal fun orbitUtilization(personCount: Int): Float = when {
