@@ -9,5 +9,4 @@ data class AffirmationEntity(
     val text: String,
     val createdAt: Long = System.currentTimeMillis(),
     val sortOrder: Int = 0,
-    val isFavorite: Boolean = false,
 )

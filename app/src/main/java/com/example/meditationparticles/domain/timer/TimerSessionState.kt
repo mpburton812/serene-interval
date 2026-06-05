@@ -1,7 +1,7 @@
 package com.example.meditationparticles.domain.timer
 
 data class TimerSessionState(
-    val displayMode: TimerDisplayMode = TimerDisplayMode.Hourglass,
+    val displayMode: TimerDisplayMode = TimerDisplayMode.Digital,
     val phase: TimerPhase = TimerPhase.Idle,
     val targetMinutes: Int = TimerPresets.DEFAULT_MINUTES,
     val elapsedMs: Long = 0L,

@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Air
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.Handyman
@@ -58,6 +60,8 @@ import com.example.meditationparticles.ui.onboarding.OnboardingScreen
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.settings.SettingsScreen
 import com.example.meditationparticles.ui.timer.TimerScreen
+import com.example.meditationparticles.ui.livingtree.LivingTreeScreen
+import com.example.meditationparticles.ui.livingtree.LivingTreeSetupScreen
 import com.example.meditationparticles.ui.mood.MoodGraphScreen
 import com.example.meditationparticles.ui.toolkit.AffirmationsScreen
 import com.example.meditationparticles.ui.toolkit.ToolkitScreen
@@ -75,6 +79,12 @@ private val allBottomNavItems = listOf(
         Icons.Default.FormatQuote,
     ),
     BottomNavItem(SereneDestination.Toolkit, "Toolkit", Icons.Outlined.Handyman, Icons.Default.Handyman),
+    BottomNavItem(
+        SereneDestination.LivingTree,
+        "Tree",
+        Icons.Outlined.AccountTree,
+        Icons.Default.AccountTree,
+    ),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -83,6 +93,7 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Timer.route,
     SereneDestination.Affirmations.route,
     SereneDestination.Toolkit.route,
+    SereneDestination.LivingTree.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -164,6 +175,7 @@ fun SereneNavHost(
         settings.enableTimer,
         settings.enableAffirmations,
         settings.enableToolkit,
+        settings.enableLivingTree,
     ) {
         allBottomNavItems.filter { item ->
             when (item.destination) {
@@ -172,6 +184,7 @@ fun SereneNavHost(
                 SereneDestination.Timer -> settings.enableTimer
                 SereneDestination.Affirmations -> settings.enableAffirmations
                 SereneDestination.Toolkit -> settings.enableToolkit
+                SereneDestination.LivingTree -> settings.enableLivingTree
                 else -> false
             }
         }
@@ -252,11 +265,13 @@ fun SereneNavHost(
 
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
+        currentRoute != SereneDestination.LivingTreeSetup.route &&
         currentRoute?.startsWith("mood_graph") != true &&
         !breathingSessionActive
 
     val showAppBanner = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
+        currentRoute != SereneDestination.LivingTreeSetup.route &&
         currentRoute?.startsWith("mood_graph") != true
 
     val showBuildInfoLabel = !breathingSessionActive
@@ -359,6 +374,7 @@ fun SereneNavHost(
             composable(SereneDestination.Timer.route) { }
             composable(SereneDestination.Affirmations.route) { }
             composable(SereneDestination.Toolkit.route) { }
+            composable(SereneDestination.LivingTree.route) { }
             composable(
                 route = SereneDestination.MoodGraph.route,
                 arguments = listOf(
@@ -373,6 +389,11 @@ fun SereneNavHost(
                 )
                 MoodGraphScreen(
                     period = period,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(SereneDestination.LivingTreeSetup.route) {
+                LivingTreeSetupScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -462,6 +483,15 @@ fun SereneNavHost(
                                 },
                                 onNavigateToMoodGraph = { period ->
                                     navController.navigate(SereneDestination.MoodGraph.route(period)) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
+                        SereneDestination.LivingTree -> {
+                            LivingTreeScreen(
+                                onOpenSetup = {
+                                    navController.navigate(SereneDestination.LivingTreeSetup.route) {
                                         launchSingleTop = true
                                     }
                                 },

@@ -220,6 +220,7 @@ private fun OnboardingCustomizationStep(
                 onTimerChanged = viewModel::setEnableTimer,
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
+                onLivingTreeChanged = viewModel::setEnableLivingTree,
             )
         }
 

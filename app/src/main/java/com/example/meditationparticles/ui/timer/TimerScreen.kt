@@ -71,7 +71,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.audio.TimerAudioPlayer
-import com.example.meditationparticles.canvas.HourglassCanvas
 import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
@@ -665,13 +664,6 @@ private fun TimerDisplay(
     }
 
     when (state.displayMode) {
-        TimerDisplayMode.Hourglass -> {
-            HourglassCanvas(
-                progress = state.progress,
-                isRunning = state.isRunning && state.phase == TimerPhase.Running,
-                modifier = modifier.padding(bottom = FabClearance),
-            )
-        }
         TimerDisplayMode.Digital -> {
             Box(
                 modifier = modifier.padding(bottom = FabClearance),

@@ -2,8 +2,20 @@ package com.example.meditationparticles.domain.timer
 
 enum class TimerDisplayMode(val label: String) {
     Digital("Digital"),
-    Hourglass("Hourglass"),
     Blank("Blank"),
+    ;
+
+    companion object {
+        private val removedOptionNames = setOf("Hourglass")
+
+        fun fromStoredName(name: String?): TimerDisplayMode {
+            val normalized = when (name) {
+                in removedOptionNames -> Digital.name
+                else -> name ?: Digital.name
+            }
+            return runCatching { valueOf(normalized) }.getOrDefault(Digital)
+        }
+    }
 }
 
 enum class TimerPhase {

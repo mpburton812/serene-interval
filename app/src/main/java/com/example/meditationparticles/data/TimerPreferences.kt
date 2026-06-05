@@ -10,10 +10,7 @@ class TimerPreferences(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun load(): TimerPrefsSnapshot {
-        val modeName = prefs.getString(KEY_DISPLAY_MODE, TimerDisplayMode.Hourglass.name)
-        val displayMode = runCatching {
-            TimerDisplayMode.valueOf(modeName ?: TimerDisplayMode.Hourglass.name)
-        }.getOrDefault(TimerDisplayMode.Hourglass)
+        val displayMode = TimerDisplayMode.fromStoredName(prefs.getString(KEY_DISPLAY_MODE, null))
 
         val soundName = prefs.getString(KEY_SOUND, TimerSoundOption.None.name)
         val sound = TimerSoundOption.fromStoredName(soundName)

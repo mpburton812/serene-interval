@@ -402,6 +402,87 @@ private class Migration15To16 : Migration(15, 16) {
     }
 }
 
+private class Migration16To17 : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS affirmations_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                text TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                sortOrder INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO affirmations_new (id, text, createdAt, sortOrder)
+            SELECT id, text, createdAt, sortOrder FROM affirmations
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE affirmations")
+        db.execSQL("ALTER TABLE affirmations_new RENAME TO affirmations")
+    }
+}
+
+private class Migration17To18 : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS living_tree_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                colorArgb INTEGER NOT NULL,
+                sortOrder INTEGER NOT NULL,
+                createdAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS index_living_tree_tags_name
+            ON living_tree_tags (name)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS living_tree_people (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                notes TEXT NOT NULL,
+                sortOrder INTEGER NOT NULL,
+                angleRadians REAL,
+                createdAtMillis INTEGER NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS index_living_tree_people_name
+            ON living_tree_people (name)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS living_tree_person_tags (
+                personId INTEGER NOT NULL,
+                tagId INTEGER NOT NULL,
+                PRIMARY KEY(personId, tagId),
+                FOREIGN KEY(personId) REFERENCES living_tree_people(id) ON DELETE CASCADE,
+                FOREIGN KEY(tagId) REFERENCES living_tree_tags(id) ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_living_tree_person_tags_tagId
+            ON living_tree_person_tags (tagId)
+            """.trimIndent(),
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -418,4 +499,6 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration13To14(),
     Migration14To15(),
     Migration15To16(),
+    Migration16To17(),
+    Migration17To18(),
 )

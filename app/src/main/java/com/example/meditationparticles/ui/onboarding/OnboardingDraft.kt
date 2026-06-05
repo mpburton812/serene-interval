@@ -16,6 +16,7 @@ data class OnboardingDraft(
     val enableTimer: Boolean = true,
     val enableAffirmations: Boolean = true,
     val enableToolkit: Boolean = true,
+    val enableLivingTree: Boolean = true,
     val enableVisuals: Boolean = true,
     val enabledScenes: Set<String> = ExperienceSettings.defaultScenes,
     val enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
@@ -49,6 +50,7 @@ data class OnboardingDraft(
         enableTimer = enableTimer,
         enableAffirmations = enableAffirmations,
         enableToolkit = enableToolkit,
+        enableLivingTree = enableLivingTree,
         enableVisuals = enableVisuals,
         enabledScenes = enabledScenes,
         meditationRemindersAvailable = meditationRemindersAvailable,
@@ -131,6 +133,7 @@ fun OnboardingDraft.withToolEnabled(
     enableTimer: Boolean = this.enableTimer,
     enableAffirmations: Boolean = this.enableAffirmations,
     enableToolkit: Boolean = this.enableToolkit,
+    enableLivingTree: Boolean = this.enableLivingTree,
     enableVisuals: Boolean = this.enableVisuals,
 ): OnboardingDraft {
     val next = copy(
@@ -138,6 +141,7 @@ fun OnboardingDraft.withToolEnabled(
         enableTimer = enableTimer,
         enableAffirmations = enableAffirmations,
         enableToolkit = enableToolkit,
+        enableLivingTree = enableLivingTree,
         enableVisuals = enableVisuals,
     )
     return (if (next.canComplete) next else this).pruneQuickStart()

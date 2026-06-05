@@ -7,6 +7,9 @@ import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.LivingTreePersonEntity
+import com.example.meditationparticles.data.local.LivingTreePersonTagCrossRef
+import com.example.meditationparticles.data.local.LivingTreeTagEntity
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.data.local.MoodEntryEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
@@ -60,6 +63,10 @@ class AppDataImporter(
             counts = importEntries(entries, counts, skips, warnings)
         } else {
             warnings += "No entries section found; journal data was not changed."
+        }
+
+        root.optJSONObject("livingTree")?.let { livingTree ->
+            counts = importLivingTree(livingTree, counts, skips)
         }
 
         ImportResult(counts = counts, skips = skips, warnings = warnings)
@@ -189,6 +196,7 @@ class AppDataImporter(
             enableAffirmations = json.optBoolean("enableAffirmations", current.enableAffirmations),
             enableToolkit = json.optBoolean("enableToolkit", current.enableToolkit),
             enableVisuals = json.optBoolean("enableVisuals", current.enableVisuals),
+            enableLivingTree = json.optBoolean("enableLivingTree", current.enableLivingTree),
             enabledScenes = enabledScenes.ifEmpty { ExperienceSettings.defaultScenes },
             meditationRemindersAvailable = json.optBoolean(
                 "meditationRemindersAvailable",
@@ -267,7 +275,6 @@ class AppDataImporter(
             reminderEnabled = json.optBoolean("reminderEnabled", current.reminderEnabled),
             reminderHour = json.optInt("reminderHour", current.reminderHour),
             reminderMinute = json.optInt("reminderMinute", current.reminderMinute),
-            viewMode = json.optString("viewMode", current.viewMode),
         )
     }
 
@@ -277,10 +284,9 @@ class AppDataImporter(
     ): Pair<TimerPreferences.TimerPrefsSnapshot, List<ImportSkip>> {
         val current = TimerPreferences(context).load()
         val skips = mutableListOf<ImportSkip>()
-        val displayMode = json.optString("displayMode", current.displayMode.name)
-            .let { name ->
-                runCatching { TimerDisplayMode.valueOf(name) }.getOrDefault(current.displayMode)
-            }
+        val displayMode = TimerDisplayMode.fromStoredName(
+            json.optString("displayMode", current.displayMode.name),
+        )
         val sound = TimerSoundOption.fromStoredName(json.optString("sound", current.sound.name))
         val bellSound = TimerBellSoundChoice.fromStoredName(
             json.optString("bellSound", current.bellSound.name),
@@ -378,6 +384,86 @@ class AppDataImporter(
         return updated
     }
 
+    private suspend fun importLivingTree(
+        json: JSONObject,
+        counts: ImportCounts,
+        skips: MutableList<ImportSkip>,
+    ): ImportCounts {
+        val tagsArray = json.optJSONArray("tags") ?: JSONArray()
+        val peopleArray = json.optJSONArray("people") ?: JSONArray()
+        val personTagsArray = json.optJSONArray("personTags") ?: JSONArray()
+
+        val tags = buildList {
+            for (index in 0 until tagsArray.length()) {
+                val item = tagsArray.optJSONObject(index) ?: continue
+                val name = item.optString("name", "").trim()
+                if (name.isEmpty()) {
+                    skips += ImportSkip("living tree tag", "missing name")
+                    continue
+                }
+                add(
+                    LivingTreeTagEntity(
+                        id = item.optLong("id"),
+                        name = name,
+                        colorArgb = item.optInt("colorArgb", 0xFF4A654E.toInt()),
+                        sortOrder = item.optInt("sortOrder", size),
+                        createdAtMillis = item.optLong("createdAtMillis", System.currentTimeMillis()),
+                    ),
+                )
+            }
+        }
+
+        val people = buildList {
+            for (index in 0 until peopleArray.length()) {
+                val item = peopleArray.optJSONObject(index) ?: continue
+                val name = item.optString("name", "").trim()
+                if (name.isEmpty()) {
+                    skips += ImportSkip("living tree person", "missing name")
+                    continue
+                }
+                add(
+                    LivingTreePersonEntity(
+                        id = item.optLong("id"),
+                        name = name,
+                        notes = item.optString("notes", ""),
+                        sortOrder = item.optInt("sortOrder", size),
+                        angleRadians = item.optDouble("angleRadians").takeIf { item.has("angleRadians") },
+                        createdAtMillis = item.optLong("createdAtMillis", System.currentTimeMillis()),
+                        updatedAtMillis = item.optLong("updatedAtMillis", System.currentTimeMillis()),
+                    ),
+                )
+            }
+        }
+
+        val personTags = buildList {
+            for (index in 0 until personTagsArray.length()) {
+                val item = personTagsArray.optJSONObject(index) ?: continue
+                add(
+                    LivingTreePersonTagCrossRef(
+                        personId = item.optLong("personId"),
+                        tagId = item.optLong("tagId"),
+                    ),
+                )
+            }
+        }
+
+        runCatching {
+            AppGraph.livingTree(context).replaceAllFromExport(tags, people, personTags)
+        }.onFailure { error ->
+            skips += ImportSkip(
+                category = "living tree",
+                reason = "import failed",
+                detail = error.message,
+            )
+            return counts
+        }
+
+        return counts.copy(
+            livingTreeTags = tags.size,
+            livingTreePeople = people.size,
+        )
+    }
+
     private suspend fun importAffirmations(
         array: JSONArray?,
         dao: com.example.meditationparticles.data.local.AffirmationDao,
@@ -405,7 +491,6 @@ class AppDataImporter(
                     text = text,
                     createdAt = createdAt,
                     sortOrder = item.optInt("sortOrder", 0),
-                    isFavorite = item.optBoolean("isFavorite", false),
                 ),
             )
             imported++

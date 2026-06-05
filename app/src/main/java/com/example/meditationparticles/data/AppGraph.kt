@@ -55,6 +55,9 @@ object AppGraph {
     @Volatile
     private var moodTrackerPreferences: MoodTrackerPreferences? = null
 
+    @Volatile
+    private var livingTreeRepository: LivingTreeRepository? = null
+
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
             affirmationRepository ?: AffirmationRepository(
@@ -183,5 +186,15 @@ object AppGraph {
         moodTrackerPreferences ?: synchronized(this) {
             moodTrackerPreferences ?: MoodTrackerPreferences(context.applicationContext)
                 .also { moodTrackerPreferences = it }
+        }
+
+    fun livingTree(context: Context): LivingTreeRepository =
+        livingTreeRepository ?: synchronized(this) {
+            val database = SereneDatabase.getInstance(context.applicationContext)
+            livingTreeRepository ?: LivingTreeRepository(
+                tagDao = database.livingTreeTagDao(),
+                personDao = database.livingTreePersonDao(),
+                personTagDao = database.livingTreePersonTagDao(),
+            ).also { livingTreeRepository = it }
         }
 }

@@ -11,6 +11,8 @@ sealed class SereneDestination(val route: String) {
     data object Visualizations : SereneDestination("visualizations") {
         fun playerRoute(vizId: String) = "visualizations/player/$vizId"
     }
+    data object LivingTree : SereneDestination("living_tree")
+    data object LivingTreeSetup : SereneDestination("living_tree/setup")
     data object Settings : SereneDestination("settings")
     data object Onboarding : SereneDestination("onboarding")
 
@@ -28,6 +30,6 @@ sealed class SereneDestination(val route: String) {
     }
 
     companion object {
-        val bottomNavDestinations = listOf(Home, Breathe, Timer, Affirmations, Toolkit, Visualizations)
+        val bottomNavDestinations = listOf(Home, Breathe, Timer, Affirmations, Toolkit, LivingTree, Visualizations)
     }
 }

@@ -135,6 +135,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun setEnableLivingTree(enabled: Boolean) {
+        preferences.update { it.copy(enableLivingTree = enabled) }
+    }
+
     fun setEnableVisuals(enabled: Boolean) {
         preferences.update { current ->
             current.withToolToggle { it.copy(enableVisuals = enabled) }

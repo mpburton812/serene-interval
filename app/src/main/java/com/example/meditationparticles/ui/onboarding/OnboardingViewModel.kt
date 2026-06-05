@@ -59,6 +59,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _draft.update { it.withToolEnabled(enableToolkit = enabled) }
     }
 
+    fun setEnableLivingTree(enabled: Boolean) {
+        _draft.update { it.copy(enableLivingTree = enabled) }
+    }
+
     fun toggleToolkitTool(id: ToolkitToolId) {
         _draft.update { it.toggleToolkitTool(id) }
     }
