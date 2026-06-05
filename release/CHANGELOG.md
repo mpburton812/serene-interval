@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 1.0.15 - 2026-06-05
+
+### Living Tree
+
+- New Tree tab with radial star graph, multi-tag filtering, and setup CRUD
+- Room schema v18, JSON export version 4, and unit tests
+- Dynamic bubble sizing, drag reposition, bulk add in setup, and layout polish
+- Tag colors, RGB picker, comma-separated names, default tags, and bubble readability overlay
+
+### Affirmations
+
+- Review mode with reorder; removed list view and favorites
+- Fixed review mode so affirmation text and bead counter advance together
+
+### Timer
+
+- Removed Hourglass display mode from the meditation timer
 ## 1.0.14 — 2026-06-05
 
 ### Mood tracker widget
