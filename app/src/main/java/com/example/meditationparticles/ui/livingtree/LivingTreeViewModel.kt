@@ -25,6 +25,7 @@ data class LivingTreeUiState(
     val visiblePeople: List<LivingTreePersonWithTags> = emptyList(),
     val selectedPerson: LivingTreePersonWithTags? = null,
     val filterActive: Boolean = false,
+    val dragAngleOverrides: Map<Long, Double> = emptyMap(),
 )
 
 class LivingTreeViewModel(application: Application) : AndroidViewModel(application) {
@@ -33,14 +34,16 @@ class LivingTreeViewModel(application: Application) : AndroidViewModel(applicati
 
     private val selectedTagIds = MutableStateFlow<List<Long>>(emptyList())
     private val selectedPerson = MutableStateFlow<LivingTreePersonWithTags?>(null)
+    private val dragAngleOverrides = MutableStateFlow<Map<Long, Double>>(emptyMap())
 
     val uiState: StateFlow<LivingTreeUiState> = combine(
         repository.snapshot,
         settingsFlow,
         selectedTagIds,
         selectedPerson,
-    ) { snapshot, settings, selected, person ->
-        buildUiState(snapshot.people, snapshot.tagById, settings, selected, person)
+        dragAngleOverrides,
+    ) { snapshot, settings, selected, person, dragAngles ->
+        buildUiState(snapshot.people, snapshot.tagById, settings, selected, person, dragAngles)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
@@ -75,12 +78,24 @@ class LivingTreeViewModel(application: Application) : AndroidViewModel(applicati
         selectedPerson.value = null
     }
 
+    fun onPersonDragAngle(personId: Long, angleRadians: Double) {
+        dragAngleOverrides.value = dragAngleOverrides.value + (personId to angleRadians)
+    }
+
+    fun onPersonDragEnd(personId: Long, angleRadians: Double) {
+        dragAngleOverrides.value = dragAngleOverrides.value - personId
+        viewModelScope.launch {
+            repository.updatePersonAngle(personId, angleRadians)
+        }
+    }
+
     private fun buildUiState(
         people: List<LivingTreePersonWithTags>,
         tagById: Map<Long, LivingTreeTagEntity>,
         settings: ExperienceSettings,
         selected: List<Long>,
         person: LivingTreePersonWithTags?,
+        dragAngles: Map<Long, Double>,
     ): LivingTreeUiState {
         val peopleTagIds = people.associate { entry ->
             entry.person.id to entry.tags.map { it.id }.toSet()
@@ -97,6 +112,7 @@ class LivingTreeViewModel(application: Application) : AndroidViewModel(applicati
             visiblePeople = visiblePeople,
             selectedPerson = person,
             filterActive = selected.isNotEmpty(),
+            dragAngleOverrides = dragAngles,
         )
     }
 }

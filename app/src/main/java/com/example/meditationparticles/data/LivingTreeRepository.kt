@@ -136,6 +136,16 @@ class LivingTreeRepository(
         personDao.delete(entity)
     }
 
+    suspend fun updatePersonAngle(personId: Long, angleRadians: Double) {
+        val person = personDao.getById(personId) ?: return
+        personDao.update(
+            person.copy(
+                angleRadians = angleRadians,
+                updatedAtMillis = System.currentTimeMillis(),
+            ),
+        )
+    }
+
     suspend fun setPersonTags(personId: Long, tagIds: Set<Long>) {
         personTagDao.deleteForPerson(personId)
         if (tagIds.isNotEmpty()) {

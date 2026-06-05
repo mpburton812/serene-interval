@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.example.meditationparticles.domain.livingtree.LivingTreeDefaults
 import com.example.meditationparticles.domain.livingtree.LivingTreeTextContrast
 import com.example.meditationparticles.ui.theme.isDarkScheme
+import kotlin.math.atan2
 import kotlin.math.hypot
 
 data class LivingTreeGraphNode(
@@ -48,7 +50,10 @@ fun LivingTreeCanvas(
     centerRadius: Float,
     onPersonTap: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    orbitRadius: Float = 0f,
     filterActive: Boolean = false,
+    onPersonDragAngle: ((Long, Double) -> Unit)? = null,
+    onPersonDragEnd: ((Long, Double) -> Unit)? = null,
 ) {
     val textMeasurer = rememberTextMeasurer()
     val scheme = MaterialTheme.colorScheme
@@ -68,6 +73,48 @@ fun LivingTreeCanvas(
     Canvas(
         modifier = modifier
             .fillMaxSize()
+            .pointerInput(nodes, orbitRadius, onPersonDragAngle, onPersonDragEnd) {
+                if (onPersonDragAngle != null && onPersonDragEnd != null && orbitRadius > 0f) {
+                    var draggingId: Long? = null
+                    var dragMoved = false
+                    var lastAngle = 0.0
+
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            draggingId = nodes.firstOrNull { node ->
+                                hypot(
+                                    (offset.x - node.x).toDouble(),
+                                    (offset.y - node.y).toDouble(),
+                                ) <= node.radius
+                            }?.id
+                            dragMoved = false
+                        },
+                        onDrag = { change, _ ->
+                            val id = draggingId ?: return@detectDragGestures
+                            dragMoved = true
+                            val centerX = size.width / 2f
+                            val centerY = size.height / 2f
+                            lastAngle = atan2(
+                                (change.position.y - centerY).toDouble(),
+                                (change.position.x - centerX).toDouble(),
+                            )
+                            onPersonDragAngle(id, lastAngle)
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            draggingId?.let { id ->
+                                if (dragMoved) {
+                                    onPersonDragEnd(id, lastAngle)
+                                }
+                            }
+                            draggingId = null
+                        },
+                        onDragCancel = {
+                            draggingId = null
+                        },
+                    )
+                }
+            }
             .pointerInput(nodes) {
                 detectTapGestures { offset ->
                     nodes.firstOrNull { node ->
