@@ -26,12 +26,13 @@ jobs:
       - name: Rename APK for release
         run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/sway_meditation.apk
 
-      - name: Compute APK SHA256
+      - name: Compute local APK SHA256 (build artifact only)
         id: apk_hash
         run: |
           SHA256=$(sha256sum app/build/outputs/apk/debug/sway_meditation.apk | awk '{print $1}')
           echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
-          echo "APK SHA256: $SHA256"
+          echo "Local build SHA256: $SHA256"
+          echo "Do not use this hash in release/version.json until verified against the live GitHub download."
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -47,3 +48,48 @@ jobs:
           name: ${{ github.ref_name }}
           generate_release_notes: true
           files: app/build/outputs/apk/debug/sway_meditation.apk
+
+      - name: Verify live release asset matches upload
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          REPO="${{ github.repository }}"
+          APK_URL="https://github.com/${REPO}/releases/download/${TAG}/sway_meditation.apk"
+          tmp_apk="$(mktemp -t sway-live.XXXXXX.apk)"
+          trap 'rm -f "$tmp_apk"' EXIT
+
+          echo "Waiting for release asset propagation..."
+          sleep 10
+
+          echo "Downloading live release asset: $APK_URL"
+          downloaded=false
+          for attempt in 1 2 3 4 5; do
+            if curl -fsSL --retry 3 --retry-delay 2 \
+              -H "Accept: application/octet-stream" \
+              -H "User-Agent: serene-interval-release-verify" \
+              -o "$tmp_apk" "$APK_URL"; then
+              size="$(wc -c <"$tmp_apk" | tr -d ' ')"
+              if [[ "$size" -gt 1048576 ]]; then
+                downloaded=true
+                break
+              fi
+            fi
+            echo "Attempt $attempt failed; retrying..."
+            sleep 5
+          done
+
+          if [[ "$downloaded" != true ]]; then
+            echo "::warning::Could not download live release asset; run publish-release.ps1 to pin version.json."
+            exit 0
+          fi
+
+          LIVE_SHA="$(sha256sum "$tmp_apk" | awk '{print $1}')"
+          LOCAL_SHA="${{ steps.apk_hash.outputs.sha256 }}"
+          echo "Live GitHub SHA256: $LIVE_SHA"
+          echo "Local build SHA256: $LOCAL_SHA"
+          if [[ "$LIVE_SHA" != "$LOCAL_SHA" ]]; then
+            echo "::error::Live release asset hash differs from CI build. Use the live hash in release/version.json."
+            exit 1
+          fi
+          echo "::notice::Use SHA256 $LIVE_SHA in release/version.json (from live GitHub download)."

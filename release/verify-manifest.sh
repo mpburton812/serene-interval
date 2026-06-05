@@ -2,11 +2,89 @@
 # Validates release/version.json and confirms apkUrl serves the expected SHA256.
 set -euo pipefail
 
+REPO="mpburton812/serene-interval"
+
 require_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
         echo "Missing required command: $1" >&2
         return 1
     fi
+}
+
+download_release_apk() {
+    local apk_url="$1"
+    local out_file="$2"
+    local tag="${3:-}"
+
+    if [[ -z "$tag" && "$apk_url" =~ /releases/download/(v[^/]+)/ ]]; then
+        tag="${BASH_REMATCH[1]}"
+    fi
+
+    local errors=()
+
+    if [[ -n "$tag" ]] && command -v gh >/dev/null 2>&1; then
+        local dl_dir
+        dl_dir="$(mktemp -d)"
+        if gh release download "$tag" --repo "$REPO" --pattern "sway_meditation.apk" --dir "$dl_dir" --clobber 2>/dev/null; then
+            if [[ -f "$dl_dir/sway_meditation.apk" ]]; then
+                cp "$dl_dir/sway_meditation.apk" "$out_file"
+                rm -rf "$dl_dir"
+                local size
+                size="$(wc -c <"$out_file" | tr -d ' ')"
+                if [[ "$size" -lt 1048576 ]]; then
+                    echo "gh download produced file too small ($size bytes)" >&2
+                    return 1
+                fi
+                echo "Downloaded via gh release download ($tag)"
+                return 0
+            fi
+        fi
+        errors+=("gh release download failed")
+        rm -rf "$dl_dir"
+    fi
+
+    if command -v curl >/dev/null 2>&1; then
+        if curl -fsSL --retry 3 --retry-delay 2 \
+            -H "Accept: application/octet-stream" \
+            -H "User-Agent: serene-interval-manifest-verify" \
+            -o "$out_file" "$apk_url"; then
+            local size
+            size="$(wc -c <"$out_file" | tr -d ' ')"
+            if [[ "$size" -lt 1048576 ]]; then
+                errors+=("curl download too small ($size bytes)")
+            else
+                echo "Downloaded via curl"
+                return 0
+            fi
+        else
+            errors+=("curl failed")
+        fi
+    else
+        errors+=("curl not found")
+    fi
+
+    if command -v wget >/dev/null 2>&1; then
+        if wget -q --header="Accept: application/octet-stream" \
+            --header="User-Agent: serene-interval-manifest-verify" \
+            -O "$out_file" "$apk_url"; then
+            local size
+            size="$(wc -c <"$out_file" | tr -d ' ')"
+            if [[ "$size" -lt 1048576 ]]; then
+                errors+=("wget download too small ($size bytes)")
+            else
+                echo "Downloaded via wget"
+                return 0
+            fi
+        else
+            errors+=("wget failed")
+        fi
+    fi
+
+    echo "All download methods failed for $apk_url" >&2
+    for err in "${errors[@]}"; do
+        echo "  - $err" >&2
+    done
+    return 1
 }
 
 validate_manifest_json() {
@@ -143,16 +221,16 @@ main() {
             echo "Local APK not found: $LOCAL_APK" >&2
             exit 1
         fi
+        echo "Warning: LocalApk compares disk bytes only. Hash the GitHub download after upload for manifests." >&2
         verify_apk_hash "$LOCAL_APK" || exit 1
         exit 0
     fi
 
-    require_command curl || exit 1
     tmp_apk="$(mktemp -t sway-apk.XXXXXX.apk)"
     trap 'rm -f "$tmp_apk"' EXIT
 
     echo "Downloading $APK_URL ..."
-    if ! curl -fsSL --retry 3 --retry-delay 2 -o "$tmp_apk" "$APK_URL"; then
+    if ! download_release_apk "$APK_URL" "$tmp_apk" "v${VERSION_NAME}"; then
         echo "Failed to download apkUrl. Publish the GitHub release before updating version.json." >&2
         exit 1
     fi

@@ -53,6 +53,7 @@ function Test-ApkHash {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$downloadScript = Join-Path $PSScriptRoot "download-release-apk.ps1"
 Push-Location $repoRoot
 try {
     $manifestPath = if ([System.IO.Path]::IsPathRooted($Manifest)) { $Manifest } else { Join-Path $repoRoot $Manifest }
@@ -60,6 +61,7 @@ try {
 
     if ($LocalApk) {
         if (-not (Test-Path $LocalApk)) { throw "Local APK not found: $LocalApk" }
+        Write-Warning "LocalApk compares disk bytes only. For manifest publishing, hash the APK downloaded from GitHub after upload."
         Test-ApkHash -ApkPath $LocalApk
         exit 0
     }
@@ -67,16 +69,14 @@ try {
     $tmpApk = Join-Path ([System.IO.Path]::GetTempPath()) ("sway-apk-" + [guid]::NewGuid().ToString() + ".apk")
     try {
         Write-Host "Downloading $($script:ApkUrl) ..."
-        $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
-        if ($curl) {
-            & $curl.Source -fsSL --retry 3 --retry-delay 2 -o $tmpApk $script:ApkUrl
-        } else {
-            Invoke-WebRequest -Uri $script:ApkUrl -OutFile $tmpApk -UseBasicParsing
-        }
+        & $downloadScript -ApkUrl $script:ApkUrl -OutFile $tmpApk -Tag "v$($script:VersionName)"
         Test-ApkHash -ApkPath $tmpApk
     }
-    catch {
-        throw "Failed to download or verify apkUrl. Publish the GitHub release before updating version.json.`n$($_.Exception.Message)"
+    catch [System.Management.Automation.RuntimeException] {
+        if ($_.Exception.Message -like "APK hash mismatch*") {
+            throw $_.Exception.Message
+        }
+        throw "Failed to download apkUrl. Publish the GitHub release before updating version.json.`n$($_.Exception.Message)"
     }
     finally {
         Remove-Item -Force -ErrorAction SilentlyContinue $tmpApk

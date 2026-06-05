@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Release process
+
+- Fixed v1.0.15 `expectedSha256` to match live GitHub release asset (CI-built APK, not local hash)
+- Added `publish-release.ps1` and `download-release-apk.ps1`; manifest must hash downloaded release bytes
+- Hardened `verify-manifest` download (gh / curl / IWR) and `RELEASE.md` checklist
+
 ## 1.0.15 - 2026-06-05
 
 ### Living Tree
