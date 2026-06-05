@@ -1,8 +1,8 @@
-{
-  "versionCode": 14,
-  "versionName": "1.0.13",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.13/sway_meditation.apk",
-  "expectedSha256": "ad31c2b0a958d609c790af1b148629113c0ddf701843be77c7537d243ca8a51a",
-  "releaseNotes": "• Text readability: SereneTextPlate scrims and glass styling on Home, Breath, and Timer\n• Quick Start: granular targets (toolkit sub-destinations), deselect fix, return Home after toolkit\n• Customizable Quick Start home row and simplified welcome",
+﻿{
+  "versionCode": 15,
+  "versionName": "1.0.14",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.14/sway_meditation.apk",
+  "expectedSha256": "7b4408f93ae36059487cd10522ea697df98c13a62d480bf76e17a9ba48092b67",
+  "releaseNotes": "• Mood tracker: home quick-log, toolkit graphs with axis labels, export v3\n• Home screen mood widget with configurable background\n• 4-level mood scale, toolchain upgrades, and toolkit audio removal",
   "minVersionCode": 1
 }
