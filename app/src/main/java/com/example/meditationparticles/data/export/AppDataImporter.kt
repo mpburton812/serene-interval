@@ -276,10 +276,9 @@ class AppDataImporter(
     ): Pair<TimerPreferences.TimerPrefsSnapshot, List<ImportSkip>> {
         val current = TimerPreferences(context).load()
         val skips = mutableListOf<ImportSkip>()
-        val displayMode = json.optString("displayMode", current.displayMode.name)
-            .let { name ->
-                runCatching { TimerDisplayMode.valueOf(name) }.getOrDefault(current.displayMode)
-            }
+        val displayMode = TimerDisplayMode.fromStoredName(
+            json.optString("displayMode", current.displayMode.name),
+        )
         val sound = TimerSoundOption.fromStoredName(json.optString("sound", current.sound.name))
         val bellSound = TimerBellSoundChoice.fromStoredName(
             json.optString("bellSound", current.bellSound.name),
