@@ -2,7 +2,7 @@
   "versionCode": 15,
   "versionName": "1.0.14",
   "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.14/sway_meditation.apk",
-  "expectedSha256": "7b4408f93ae36059487cd10522ea697df98c13a62d480bf76e17a9ba48092b67",
+  "expectedSha256": "3f90dd827f9556dc0cef9e49239aeda65f1d31b1547d8f0a989789f5e19a117e",
   "releaseNotes": "• Mood tracker: home quick-log, toolkit graphs with axis labels, export v3\n• Home screen mood widget with configurable background\n• 4-level mood scale, toolchain upgrades, and toolkit audio removal",
   "minVersionCode": 1
 }
