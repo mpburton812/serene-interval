@@ -9,10 +9,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -24,7 +27,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.meditationparticles.domain.livingtree.LivingTreeDefaults
-import com.example.meditationparticles.domain.livingtree.LivingTreeLayout
+import com.example.meditationparticles.domain.livingtree.LivingTreeTextContrast
+import com.example.meditationparticles.ui.theme.isDarkScheme
 import kotlin.math.hypot
 
 data class LivingTreeGraphNode(
@@ -41,11 +45,15 @@ data class LivingTreeGraphNode(
 fun LivingTreeCanvas(
     centerLabel: String,
     nodes: List<LivingTreeGraphNode>,
+    centerRadius: Float,
     onPersonTap: (Long) -> Unit,
     modifier: Modifier = Modifier,
     filterActive: Boolean = false,
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val scheme = MaterialTheme.colorScheme
+    val isDark = isDarkScheme(scheme)
+    val labelColors = LivingTreeTextContrast.labelColors(scheme, isDark)
     val pulseTransition = rememberInfiniteTransition(label = "center_pulse")
     val pulseScale by pulseTransition.animateFloat(
         initialValue = 0.96f,
@@ -74,8 +82,12 @@ fun LivingTreeCanvas(
         if (nodes.isEmpty()) return@Canvas
         val centerX = size.width / 2f
         val centerY = size.height / 2f
-        val centerRadius = LivingTreeLayout.computeCenterRadius(minOf(size.width, size.height)) * pulseScale
-        val lineColor = Color.White.copy(alpha = 0.28f)
+        val pulsedCenterRadius = centerRadius * pulseScale
+        val lineColor = if (isDark) {
+            Color.White.copy(alpha = 0.28f)
+        } else {
+            scheme.onSurface.copy(alpha = 0.22f)
+        }
 
         nodes.forEach { node ->
             drawLine(
@@ -87,28 +99,41 @@ fun LivingTreeCanvas(
         }
 
         nodes.forEach { node ->
+            val colors = if (filterActive && node.isFilteredMatch) node.bubbleColors else emptyList()
             drawPersonBubble(
                 center = Offset(node.x, node.y),
                 radius = node.radius,
-                colors = if (filterActive && node.isFilteredMatch) node.bubbleColors else emptyList(),
+                colors = colors,
             )
             drawLabel(
                 textMeasurer = textMeasurer,
                 text = LivingTreeDefaults.truncateName(node.name),
-                center = Offset(node.x, node.y + node.radius + 14f),
+                center = Offset(node.x, node.y + node.radius + 16f),
+                labelColors = labelColors,
+                fontSizeSp = 11f,
+                showPlate = true,
             )
         }
 
         drawPersonBubble(
             center = Offset(centerX, centerY),
-            radius = centerRadius,
+            radius = pulsedCenterRadius,
             colors = emptyList(),
             isCenter = true,
+            isDark = isDark,
+        )
+        val centerTextColor = LivingTreeTextContrast.textOnBubbleFill(
+            bubbleColors = emptyList(),
+            scheme = scheme,
+            isDark = isDark,
         )
         drawLabel(
             textMeasurer = textMeasurer,
             text = LivingTreeDefaults.truncateName(centerLabel, maxLength = 16),
             center = Offset(centerX, centerY),
+            labelColors = labelColors.copy(text = centerTextColor),
+            fontSizeSp = 13f,
+            showPlate = true,
             onBubble = true,
         )
     }
@@ -119,16 +144,25 @@ private fun DrawScope.drawPersonBubble(
     radius: Float,
     colors: List<Color>,
     isCenter: Boolean = false,
+    isDark: Boolean = true,
 ) {
     when {
         colors.isEmpty() -> {
             drawCircle(
-                color = Color.White.copy(alpha = if (isCenter) 0.22f else 0.14f),
+                color = if (isDark) {
+                    Color.White.copy(alpha = if (isCenter) 0.22f else 0.14f)
+                } else {
+                    Color.White.copy(alpha = if (isCenter) 0.38f else 0.26f)
+                },
                 radius = radius,
                 center = center,
             )
             drawCircle(
-                color = Color.White.copy(alpha = if (isCenter) 0.55f else 0.35f),
+                color = if (isDark) {
+                    Color.White.copy(alpha = if (isCenter) 0.55f else 0.35f)
+                } else {
+                    Color.Black.copy(alpha = if (isCenter) 0.18f else 0.12f)
+                },
                 radius = radius,
                 center = center,
                 style = Stroke(width = if (isCenter) 2.5f else 1.5f),
@@ -157,7 +191,7 @@ private fun DrawScope.drawSplitBubble(center: Offset, radius: Float, colors: Lis
             sweepAngle = sweep,
             useCenter = true,
             topLeft = Offset(center.x - radius, center.y - radius),
-            size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
+            size = Size(radius * 2, radius * 2),
         )
     }
     drawCircle(
@@ -172,17 +206,73 @@ private fun DrawScope.drawLabel(
     textMeasurer: TextMeasurer,
     text: String,
     center: Offset,
+    labelColors: LivingTreeTextContrast.LabelColors,
+    fontSizeSp: Float,
+    showPlate: Boolean,
     onBubble: Boolean = false,
 ) {
     val style = TextStyle(
-        color = Color.White.copy(alpha = 0.92f),
-        fontSize = if (onBubble) 13.sp else 11.sp,
+        color = labelColors.text,
+        fontSize = fontSizeSp.sp,
         textAlign = TextAlign.Center,
     )
     val layout = textMeasurer.measure(text, style)
-    val topLeft = Offset(
+    val platePaddingH = if (onBubble) 10f else 8f
+    val platePaddingV = if (onBubble) 5f else 4f
+    val plateWidth = layout.size.width + platePaddingH * 2f
+    val plateHeight = layout.size.height + platePaddingV * 2f
+    val plateTopLeft = Offset(
+        x = center.x - plateWidth / 2f,
+        y = center.y - plateHeight / 2f,
+    )
+
+    if (showPlate) {
+        drawRoundRect(
+            color = labelColors.plateFill,
+            topLeft = plateTopLeft,
+            size = Size(plateWidth, plateHeight),
+            cornerRadius = CornerRadius(plateHeight / 2f, plateHeight / 2f),
+        )
+        drawRoundRect(
+            color = labelColors.plateBorder,
+            topLeft = plateTopLeft,
+            size = Size(plateWidth, plateHeight),
+            cornerRadius = CornerRadius(plateHeight / 2f, plateHeight / 2f),
+            style = Stroke(width = 1f),
+        )
+    }
+
+    val textTopLeft = Offset(
         x = center.x - layout.size.width / 2f,
         y = center.y - layout.size.height / 2f,
     )
+    drawOutlinedText(
+        textMeasurer = textMeasurer,
+        text = text,
+        style = style,
+        topLeft = textTopLeft,
+        outlineColor = labelColors.outline,
+    )
+}
+
+private fun DrawScope.drawOutlinedText(
+    textMeasurer: TextMeasurer,
+    text: String,
+    style: TextStyle,
+    topLeft: Offset,
+    outlineColor: Color,
+) {
+    val outlineStyle = style.copy(color = outlineColor)
+    val offsets = listOf(
+        Offset(-1f, 0f),
+        Offset(1f, 0f),
+        Offset(0f, -1f),
+        Offset(0f, 1f),
+    )
+    offsets.forEach { offset ->
+        val outlineLayout = textMeasurer.measure(text, outlineStyle)
+        drawText(outlineLayout, topLeft = topLeft + offset)
+    }
+    val layout = textMeasurer.measure(text, style)
     drawText(layout, topLeft = topLeft)
 }

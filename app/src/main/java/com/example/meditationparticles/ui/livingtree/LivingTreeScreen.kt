@@ -79,14 +79,16 @@ fun LivingTreeScreen(
                 val minDim = minOf(maxWidth, maxHeight).value
                 val centerX = maxWidth.value / 2f
                 val centerY = maxHeight.value / 2f
-                val orbitRadius = LivingTreeLayout.computeOrbitRadius(minDim, state.visiblePeople.size)
-                val nodeRadius = LivingTreeLayout.computeNodeRadius(state.visiblePeople.size)
+                val layoutSizing = LivingTreeLayout.computeLayoutSizing(
+                    minDimension = minDim,
+                    personCount = state.visiblePeople.size,
+                )
                 val positions = LivingTreeLayout.radialPositions(
                     personIds = state.visiblePeople.map { it.person.id },
                     centerX = centerX,
                     centerY = centerY,
-                    orbitRadius = orbitRadius,
-                    nodeRadius = nodeRadius,
+                    orbitRadius = layoutSizing.orbitRadius,
+                    nodeRadius = layoutSizing.nodeRadius,
                     storedAngles = state.visiblePeople.associate {
                         it.person.id to (it.person.angleRadians ?: 0.0)
                     },
@@ -115,6 +117,7 @@ fun LivingTreeScreen(
                 LivingTreeCanvas(
                     centerLabel = state.centerLabel,
                     nodes = graphNodes,
+                    centerRadius = layoutSizing.centerRadius,
                     filterActive = state.filterActive,
                     onPersonTap = { id ->
                         state.allPeople.find { it.person.id == id }?.let(viewModel::selectPerson)
