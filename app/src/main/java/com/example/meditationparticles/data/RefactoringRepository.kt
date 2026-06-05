@@ -2,11 +2,13 @@ package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.RefactoringEntryDao
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
-import java.io.File
+import com.example.meditationparticles.domain.mood.MoodScale
+import com.example.meditationparticles.domain.mood.MoodSource
 import kotlinx.coroutines.flow.Flow
 
 class RefactoringRepository(
     private val dao: RefactoringEntryDao,
+    private val moodTracker: MoodTrackerRepository,
 ) {
     fun observeAll(): Flow<List<RefactoringEntryEntity>> = dao.observeAll()
 
@@ -15,27 +17,22 @@ class RefactoringRepository(
             entry.actualFacts.isNotBlank() ||
             entry.explanation1.isNotBlank() ||
             entry.explanation2.isNotBlank() ||
-            entry.explanation3.isNotBlank() ||
-            !entry.interpretationAudioPath.isNullOrBlank() ||
-            !entry.actualFactsAudioPath.isNullOrBlank() ||
-            !entry.explanation1AudioPath.isNullOrBlank() ||
-            !entry.explanation2AudioPath.isNullOrBlank() ||
-            !entry.explanation3AudioPath.isNullOrBlank()
+            entry.explanation3.isNotBlank()
         if (!hasContent) return null
-        return dao.insert(entry)
+        val id = dao.insert(entry)
+        MoodScale.normalize(entry.moodLevel)?.let { level ->
+            moodTracker.record(
+                source = MoodSource.REFACTORING,
+                level = level,
+                atMillis = entry.createdAt,
+                legacyTable = MoodTrackerRepository.TABLE_REFACTORING_ENTRIES,
+                legacyRowId = id,
+            )
+        }
+        return id
     }
 
     suspend fun deleteEntry(id: Long) {
-        val entry = dao.getById(id) ?: return
-        listOf(
-            entry.interpretationAudioPath,
-            entry.actualFactsAudioPath,
-            entry.explanation1AudioPath,
-            entry.explanation2AudioPath,
-            entry.explanation3AudioPath,
-        ).forEach { path ->
-            path?.let { File(it).delete() }
-        }
         dao.deleteById(id)
     }
 }

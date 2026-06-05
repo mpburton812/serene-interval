@@ -58,6 +58,7 @@ import com.example.meditationparticles.ui.onboarding.OnboardingScreen
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.settings.SettingsScreen
 import com.example.meditationparticles.ui.timer.TimerScreen
+import com.example.meditationparticles.ui.mood.MoodGraphScreen
 import com.example.meditationparticles.ui.toolkit.AffirmationsScreen
 import com.example.meditationparticles.ui.toolkit.ToolkitScreen
 import com.example.meditationparticles.ui.update.UpdateViewModel
@@ -251,10 +252,12 @@ fun SereneNavHost(
 
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
+        currentRoute?.startsWith("mood_graph") != true &&
         !breathingSessionActive
 
     val showAppBanner = currentRoute != SereneDestination.Settings.route &&
-        currentRoute != SereneDestination.Onboarding.route
+        currentRoute != SereneDestination.Onboarding.route &&
+        currentRoute?.startsWith("mood_graph") != true
 
     val showBuildInfoLabel = !breathingSessionActive
 
@@ -357,6 +360,23 @@ fun SereneNavHost(
             composable(SereneDestination.Affirmations.route) { }
             composable(SereneDestination.Toolkit.route) { }
             composable(
+                route = SereneDestination.MoodGraph.route,
+                arguments = listOf(
+                    navArgument("period") {
+                        type = NavType.StringType
+                        defaultValue = com.example.meditationparticles.domain.mood.MoodGraphPeriod.DAY.name
+                    },
+                ),
+            ) { entry ->
+                val period = SereneDestination.MoodGraph.parsePeriod(
+                    entry.arguments?.getString("period"),
+                )
+                MoodGraphScreen(
+                    period = period,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
                 route = "toolkit/{tab}",
                 arguments = listOf(
                     navArgument("tab") {
@@ -439,6 +459,11 @@ fun SereneNavHost(
                                 },
                                 onNavigateToBreathe = {
                                     navigateToTab(SereneDestination.Breathe)
+                                },
+                                onNavigateToMoodGraph = { period ->
+                                    navController.navigate(SereneDestination.MoodGraph.route(period)) {
+                                        launchSingleTop = true
+                                    }
                                 },
                             )
                         }

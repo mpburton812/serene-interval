@@ -9,6 +9,5 @@ data class ThoughtDumpEntity(
     val content: String,
     val logType: String,
     val moodLevel: Int? = null,
-    val audioPath: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )

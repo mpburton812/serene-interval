@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
@@ -28,7 +29,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     val sessionState: StateFlow<TimerSessionState> = engine.state
     val reflectionText = MutableStateFlow("")
     val reflectionMoodLevel = MutableStateFlow<Int?>(null)
-    val pendingAudioPath = MutableStateFlow<String?>(null)
     val showReflectionCapture = MutableStateFlow(false)
     val openedReflection = MutableStateFlow<MeditationReflectionEntity?>(null)
 
@@ -72,11 +72,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateReflectionMoodLevel(level: Int?) {
-        reflectionMoodLevel.value = level?.coerceIn(1, 5)
-    }
-
-    fun updatePendingAudio(path: String?) {
-        pendingAudioPath.value = path
+        reflectionMoodLevel.value = MoodScale.normalize(level)
     }
 
     fun saveReflection() {
@@ -89,7 +85,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                 durationSeconds = state.targetMinutes * 60,
                 completedAt = System.currentTimeMillis(),
                 moodLevel = reflectionMoodLevel.value,
-                audioPath = pendingAudioPath.value,
             ) ?: return@launch
             oneNoteSync.enqueueSync(OneNoteEntryType.MEDITATION_REFLECTION, savedId)
             finishReflectionCapture()
@@ -134,7 +129,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     private fun clearReflectionDraft() {
         reflectionText.value = ""
         reflectionMoodLevel.value = null
-        pendingAudioPath.value = null
     }
 
     fun restorePreferences(

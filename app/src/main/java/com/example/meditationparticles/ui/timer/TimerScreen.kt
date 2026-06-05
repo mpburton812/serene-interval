@@ -101,7 +101,6 @@ fun TimerScreen(
     val state by viewModel.sessionState.collectAsState()
     val reflection by viewModel.reflectionText.collectAsState()
     val reflectionMoodLevel by viewModel.reflectionMoodLevel.collectAsState()
-    val pendingAudioPath by viewModel.pendingAudioPath.collectAsState()
     val showReflectionCapture by viewModel.showReflectionCapture.collectAsState()
     val reflections by viewModel.reflections.collectAsState()
     val openedReflection by viewModel.openedReflection.collectAsState()
@@ -360,10 +359,8 @@ fun TimerScreen(
                     MeditationReflectionCard(
                         reflection = reflection,
                         reflectionMoodLevel = reflectionMoodLevel,
-                        pendingAudioPath = pendingAudioPath,
                         onReflectionChange = viewModel::updateReflection,
                         onReflectionMoodChange = viewModel::updateReflectionMoodLevel,
-                        onPendingAudioChange = viewModel::updatePendingAudio,
                         onSave = viewModel::saveReflection,
                         onSkip = viewModel::skipReflection,
                     )
@@ -606,14 +603,12 @@ fun TimerScreen(
 private fun MeditationReflectionCard(
     reflection: String,
     reflectionMoodLevel: Int?,
-    pendingAudioPath: String?,
     onReflectionChange: (String) -> Unit,
     onReflectionMoodChange: (Int?) -> Unit,
-    onPendingAudioChange: (String?) -> Unit,
     onSave: () -> Unit,
     onSkip: () -> Unit,
 ) {
-    val canSave = reflection.isNotBlank() || pendingAudioPath != null
+    val canSave = reflection.isNotBlank()
     ControlSection(
         title = "Reflection",
         subtitle = "Jot down what you noticed.",
@@ -629,15 +624,7 @@ private fun MeditationReflectionCard(
                 onTextChange = onReflectionChange,
                 selectedMoodLevel = reflectionMoodLevel,
                 onMoodLevelChange = onReflectionMoodChange,
-                pendingAudioPath = pendingAudioPath,
-                onPendingAudioChange = onPendingAudioChange,
-                onSpeechResult = { spoken ->
-                    val separator = if (reflection.isBlank()) "" else " "
-                    onReflectionChange(reflection + separator + spoken.trim())
-                },
                 placeholder = "How did it feel? What came up?",
-                showAudioControls = true,
-                showDictate = true,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),

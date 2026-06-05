@@ -49,12 +49,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.meditationparticles.R
-import com.example.meditationparticles.audio.ToolkitAudioPlayer
-import com.example.meditationparticles.audio.ToolkitAudioRecorder
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.HistoryGlassCard
 import com.example.meditationparticles.ui.components.JournalCaptureFields
+import com.example.meditationparticles.ui.components.MoodDisplay
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -67,14 +67,11 @@ fun FutureSelfMessageContent(
     selectedMoodLevel: Int?,
     onMoodLevelChange: (Int?) -> Unit,
     scheduledAtMillis: Long,
-    pendingAudioPath: String?,
     entries: List<FutureSelfMessageEntity>,
     editingEntryId: Long?,
     openedEntry: FutureSelfMessageEntity?,
     onTextChange: (String) -> Unit,
     onScheduledAtChange: (Long) -> Unit,
-    onPendingAudioChange: (String?) -> Unit,
-    onSpeechResult: (String) -> Unit,
     onSave: () -> Unit,
     onClear: () -> Unit,
     onEditEntry: (FutureSelfMessageEntity) -> Unit,
@@ -114,7 +111,6 @@ fun FutureSelfMessageContent(
         return
     }
 
-    val audioPlayer = remember { ToolkitAudioPlayer() }
     var pendingSaveAfterNotification by remember { mutableStateOf(false) }
     var showNotificationDeniedDialog by remember { mutableStateOf(false) }
     var showExactAlarmDialog by remember { mutableStateOf(false) }
@@ -132,10 +128,6 @@ fun FutureSelfMessageContent(
                 showNotificationDeniedDialog = true
             }
         }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { audioPlayer.release() }
     }
 
     fun showDatePicker() {
@@ -193,8 +185,7 @@ fun FutureSelfMessageContent(
         maybeShowExactAlarmGuidance(context) { showExactAlarmDialog = true }
     }
 
-    val canSave = (text.isNotBlank() || pendingAudioPath != null) &&
-        scheduledAtMillis > System.currentTimeMillis()
+    val canSave = text.isNotBlank() && scheduledAtMillis > System.currentTimeMillis()
 
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
         Column(
@@ -206,10 +197,7 @@ fun FutureSelfMessageContent(
                 onTextChange = onTextChange,
                 selectedMoodLevel = selectedMoodLevel,
                 onMoodLevelChange = onMoodLevelChange,
-                pendingAudioPath = pendingAudioPath,
-                onPendingAudioChange = onPendingAudioChange,
-                onSpeechResult = onSpeechResult,
-                instructionText = "Write, dictate, or record a message for your future self. Choose when you'd like to receive it.",
+                instructionText = "Write a message for your future self. Choose when you'd like to receive it.",
                 placeholder = "Dear future me…",
             )
 
@@ -263,7 +251,7 @@ fun FutureSelfMessageContent(
     }
 
     if (entries.isNotEmpty()) {
-        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
+        HistoryGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -291,7 +279,6 @@ fun FutureSelfMessageContent(
     openedEntry?.let { entry ->
         FutureSelfEntryDetailDialog(
             entry = entry,
-            audioPlayer = audioPlayer,
             showOneNoteSync = showOneNoteSync,
             onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
@@ -373,22 +360,13 @@ private fun FutureSelfEntryRow(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            when {
-                entry.content.isNotBlank() -> {
-                    Text(
-                        text = entry.content,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                entry.audioPath != null -> {
-                    Text(
-                        text = "Audio message",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            if (entry.content.isNotBlank()) {
+                Text(
+                    text = entry.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             Text(
                 text = when {
@@ -417,54 +395,21 @@ private fun FutureSelfEntryRow(
 @Composable
 private fun FutureSelfEntryDetailDialog(
     entry: FutureSelfMessageEntity,
-    audioPlayer: ToolkitAudioPlayer,
     showOneNoteSync: Boolean,
     onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var isPlaying by remember(entry.id) { mutableStateOf(false) }
-
-    DisposableEffect(entry.id) {
-        onDispose {
-            audioPlayer.stop()
-            isPlaying = false
-        }
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(formatFutureSelfTimestamp(entry.scheduledAtMillis)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                entry.moodLevel?.let { mood -> MoodDisplay(moodLevel = mood) }
                 if (entry.content.isNotBlank()) {
                     Text(
                         text = entry.content,
                         style = MaterialTheme.typography.bodyLarge,
                     )
-                }
-                entry.audioPath?.let { path ->
-                    OutlinedButton(
-                        onClick = {
-                            if (isPlaying) {
-                                audioPlayer.stop()
-                                isPlaying = false
-                            } else {
-                                audioPlayer.play(path)
-                                isPlaying = true
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            if (isPlaying) Icons.Default.StopCircle else Icons.Default.VolumeUp,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            if (isPlaying) "Stop playback" else "Play recording",
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
                 }
                 if (showOneNoteSync) {
                     OneNoteEntrySyncButton(onClick = onSyncToOneNote)

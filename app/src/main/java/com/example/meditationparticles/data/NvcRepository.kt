@@ -2,11 +2,13 @@ package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.NvcEntryDao
 import com.example.meditationparticles.data.local.NvcEntryEntity
-import java.io.File
+import com.example.meditationparticles.domain.mood.MoodScale
+import com.example.meditationparticles.domain.mood.MoodSource
 import kotlinx.coroutines.flow.Flow
 
 class NvcRepository(
     private val dao: NvcEntryDao,
+    private val moodTracker: MoodTrackerRepository,
 ) {
     fun observeAll(): Flow<List<NvcEntryEntity>> = dao.observeAll()
 
@@ -14,25 +16,22 @@ class NvcRepository(
         val hasContent = entry.observation.isNotBlank() ||
             entry.feeling.isNotBlank() ||
             entry.need.isNotBlank() ||
-            entry.request.isNotBlank() ||
-            !entry.observationAudioPath.isNullOrBlank() ||
-            !entry.feelingAudioPath.isNullOrBlank() ||
-            !entry.needAudioPath.isNullOrBlank() ||
-            !entry.requestAudioPath.isNullOrBlank()
+            entry.request.isNotBlank()
         if (!hasContent) return null
-        return dao.insert(entry)
+        val id = dao.insert(entry)
+        MoodScale.normalize(entry.moodLevel)?.let { level ->
+            moodTracker.record(
+                source = MoodSource.NVC,
+                level = level,
+                atMillis = entry.createdAt,
+                legacyTable = MoodTrackerRepository.TABLE_NVC_ENTRIES,
+                legacyRowId = id,
+            )
+        }
+        return id
     }
 
     suspend fun deleteEntry(id: Long) {
-        val entry = dao.getById(id) ?: return
-        listOf(
-            entry.observationAudioPath,
-            entry.feelingAudioPath,
-            entry.needAudioPath,
-            entry.requestAudioPath,
-        ).forEach { path ->
-            path?.let { File(it).delete() }
-        }
         dao.deleteById(id)
     }
 }

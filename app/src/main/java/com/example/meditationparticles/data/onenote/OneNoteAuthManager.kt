@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import com.example.meditationparticles.BuildConfig
-import com.microsoft.identity.client.AcquireTokenParameters
 import com.microsoft.identity.client.AcquireTokenSilentParameters
 import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.IAuthenticationResult
@@ -12,6 +11,7 @@ import com.microsoft.identity.client.IPublicClientApplication
 import com.microsoft.identity.client.ISingleAccountPublicClientApplication
 import com.microsoft.identity.client.Prompt
 import com.microsoft.identity.client.PublicClientApplication
+import com.microsoft.identity.client.SignInParameters
 import com.microsoft.identity.client.exception.MsalClientException
 import com.microsoft.identity.client.exception.MsalException
 import com.microsoft.identity.client.exception.MsalUiRequiredException
@@ -63,7 +63,7 @@ class OneNoteAuthManager(
     suspend fun signIn(activity: Activity): OneNoteAuthResult {
         initialize().getOrElse { return OneNoteAuthResult.failure(it.message ?: "Not configured") }
         clearMsalSession()
-        return acquireTokenInteractive(activity, allowMismatchRetry = true)
+        return signInInteractive(activity, allowMismatchRetry = true)
     }
 
     suspend fun acquireAccessToken(): String {
@@ -72,7 +72,7 @@ class OneNoteAuthManager(
         val account = getCurrentAccount()
             ?: throw OneNoteAuthRequiredException("No Microsoft account connected")
         return suspendCancellableCoroutine { continuation ->
-            app.acquireTokenSilentAsync(
+            app.acquireTokenSilent(
                 AcquireTokenSilentParameters.Builder()
                     .withScopes(SCOPES.toList())
                     .forAccount(account)
@@ -129,16 +129,16 @@ class OneNoteAuthManager(
         clientApplication = null
     }
 
-    private suspend fun acquireTokenInteractive(
+    private suspend fun signInInteractive(
         activity: Activity,
         allowMismatchRetry: Boolean,
     ): OneNoteAuthResult {
         initialize().getOrElse { return OneNoteAuthResult.failure(it.message ?: "Not configured") }
         val app = clientApplication ?: return OneNoteAuthResult.failure("MSAL not initialized")
         return suspendCancellableCoroutine { continuation ->
-            app.acquireToken(
-                AcquireTokenParameters.Builder()
-                    .startAuthorizationFromActivity(activity)
+            app.signIn(
+                SignInParameters.builder()
+                    .withActivity(activity)
                     .withScopes(SCOPES.toList())
                     .withPrompt(Prompt.SELECT_ACCOUNT)
                     .withCallback(object : com.microsoft.identity.client.AuthenticationCallback {
@@ -173,7 +173,7 @@ class OneNoteAuthManager(
         }.let { result ->
             if (result.retryAfterAccountMismatch) {
                 clearMsalSession()
-                acquireTokenInteractive(activity, allowMismatchRetry = false)
+                signInInteractive(activity, allowMismatchRetry = false)
             } else {
                 result
             }
@@ -265,6 +265,7 @@ class OneNoteAuthManager(
             put("authorization_user_agent", "DEFAULT")
             put("redirect_uri", redirectUri)
             put("account_mode", "SINGLE")
+            put("broker_redirect_uri_registered", true)
             put(
                 "authorities",
                 JSONArray().put(
@@ -274,9 +275,7 @@ class OneNoteAuthManager(
                         put(
                             "audience",
                             JSONObject().apply {
-                                // MSAL 6.x enum: AzureADandPersonalMicrosoftAccount (not AzureAdAnd…)
                                 put("type", "AzureADandPersonalMicrosoftAccount")
-                                // Explicit tenant for consumer + work/school sign-in (avoids unauthorized_client)
                                 put("tenant_id", "common")
                             },
                         )

@@ -5,12 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.StopCircle
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -21,19 +18,15 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.meditationparticles.audio.ToolkitAudioPlayer
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.HistoryGlassCard
 import com.example.meditationparticles.ui.components.JournalCaptureFields
+import com.example.meditationparticles.ui.components.MoodDisplay
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Date
 
@@ -44,11 +37,8 @@ fun ToolkitLogContent(
     selectedMoodLevel: Int?,
     onMoodLevelChange: (Int?) -> Unit,
     entries: List<ThoughtDumpEntity>,
-    pendingAudioPath: String?,
     openedEntry: ThoughtDumpEntity?,
     onTextChange: (String) -> Unit,
-    onPendingAudioChange: (String?) -> Unit,
-    onSpeechResult: (String) -> Unit,
     onSave: () -> Unit,
     onClear: () -> Unit,
     onClose: () -> Unit,
@@ -58,12 +48,6 @@ fun ToolkitLogContent(
     showOneNoteSync: Boolean = false,
     onSyncEntryToOneNote: (ThoughtDumpEntity) -> Unit = {},
 ) {
-    val audioPlayer = remember { ToolkitAudioPlayer() }
-
-    DisposableEffect(Unit) {
-        onDispose { audioPlayer.release() }
-    }
-
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -74,9 +58,6 @@ fun ToolkitLogContent(
                 onTextChange = onTextChange,
                 selectedMoodLevel = selectedMoodLevel,
                 onMoodLevelChange = onMoodLevelChange,
-                pendingAudioPath = pendingAudioPath,
-                onPendingAudioChange = onPendingAudioChange,
-                onSpeechResult = onSpeechResult,
                 instructionText = instructionText,
             )
 
@@ -90,7 +71,7 @@ fun ToolkitLogContent(
                 Button(
                     onClick = onSave,
                     modifier = Modifier.weight(1f),
-                    enabled = text.isNotBlank() || pendingAudioPath != null,
+                    enabled = text.isNotBlank(),
                 ) {
                     Text("Save & Close")
                 }
@@ -99,7 +80,7 @@ fun ToolkitLogContent(
     }
 
     if (entries.isNotEmpty()) {
-        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
+        HistoryGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -126,7 +107,6 @@ fun ToolkitLogContent(
     openedEntry?.let { entry ->
         LogEntryDetailDialog(
             entry = entry,
-            audioPlayer = audioPlayer,
             showOneNoteSync = showOneNoteSync,
             onSyncToOneNote = { onSyncEntryToOneNote(entry) },
             onDismiss = onCloseEntry,
@@ -150,22 +130,13 @@ private fun LogEntryRow(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            when {
-                entry.content.isNotBlank() -> {
-                    Text(
-                        text = entry.content,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                entry.audioPath != null -> {
-                    Text(
-                        text = "Audio recording",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            if (entry.content.isNotBlank()) {
+                Text(
+                    text = entry.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         IconButton(onClick = onOpen) {
@@ -180,61 +151,21 @@ private fun LogEntryRow(
 @Composable
 private fun LogEntryDetailDialog(
     entry: ThoughtDumpEntity,
-    audioPlayer: ToolkitAudioPlayer,
     showOneNoteSync: Boolean,
     onSyncToOneNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var isPlaying by remember(entry.id) { mutableStateOf(false) }
-
-    DisposableEffect(entry.id) {
-        onDispose {
-            audioPlayer.stop()
-            isPlaying = false
-        }
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(formatLogTimestamp(entry.createdAt)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                entry.moodLevel?.let { mood ->
-                    Text(
-                        text = "Mood: ${mood.coerceIn(1, 5)}/5",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                entry.moodLevel?.let { mood -> MoodDisplay(moodLevel = mood) }
                 if (entry.content.isNotBlank()) {
                     Text(
                         text = entry.content,
                         style = MaterialTheme.typography.bodyLarge,
                     )
-                }
-                entry.audioPath?.let { path ->
-                    OutlinedButton(
-                        onClick = {
-                            if (isPlaying) {
-                                audioPlayer.stop()
-                                isPlaying = false
-                            } else {
-                                audioPlayer.play(path)
-                                isPlaying = true
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            if (isPlaying) Icons.Default.StopCircle else Icons.Default.VolumeUp,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            if (isPlaying) "Stop playback" else "Play recording",
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
                 }
                 if (showOneNoteSync) {
                     OneNoteEntrySyncButton(onClick = onSyncToOneNote)

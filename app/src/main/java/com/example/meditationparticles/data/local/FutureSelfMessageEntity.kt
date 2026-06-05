@@ -8,7 +8,6 @@ data class FutureSelfMessageEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val content: String,
     val moodLevel: Int? = null,
-    val audioPath: String? = null,
     val scheduledAtMillis: Long,
     val createdAtMillis: Long = System.currentTimeMillis(),
     val delivered: Boolean = false,
