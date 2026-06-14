@@ -41,6 +41,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.domain.home.HomeActivityItem
+import com.example.meditationparticles.domain.mood.MoodGraphPeriod
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.navigation.SereneDestination
@@ -48,6 +49,8 @@ import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.SereneHeaderPlate
 import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.mood.MoodQuickLogCard
+import com.example.meditationparticles.ui.mood.MoodSummariesSection
+import com.example.meditationparticles.ui.mood.MoodTrackerViewModel
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.util.Calendar
@@ -57,12 +60,15 @@ fun HomeScreen(
     onNavigate: (SereneDestination, String?) -> Unit,
     onQuickStart: (QuickStartTarget) -> Unit,
     onOpenSettings: () -> Unit,
+    onNavigateToMoodGraph: (MoodGraphPeriod) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
+    moodTrackerViewModel: MoodTrackerViewModel = viewModel(),
 ) {
     val dailyAffirmation by viewModel.dailyAffirmation.collectAsState()
     val quickStartTargets by viewModel.quickStartTargets.collectAsState()
     val activityTimeline by viewModel.activityTimeline.collectAsState()
+    val moodAverages by moodTrackerViewModel.averages.collectAsState()
     var openedActivity by remember { mutableStateOf<HomeActivityItem?>(null) }
     val settings = LocalExperienceSettings.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -162,6 +168,11 @@ fun HomeScreen(
 
         MoodQuickLogCard(
             onLogMood = viewModel::logMood,
+        )
+
+        MoodSummariesSection(
+            averages = moodAverages,
+            onPeriodClick = onNavigateToMoodGraph,
         )
 
         if (quickStartTiles.isNotEmpty()) {

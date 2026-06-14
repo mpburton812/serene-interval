@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.sp
 import com.example.meditationparticles.data.local.MoodEntryEntity
 import com.example.meditationparticles.domain.mood.MoodGraphAxisFormatter
 import com.example.meditationparticles.domain.mood.MoodGraphPeriod
+import com.example.meditationparticles.domain.mood.MoodGraphSeriesBuilder
+import com.example.meditationparticles.domain.mood.MoodMonthGraphMode
 import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.ui.components.moodColor
 import java.time.ZoneId
@@ -29,6 +31,8 @@ fun MoodLineGraph(
     period: MoodGraphPeriod,
     startMillis: Long,
     endMillis: Long,
+    average: Double?,
+    monthGraphMode: MoodMonthGraphMode = MoodMonthGraphMode.TOTAL_AVERAGE,
     modifier: Modifier = Modifier,
 ) {
     val sorted = entries.sortedBy { it.recordedAtMillis }
@@ -38,7 +42,28 @@ fun MoodLineGraph(
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val lineColor = MaterialTheme.colorScheme.primary
-    val rangeMillis = (endMillis - startMillis).coerceAtLeast(1L)
+    val averageLineColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.85f)
+    val useMonthRolling = period == MoodGraphPeriod.MONTH &&
+        monthGraphMode == MoodMonthGraphMode.ROLLING_7_DAY
+    val graphPoints = remember(sorted, period, monthGraphMode, startMillis, endMillis, zoneId) {
+        if (useMonthRolling) {
+            MoodGraphSeriesBuilder.monthRollingAverageSeries(sorted, startMillis, endMillis, zoneId)
+        } else {
+            MoodGraphSeriesBuilder.entryPoints(sorted)
+        }
+    }
+    val xDomain = remember(graphPoints, useMonthRolling, startMillis, endMillis) {
+        if (useMonthRolling) {
+            MoodGraphSeriesBuilder.monthDomainMillis(startMillis, endMillis)
+        } else {
+            MoodGraphSeriesBuilder.dataSpanMillis(graphPoints) ?: (startMillis to endMillis)
+        }
+    }
+    val showAverageLine = average != null && (
+        period == MoodGraphPeriod.DAY ||
+            period == MoodGraphPeriod.WEEK ||
+            (period == MoodGraphPeriod.MONTH && monthGraphMode == MoodMonthGraphMode.TOTAL_AVERAGE)
+        )
     val xTicks = remember(period, startMillis, endMillis, zoneId, locale) {
         MoodGraphAxisFormatter.xAxisTicks(period, startMillis, endMillis, zoneId, locale)
     }
@@ -47,12 +72,12 @@ fun MoodLineGraph(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(220.dp),
+            .height(240.dp),
     ) {
         val width = size.width
         val height = size.height
         val leftPadding = 44f
-        val rightPadding = 12f
+        val rightPadding = 8f
         val topPadding = 8f
         val bottomPadding = 28f
         val plotLeft = leftPadding
@@ -61,8 +86,28 @@ fun MoodLineGraph(
         val plotBottom = height - bottomPadding
         val graphWidth = plotRight - plotLeft
         val graphHeight = plotBottom - plotTop
+        val (domainStart, domainEnd) = xDomain
 
         fun xForFraction(fraction: Float): Float = plotLeft + graphWidth * fraction.coerceIn(0f, 1f)
+
+        fun xForPoint(xMillis: Long): Float {
+            val fraction = if (useMonthRolling) {
+                MoodGraphSeriesBuilder.monthXFraction(xMillis, startMillis, endMillis, zoneId)
+            } else {
+                MoodGraphSeriesBuilder.xFraction(
+                    xMillis = xMillis,
+                    domainStartMillis = domainStart,
+                    domainEndMillis = domainEnd,
+                    singlePointCentered = graphPoints.size == 1,
+                )
+            }
+            return xForFraction(fraction)
+        }
+
+        fun yForLevel(level: Double): Float {
+            val yFraction = (level - MoodScale.MIN).toFloat() / (MoodScale.MAX - MoodScale.MIN).toFloat()
+            return plotTop + graphHeight * (1f - yFraction.coerceIn(0f, 1f))
+        }
 
         val labelPaint = android.graphics.Paint().apply {
             color = labelColor.toArgb()
@@ -91,7 +136,6 @@ fun MoodLineGraph(
 
         yTicks.forEach { tick ->
             val yLine = plotTop + graphHeight * (1f - tick.positionFraction)
-
             drawLine(
                 color = gridColor,
                 start = Offset(plotLeft, yLine),
@@ -104,12 +148,10 @@ fun MoodLineGraph(
                 end = Offset(plotLeft, yLine),
                 strokeWidth = 1.5f,
             )
-
-            val textY = yLine + labelPaint.textSize / 3f
             drawContext.canvas.nativeCanvas.drawText(
                 tick.label,
                 plotLeft - 8f,
-                textY,
+                yLine + labelPaint.textSize / 3f,
                 yLabelPaint,
             )
         }
@@ -130,40 +172,53 @@ fun MoodLineGraph(
             )
         }
 
-        if (sorted.isEmpty()) return@Canvas
+        if (showAverageLine && average != null) {
+            val averageY = yForLevel(average)
+            drawLine(
+                color = averageLineColor,
+                start = Offset(plotLeft, averageY),
+                end = Offset(plotRight, averageY),
+                strokeWidth = 2.5f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f)),
+            )
+        }
 
-        val points = sorted.map { entry ->
-            val xFraction = ((entry.recordedAtMillis - startMillis).toFloat() / rangeMillis).coerceIn(0f, 1f)
-            val yFraction = (entry.moodLevel - MoodScale.MIN).toFloat() / (MoodScale.MAX - MoodScale.MIN).toFloat()
+        if (graphPoints.isEmpty()) return@Canvas
+
+        val points = graphPoints.map { point ->
             Offset(
-                x = xForFraction(xFraction),
-                y = plotTop + graphHeight * (1f - yFraction),
+                x = xForPoint(point.xMillis),
+                y = yForLevel(point.yLevel),
             )
         }
 
         if (points.size == 1) {
-            val point = points.first()
+            val level = graphPoints.first().yLevel
+            val moodLevel = MoodScale.averageToLevel(level) ?: MoodScale.MIN
             drawCircle(
-                color = moodColor(sorted.first().moodLevel),
-                radius = 6f,
-                center = point,
+                color = moodColor(moodLevel),
+                radius = 8f,
+                center = points.first(),
             )
             return@Canvas
         }
 
-        val path = Path().apply {
-            moveTo(points.first().x, points.first().y)
-            points.drop(1).forEach { lineTo(it.x, it.y) }
-        }
+        val path = MoodGraphCurve.buildSmoothPath(points)
         drawPath(
             path = path,
             color = lineColor,
-            style = Stroke(width = 3f, cap = StrokeCap.Round),
+            style = Stroke(width = 5f, cap = StrokeCap.Round),
         )
         points.forEachIndexed { index, point ->
+            val level = graphPoints[index].yLevel
+            val moodLevel = if (useMonthRolling) {
+                MoodScale.averageToLevel(level) ?: MoodScale.MIN
+            } else {
+                sorted[index].moodLevel
+            }
             drawCircle(
-                color = moodColor(sorted[index].moodLevel),
-                radius = 5f,
+                color = moodColor(moodLevel),
+                radius = 8f,
                 center = point,
             )
         }

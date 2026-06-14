@@ -103,6 +103,7 @@ fun TimerScreen(
     val showReflectionCapture by viewModel.showReflectionCapture.collectAsState()
     val reflections by viewModel.reflections.collectAsState()
     val openedReflection by viewModel.openedReflection.collectAsState()
+    val meditationCalendar by viewModel.meditationCalendar.collectAsState()
     val context = LocalContext.current
     val remindersAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
     val preferences = remember { TimerPreferences(context) }
@@ -569,6 +570,15 @@ fun TimerScreen(
                         }
                     }
                 }
+
+                        MeditationCalendarSection(
+                            monthTitle = meditationCalendar.monthTitle,
+                            days = meditationCalendar.days,
+                            weekdayHeaders = meditationCalendar.weekdayHeaders,
+                            onPreviousMonth = { viewModel.shiftCalendarMonth(forward = false) },
+                            onNextMonth = { viewModel.shiftCalendarMonth(forward = true) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
 
                         MeditationReflectionHistory(
                             entries = reflections,

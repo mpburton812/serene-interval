@@ -6,4 +6,5 @@ data class HomeActivityItem(
     val title: String,
     val subtitle: String? = null,
     val textEntry: String? = null,
+    val moodLevel: Int? = null,
 )

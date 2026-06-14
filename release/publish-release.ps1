@@ -61,6 +61,11 @@ try {
         throw "Local APK not found: $localApk. Run assembleDebug first or omit -SkipBuild."
     }
 
+    $stagingApk = Join-Path ([System.IO.Path]::GetTempPath()) ("release-$releaseApkName-" + [guid]::NewGuid().ToString())
+    New-Item -ItemType Directory -Path $stagingApk -Force | Out-Null
+    $releaseApkPath = Join-Path $stagingApk $releaseApkName
+    Copy-Item -Path $localApk -Destination $releaseApkPath -Force
+
     $apkUrl = "https://github.com/mpburton812/serene-interval/releases/download/$resolvedTag/$releaseApkName"
     $releaseExists = $false
     try {
@@ -71,14 +76,15 @@ try {
 
     if ($releaseExists) {
         Write-Host "Release $resolvedTag exists; uploading APK asset ..."
-        gh release upload $resolvedTag $localApk --repo mpburton812/serene-interval --clobber
+        gh release upload $resolvedTag $releaseApkPath --repo mpburton812/serene-interval --clobber
     }
     else {
         $notes = if ($ReleaseNotes) { $ReleaseNotes } else { "Release $resolvedTag" }
-        gh release create $resolvedTag $localApk --repo mpburton812/serene-interval `
+        gh release create $resolvedTag $releaseApkPath --repo mpburton812/serene-interval `
             --title $resolvedTag --notes $notes
     }
     if ($LASTEXITCODE -ne 0) { throw "gh release upload/create failed (exit $LASTEXITCODE)" }
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $stagingApk
 
     Write-Host "Waiting for GitHub release asset to propagate ..."
     Start-Sleep -Seconds 5
@@ -112,7 +118,7 @@ try {
     }
 
     $json = ($manifest | ConvertTo-Json -Depth 5) + "`n"
-    Set-Content -Path $manifestPath -Value $json -Encoding utf8NoBOM -NoNewline
+    Set-Content -Path $manifestPath -Value $json -Encoding UTF8
     Write-Host "Wrote $manifestPath"
 
     if (-not $SkipVerify) {

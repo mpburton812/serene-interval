@@ -11,12 +11,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.meditationparticles.domain.mood.MoodGraphPeriod
 import com.example.meditationparticles.navigation.PendingToolkitNavigation
 import com.example.meditationparticles.ui.components.SereneTabBackground
 import com.example.meditationparticles.ui.components.SereneTabHeader
-import com.example.meditationparticles.ui.mood.MoodAveragesHeader
-import com.example.meditationparticles.ui.mood.MoodTrackerViewModel
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 @Composable
@@ -27,13 +24,10 @@ fun ToolkitScreen(
     onPendingNavigationConsumed: () -> Unit = {},
     onReturnToHome: () -> Unit = {},
     onNavigateToBreathe: () -> Unit = {},
-    onNavigateToMoodGraph: (MoodGraphPeriod) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ToolkitViewModel = viewModel(),
-    moodTrackerViewModel: MoodTrackerViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
-    val moodAverages by moodTrackerViewModel.averages.collectAsState()
 
     LaunchedEffect(resetSignal) {
         if (resetSignal > 0) {
@@ -47,11 +41,6 @@ fun ToolkitScreen(
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
         ) {
         SereneTabHeader(title = "Toolkit")
-
-        MoodAveragesHeader(
-            averages = moodAverages,
-            onPeriodClick = onNavigateToMoodGraph,
-        )
 
         Box(
             modifier = Modifier
