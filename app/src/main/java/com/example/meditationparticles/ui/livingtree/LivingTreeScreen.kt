@@ -103,7 +103,7 @@ fun LivingTreeScreen(
                 val userPlacedIds = state.visiblePeople
                     .filter { it.person.isUserPlaced }
                     .map { it.person.id }
-                    .toSet()
+                    .toSet() + state.dragPositionOverrides.keys
                 val storedPositions = LivingTreeLayout.storedPositionsFromPeople(
                     state.visiblePeople.map {
                         Triple(it.person.id, it.person.angleRadians, it.person.radiusFraction)

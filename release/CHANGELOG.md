@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 1.0.18 - 2026-06-14
+
+### Affirmations review
+
+- Tap left/right below beads to go previous or next
+- Rainbow bead colors from red (first) to purple (last)
+- Session assessment dialog with mood and notes on finish
+- OneNote sync for saved affirmation review sessions (Room schema v21)
+
+### Living Tree
+
+- Fix long-press drag so spheres follow your finger smoothly
+- Add name plates behind in-sphere labels for readability
+
 ## 1.0.17 - 2026-06-14
 
 ### Living Tree

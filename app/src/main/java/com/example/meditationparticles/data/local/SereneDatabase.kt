@@ -8,6 +8,7 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [
         AffirmationEntity::class,
+        AffirmationReviewSessionEntity::class,
         ThoughtDumpEntity::class,
         MeditationReflectionEntity::class,
         SessionEntity::class,
@@ -22,11 +23,12 @@ import androidx.room.RoomDatabase
         LivingTreePersonEntity::class,
         LivingTreePersonTagCrossRef::class,
     ],
-    version = 20,
+    version = 21,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
     abstract fun affirmationDao(): AffirmationDao
+    abstract fun affirmationReviewSessionDao(): AffirmationReviewSessionDao
     abstract fun thoughtDumpDao(): ThoughtDumpDao
     abstract fun meditationReflectionDao(): MeditationReflectionDao
     abstract fun sessionDao(): SessionDao

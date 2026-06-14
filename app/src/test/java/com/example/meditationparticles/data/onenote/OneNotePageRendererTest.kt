@@ -1,6 +1,7 @@
 package com.example.meditationparticles.data.onenote
 
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
+import com.example.meditationparticles.data.local.AffirmationReviewSessionEntity
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
@@ -107,6 +108,23 @@ class OneNotePageRendererTest {
 
         assertTrue(html.contains("Thoughts and feelings"))
         assertTrue(html.contains("Body and needs"))
+    }
+
+    @Test
+    fun renderAffirmationReview_includesCountAndNotes() {
+        val page = OneNotePageRenderer.renderAffirmationReview(
+            AffirmationReviewSessionEntity(
+                id = 12L,
+                notes = "Felt grounded",
+                moodLevel = 4,
+                affirmationCount = 8,
+                completedAt = 1_735_689_600_000L,
+            ),
+        )
+
+        assertTrue(page.html.contains("Affirmations reviewed"))
+        assertTrue(page.html.contains("8"))
+        assertTrue(page.html.contains("Felt grounded"))
     }
 
     @Test

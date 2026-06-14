@@ -59,8 +59,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.audio.TimerAudioPlayer
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.parseAffirmationLines
+import com.example.meditationparticles.domain.affirmations.AffirmationReviewLogic
 import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.ui.components.GlassCard
+import com.example.meditationparticles.ui.components.JournalCaptureFields
 import com.example.meditationparticles.ui.components.SereneTabHeader
 import com.example.meditationparticles.ui.theme.SerenePrimary
 import com.example.meditationparticles.ui.theme.SereneSpacing
@@ -80,8 +82,8 @@ fun AffirmationsTab(
         onDispose { audioPlayer.release() }
     }
 
-    LaunchedEffect(state.reviewCompleting) {
-        if (state.reviewCompleting) {
+    LaunchedEffect(state.showReviewAssessment) {
+        if (state.showReviewAssessment) {
             audioPlayer.playBell(TimerBellSoundChoice.Default, systemUri = null)
         }
     }
@@ -243,13 +245,25 @@ fun AffirmationsTab(
                 affirmations = state.affirmations,
                 currentIndex = state.reviewIndex,
                 currentAffirmation = state.reviewAffirmation,
-                isCompleting = state.reviewCompleting,
+                isCompleting = false,
                 onPrevious = viewModel::reviewPrevious,
                 onNext = viewModel::reviewNext,
                 onExit = viewModel::exitReview,
                 modifier = Modifier.fillMaxSize(),
             )
         }
+    }
+
+    if (state.showReviewAssessment) {
+        AffirmationReviewAssessmentDialog(
+            notes = state.reviewAssessmentNotes,
+            moodLevel = state.reviewAssessmentMoodLevel,
+            affirmationCount = state.completedReviewAffirmationCount,
+            onNotesChange = viewModel::updateReviewAssessmentNotes,
+            onMoodChange = viewModel::updateReviewAssessmentMoodLevel,
+            onSave = viewModel::saveReviewAssessment,
+            onSkip = viewModel::skipReviewAssessment,
+        )
     }
 
     if (state.showBulkImportDialog) {
@@ -369,6 +383,55 @@ internal fun AffirmationCollectionCard(
             }
         }
     }
+}
+
+@Composable
+private fun AffirmationReviewAssessmentDialog(
+    notes: String,
+    moodLevel: Int?,
+    affirmationCount: Int,
+    onNotesChange: (String) -> Unit,
+    onMoodChange: (Int?) -> Unit,
+    onSave: () -> Unit,
+    onSkip: () -> Unit,
+) {
+    val canSave = AffirmationReviewLogic.canSaveAssessment(moodLevel, notes)
+
+    AlertDialog(
+        onDismissRequest = onSkip,
+        title = { Text("Session assessment") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "You reviewed $affirmationCount affirmation${if (affirmationCount == 1) "" else "s"}. " +
+                        "How did that feel?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                JournalCaptureFields(
+                    text = notes,
+                    onTextChange = onNotesChange,
+                    selectedMoodLevel = moodLevel,
+                    onMoodLevelChange = onMoodChange,
+                    placeholder = "What stood out from this review?",
+                    minLines = 4,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onSave,
+                enabled = canSave,
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onSkip) {
+                Text("Skip")
+            }
+        },
+    )
 }
 
 @Composable

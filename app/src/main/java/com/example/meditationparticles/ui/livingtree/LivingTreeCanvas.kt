@@ -14,10 +14,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -70,6 +74,10 @@ fun LivingTreeCanvas(
     val glassOverlay = painterResource(R.drawable.breath_glass_sphere)
     val pipeTexture = painterResource(R.drawable.breath_pipe_texture)
     val visualScale = (centerRadius / 80f).coerceIn(0.75f, 1.25f)
+    val currentNodes by rememberUpdatedState(nodes)
+    val currentOnPersonTap by rememberUpdatedState(onPersonTap)
+    val currentOnPersonDragPosition by rememberUpdatedState(onPersonDragPosition)
+    val currentOnPersonDragEnd by rememberUpdatedState(onPersonDragEnd)
 
     val shimmerTransition = rememberInfiniteTransition(label = "pipe_shimmer")
     val shimmerPhase by shimmerTransition.animateFloat(
@@ -85,62 +93,74 @@ fun LivingTreeCanvas(
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(nodes, orbitRadius, onPersonDragPosition, onPersonDragEnd) {
+            .pointerInput(orbitRadius) {
                 coroutineScope {
+                    var suppressTap = false
+
                     launch {
                         detectTapGestures { offset ->
-                            nodes.firstOrNull { node ->
+                            if (suppressTap) return@detectTapGestures
+                            currentNodes.firstOrNull { node ->
                                 hypot(
                                     (offset.x - node.x).toDouble(),
                                     (offset.y - node.y).toDouble(),
                                 ) <= node.radius
-                            }?.let { onPersonTap(it.id) }
+                            }?.let { currentOnPersonTap(it.id) }
                         }
                     }
-                    if (onPersonDragPosition != null && onPersonDragEnd != null && orbitRadius > 0f) {
+
+                    if (currentOnPersonDragPosition != null && currentOnPersonDragEnd != null && orbitRadius > 0f) {
                         launch {
                             var draggingId: Long? = null
                             var dragMoved = false
+                            var grabOffset = Offset.Zero
                             var lastPosition = LivingTreeLayout.StoredPosition(angleRadians = 0.0)
 
                             detectDragGesturesAfterLongPress(
                                 onDragStart = { offset ->
-                                    draggingId = nodes.firstOrNull { node ->
+                                    val node = currentNodes.firstOrNull { candidate ->
                                         hypot(
-                                            (offset.x - node.x).toDouble(),
-                                            (offset.y - node.y).toDouble(),
-                                        ) <= node.radius
-                                    }?.id
+                                            (offset.x - candidate.x).toDouble(),
+                                            (offset.y - candidate.y).toDouble(),
+                                        ) <= candidate.radius
+                                    }
+                                    draggingId = node?.id
                                     dragMoved = false
-                                    if (draggingId != null) {
+                                    suppressTap = false
+                                    if (node != null) {
+                                        grabOffset = offset - Offset(node.x, node.y)
                                         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                     }
                                 },
                                 onDrag = { change, _ ->
                                     val id = draggingId ?: return@detectDragGesturesAfterLongPress
                                     dragMoved = true
+                                    suppressTap = true
                                     val centerX = size.width / 2f
                                     val centerY = size.height / 2f
+                                    val targetCenter = change.position - grabOffset
                                     lastPosition = LivingTreeLayout.positionFromCanvasPoint(
                                         centerX = centerX,
                                         centerY = centerY,
                                         orbitRadius = orbitRadius,
-                                        x = change.position.x,
-                                        y = change.position.y,
+                                        x = targetCenter.x,
+                                        y = targetCenter.y,
                                     )
-                                    onPersonDragPosition(id, lastPosition)
+                                    currentOnPersonDragPosition?.invoke(id, lastPosition)
                                     change.consume()
                                 },
                                 onDragEnd = {
                                     draggingId?.let { id ->
                                         if (dragMoved) {
-                                            onPersonDragEnd(id, lastPosition)
+                                            currentOnPersonDragEnd?.invoke(id, lastPosition)
                                         }
                                     }
                                     draggingId = null
+                                    suppressTap = false
                                 },
                                 onDragCancel = {
                                     draggingId = null
+                                    suppressTap = false
                                 },
                             )
                         }
@@ -216,6 +236,7 @@ private fun DrawScope.drawInSphereName(
     isDark: Boolean,
     maxFontSp: Float = 13f,
 ) {
+    val labelColors = LivingTreeTextContrast.labelColors(scheme, isDark)
     val textColor = LivingTreeTextContrast.textOnBubbleFill(bubbleColors, scheme, isDark)
     val maxWidth = radius * 1.55f
     val maxHeight = radius * 1.1f
@@ -260,6 +281,30 @@ private fun DrawScope.drawInSphereName(
     val topLeft = Offset(
         x = center.x - layout.size.width / 2f,
         y = center.y - layout.size.height / 2f,
+    )
+    val platePaddingH = 6f
+    val platePaddingV = 3f
+    val cornerRadius = CornerRadius(6f, 6f)
+    val plateTopLeft = Offset(
+        x = topLeft.x - platePaddingH,
+        y = topLeft.y - platePaddingV,
+    )
+    val plateSize = Size(
+        width = layout.size.width + platePaddingH * 2f,
+        height = layout.size.height + platePaddingV * 2f,
+    )
+    drawRoundRect(
+        color = labelColors.plateFill,
+        topLeft = plateTopLeft,
+        size = plateSize,
+        cornerRadius = cornerRadius,
+    )
+    drawRoundRect(
+        color = labelColors.plateBorder,
+        topLeft = plateTopLeft,
+        size = plateSize,
+        cornerRadius = cornerRadius,
+        style = Stroke(width = 1f),
     )
     drawText(layout, topLeft = topLeft)
 }
