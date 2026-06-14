@@ -11,9 +11,9 @@ object LivingTreeLayout {
     const val MAX_NODE_RADIUS = 156f
     const val MIN_CENTER_RADIUS = 56f
     const val MAX_CENTER_RADIUS = 216f
-    const val CENTER_TO_NODE_RATIO = 1.45f
+    const val CENTER_TO_NODE_RATIO = 1.2f
     const val CANVAS_PADDING = 24f
-    const val BUBBLE_GAP = 8f
+    const val BUBBLE_GAP = 10f
     const val ANGLE_EPSILON = 0.05
     const val MIN_RADIUS_FRACTION = 0.35
     const val MAX_RADIUS_FRACTION = 1.0
@@ -37,8 +37,12 @@ object LivingTreeLayout {
         val radiusFraction: Double = 1.0,
     )
 
-    fun computeLayoutSizing(minDimension: Float, personCount: Int): LayoutSizing {
-        if (personCount <= 0) {
+    /**
+     * Sizes all spheres from [totalPeopleCount] (not filtered visible count).
+     * Unified binary search scales node and center radii together under the 10px gap constraint.
+     */
+    fun computeLayoutSizing(minDimension: Float, totalPeopleCount: Int): LayoutSizing {
+        if (totalPeopleCount <= 0) {
             val fallbackNode = MAX_NODE_RADIUS
             return LayoutSizing(
                 nodeRadius = fallbackNode,
@@ -47,30 +51,30 @@ object LivingTreeLayout {
             )
         }
 
-        val desiredNodeRadius = computeNodeRadius(minDimension, personCount)
+        val desiredNodeRadius = computeNodeRadius(minDimension, totalPeopleCount)
         val canvasOrbit = maxOrbitRadius(minDimension, absoluteMinNodeRadius).coerceAtLeast(1f)
-        val spacingCap = maxNodeRadiusForOrbit(canvasOrbit, personCount)
+        val spacingCap = maxNodeRadiusForOrbit(canvasOrbit, totalPeopleCount)
             .coerceIn(absoluteMinNodeRadius, MAX_NODE_RADIUS)
-        val upperBound = minOf(desiredNodeRadius, spacingCap, MAX_NODE_RADIUS)
+        val baseNodeRadius = minOf(desiredNodeRadius, spacingCap, MAX_NODE_RADIUS)
             .coerceIn(absoluteMinNodeRadius, MAX_NODE_RADIUS)
+        val baseCenterRadius = computeCenterRadius(minDimension, baseNodeRadius)
 
-        var nodeRadius = upperBound
-        if (upperBound > 1f + 0.5f) {
-            var low = 1f
-            var high = upperBound
-            repeat(24) {
-                val mid = (low + high) / 2f
-                if (layoutFitsWithoutOverlap(minDimension, personCount, mid)) {
-                    low = mid
-                } else {
-                    high = mid
-                }
+        var lowScale = (absoluteMinNodeRadius / baseNodeRadius).coerceIn(0.01f, 1f)
+        var highScale = 1f
+        repeat(24) {
+            val mid = (lowScale + highScale) / 2f
+            val scaledNode = baseNodeRadius * mid
+            val scaledCenter = (baseCenterRadius * mid).coerceAtLeast(scaledNode * CENTER_TO_NODE_RATIO)
+            if (layoutFitsWithoutOverlap(minDimension, totalPeopleCount, scaledNode, scaledCenter)) {
+                lowScale = mid
+            } else {
+                highScale = mid
             }
-            nodeRadius = if (personCount > 1) low else low.coerceAtMost(upperBound)
         }
 
-        val centerRadius = computeCenterRadius(minDimension, nodeRadius)
-        val orbitRadius = computeOrbitRadius(minDimension, personCount, nodeRadius, centerRadius)
+        val nodeRadius = (baseNodeRadius * lowScale).coerceAtLeast(absoluteMinNodeRadius)
+        val centerRadius = (baseCenterRadius * lowScale).coerceAtLeast(nodeRadius * CENTER_TO_NODE_RATIO)
+        val orbitRadius = computeOrbitRadius(minDimension, totalPeopleCount, nodeRadius, centerRadius)
         return LayoutSizing(nodeRadius, orbitRadius, centerRadius)
     }
 
@@ -82,6 +86,7 @@ object LivingTreeLayout {
         nodeRadius: Float,
         centerRadius: Float = 0f,
         storedPositions: Map<Long, StoredPosition> = emptyMap(),
+        userPlacedIds: Set<Long> = emptySet(),
     ): List<NodePosition> {
         if (personIds.isEmpty()) return emptyList()
         val resolved = resolveStoredPositions(
@@ -90,6 +95,7 @@ object LivingTreeLayout {
             orbitRadius = orbitRadius,
             nodeRadius = nodeRadius,
             centerRadius = centerRadius,
+            userPlacedIds = userPlacedIds,
         )
         val positions = personIds.map { id ->
             val position = resolved.getValue(id)
@@ -109,6 +115,7 @@ object LivingTreeLayout {
             centerRadius = centerRadius,
             orbitRadius = orbitRadius,
             nodeRadius = nodeRadius,
+            userPlacedIds = userPlacedIds,
         )
     }
 
@@ -124,8 +131,8 @@ object LivingTreeLayout {
         }.toMap()
 
     /**
-     * Evenly spaces people without a unique persisted angle. Duplicate angles (within
-     * [ANGLE_EPSILON]) and persisted layouts that overlap are re-spread on load.
+     * Hybrid re-pack: auto-place new, overlapping, duplicate, or null positions only.
+     * User-placed nodes are never moved.
      */
     fun resolveStoredPositions(
         personIds: List<Long>,
@@ -133,6 +140,7 @@ object LivingTreeLayout {
         orbitRadius: Float = 0f,
         nodeRadius: Float = 0f,
         centerRadius: Float = 0f,
+        userPlacedIds: Set<Long> = emptySet(),
     ): Map<Long, StoredPosition> {
         if (personIds.isEmpty()) return emptyMap()
 
@@ -143,12 +151,13 @@ object LivingTreeLayout {
             emptySet()
         }
         val needsAuto = personIds.filter { id ->
-            stored[id] == null || id in duplicateIds || id in overlapIds
+            id !in userPlacedIds &&
+                (stored[id] == null || id in duplicateIds || id in overlapIds)
         }
         val resolved = mutableMapOf<Long, StoredPosition>()
         personIds.forEach { id ->
             val storedPosition = stored[id]
-            if (storedPosition != null && id !in duplicateIds && id !in overlapIds) {
+            if (storedPosition != null && (id in userPlacedIds || (id !in duplicateIds && id !in overlapIds))) {
                 resolved[id] = storedPosition.copy(
                     radiusFraction = storedPosition.radiusFraction.coerceIn(
                         MIN_RADIUS_FRACTION,
@@ -286,8 +295,8 @@ object LivingTreeLayout {
     }
 
     /**
-     * Satellite bubble radius scales with canvas size and person count.
-     * Few people → ~3× larger bubbles; many people → smaller (down to [MIN_NODE_RADIUS]).
+     * Satellite bubble radius scales with canvas size and total person count.
+     * Few people → ~3× larger bubbles; many people → smaller (down to [absoluteMinNodeRadius]).
      */
     fun computeNodeRadius(minDimension: Float, personCount: Int): Float {
         if (personCount <= 0) return MAX_NODE_RADIUS
@@ -300,10 +309,10 @@ object LivingTreeLayout {
     fun computeCenterRadius(minDimension: Float, nodeRadius: Float): Float {
         val fromNode = nodeRadius * CENTER_TO_NODE_RATIO
         val fromCanvas = minDimension * 0.095f
-        val minBound = maxOf(MIN_CENTER_RADIUS, nodeRadius * 1.2f)
-        val maxBound = maxOf(
-            minBound,
-            minOf(MAX_CENTER_RADIUS, maxOf(minDimension * 0.20f, fromNode * 1.05f)),
+        val minBound = nodeRadius * CENTER_TO_NODE_RATIO
+        val maxBound = minOf(
+            MAX_CENTER_RADIUS,
+            maxOf(minBound, minDimension * 0.20f),
         )
         return maxOf(fromNode, fromCanvas).coerceIn(minBound, maxBound)
     }
@@ -374,7 +383,7 @@ object LivingTreeLayout {
         gap: Float = BUBBLE_GAP,
     ): Boolean = minCenterDistance(x1, y1, r1, x2, y2, r2) < gap
 
-    /** Absolute lower cap; count-aware floors in [minNodeRadiusForCount] may be higher when spacing allows. */
+    /** Absolute lower cap; binary search never produces spheres below this (no 1px bubbles). */
     internal const val absoluteMinNodeRadius = 11f
 
     internal fun minNodeRadiusForCount(personCount: Int): Float = when {
@@ -406,9 +415,10 @@ object LivingTreeLayout {
         minDimension: Float,
         personCount: Int,
         nodeRadius: Float,
+        centerRadius: Float = computeCenterRadius(minDimension, nodeRadius),
     ): Boolean {
-        if (nodeRadius <= 0f) return false
-        val centerRadius = computeCenterRadius(minDimension, nodeRadius)
+        if (nodeRadius < absoluteMinNodeRadius - 0.5f) return false
+        if (centerRadius < nodeRadius * CENTER_TO_NODE_RATIO - 0.5f) return false
         val maxOrbit = maxOrbitRadius(minDimension, nodeRadius)
         val orbitRadius = computeOrbitRadius(minDimension, personCount, nodeRadius, centerRadius)
         if (orbitRadius > maxOrbit + 0.5f) return false
@@ -483,12 +493,15 @@ object LivingTreeLayout {
         centerRadius: Float,
         orbitRadius: Float,
         nodeRadius: Float,
+        userPlacedIds: Set<Long> = emptySet(),
     ): List<NodePosition> {
         if (positions.size <= 1 || orbitRadius <= 0f) return positions
 
         val adjusted = positions.toMutableList()
         for (index in adjusted.indices) {
             val position = adjusted[index]
+            if (position.id in userPlacedIds) continue
+
             val angle = kotlin.math.atan2(
                 (position.y - centerY).toDouble(),
                 (position.x - centerX).toDouble(),

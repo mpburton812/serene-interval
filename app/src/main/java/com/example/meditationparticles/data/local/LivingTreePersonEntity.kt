@@ -15,6 +15,7 @@ data class LivingTreePersonEntity(
     val sortOrder: Int = 0,
     val angleRadians: Double? = null,
     val radiusFraction: Double? = null,
+    val isUserPlaced: Boolean = false,
     val createdAtMillis: Long = System.currentTimeMillis(),
     val updatedAtMillis: Long = System.currentTimeMillis(),
 )

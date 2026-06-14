@@ -1,7 +1,5 @@
 package com.example.meditationparticles.domain.livingtree
 
-import androidx.compose.ui.graphics.Color
-
 object LivingTreeDefaults {
     data class DefaultTag(val name: String, val colorArgb: Int)
 
@@ -39,38 +37,4 @@ object LivingTreeDefaults {
 
     fun truncateName(name: String, maxLength: Int = 14): String =
         if (name.length <= maxLength) name else name.take(maxLength - 1) + "…"
-}
-
-object LivingTreeFilterLogic {
-    fun visiblePersonIds(
-        peopleTagIds: Map<Long, Set<Long>>,
-        selectedTagIds: Set<Long>,
-    ): Set<Long> {
-        if (selectedTagIds.isEmpty()) return peopleTagIds.keys
-        return peopleTagIds.filterValues { tagIds ->
-            tagIds.any { it in selectedTagIds }
-        }.keys
-    }
-
-    fun matchedTagIds(
-        personTagIds: Set<Long>,
-        selectedTagIds: List<Long>,
-    ): List<Long> =
-        selectedTagIds.filter { it in personTagIds }
-
-    fun bubbleColors(
-        personTagIds: Set<Long>,
-        selectedTagIds: List<Long>,
-        tagColors: Map<Long, Int>,
-    ): List<Color> =
-        matchedTagIds(personTagIds, selectedTagIds)
-            .mapNotNull { tagId -> tagColors[tagId]?.let(::Color) }
-
-    fun tagPersonCounts(
-        peopleTagIds: Map<Long, Set<Long>>,
-        tagIds: List<Long>,
-    ): Map<Long, Int> =
-        tagIds.associateWith { tagId ->
-            peopleTagIds.values.count { tagId in it }
-        }
 }
