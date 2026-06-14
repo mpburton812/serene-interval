@@ -15,4 +15,15 @@ interface SessionDao {
 
     @Query("SELECT * FROM sessions ORDER BY completedAt DESC LIMIT :limit")
     suspend fun getRecent(limit: Int): List<SessionEntity>
+
+    @Query(
+        """
+        SELECT * FROM sessions
+        WHERE type = :type
+          AND completedAt >= :startMillis
+          AND completedAt < :endMillis
+        ORDER BY completedAt DESC
+        """,
+    )
+    fun observeInRangeByType(type: String, startMillis: Long, endMillis: Long): Flow<List<SessionEntity>>
 }

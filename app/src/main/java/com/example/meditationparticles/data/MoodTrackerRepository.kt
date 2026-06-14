@@ -13,6 +13,7 @@ import com.example.meditationparticles.domain.mood.MoodPeriodAverages
 import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.domain.mood.MoodSource
 import com.example.meditationparticles.domain.mood.moodPeriodBounds
+import com.example.meditationparticles.domain.mood.periodReferenceMillis
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -77,9 +78,11 @@ class MoodTrackerRepository(
 
     fun observeEntriesForPeriod(
         period: MoodGraphPeriod,
+        periodOffset: Int = 0,
         zoneId: ZoneId = ZoneId.systemDefault(),
     ): Flow<List<MoodEntryEntity>> {
-        val bounds = moodPeriodBounds(period, zoneId = zoneId)
+        val referenceMillis = periodReferenceMillis(period, periodOffset, zoneId)
+        val bounds = moodPeriodBounds(period, referenceMillis, zoneId)
         return moodEntryDao.observeInRange(bounds.startMillis, bounds.endMillis)
     }
 

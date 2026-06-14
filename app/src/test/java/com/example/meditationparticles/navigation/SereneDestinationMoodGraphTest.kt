@@ -10,6 +10,7 @@ class SereneDestinationMoodGraphTest {
         assertEquals("mood_graph/DAY", SereneDestination.MoodGraph.route(MoodGraphPeriod.DAY))
         assertEquals("mood_graph/WEEK", SereneDestination.MoodGraph.route(MoodGraphPeriod.WEEK))
         assertEquals("mood_graph/MONTH", SereneDestination.MoodGraph.route(MoodGraphPeriod.MONTH))
+        assertEquals("mood_graph/CALENDAR", SereneDestination.MoodGraph.route(MoodGraphPeriod.CALENDAR))
     }
 
     @Test

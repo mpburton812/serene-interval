@@ -13,18 +13,38 @@ import com.example.meditationparticles.domain.timer.TimerEngine
 import com.example.meditationparticles.domain.timer.TimerPhase
 import com.example.meditationparticles.domain.timer.TimerSessionState
 import com.example.meditationparticles.domain.timer.TimerSoundOption
+import com.example.meditationparticles.domain.mood.MoodCalendarLogic
+import com.example.meditationparticles.domain.mood.MoodGraphPeriod
+import com.example.meditationparticles.domain.mood.moodPeriodBounds
+import com.example.meditationparticles.domain.mood.moodPeriodTitle
+import com.example.meditationparticles.domain.mood.periodReferenceMillis
+import com.example.meditationparticles.domain.timer.MeditationCalendarLogic
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.ZoneId
+import java.util.Locale
+
+data class MeditationCalendarUiState(
+    val days: List<com.example.meditationparticles.domain.timer.MeditationCalendarDay> = emptyList(),
+    val weekdayHeaders: List<String> = emptyList(),
+    val monthTitle: String = "",
+)
 
 class TimerViewModel(application: Application) : AndroidViewModel(application) {
     private val engine = TimerEngine()
     private val sessionRepository = AppGraph.sessions(application)
     private val reflectionRepository = AppGraph.meditationReflections(application)
     private val oneNoteSync = AppGraph.oneNoteSync(application)
+    private val calendarMonthOffset = MutableStateFlow(0)
+    private val zoneId = ZoneId.systemDefault()
+    private val locale = Locale.getDefault()
 
     val sessionState: StateFlow<TimerSessionState> = engine.state
     val reflectionText = MutableStateFlow("")
@@ -35,6 +55,37 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     val reflections: StateFlow<List<MeditationReflectionEntity>> =
         reflectionRepository.observeAll()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val meditationCalendar: StateFlow<MeditationCalendarUiState> = calendarMonthOffset
+        .flatMapLatest { offset ->
+            val referenceMillis = periodReferenceMillis(MoodGraphPeriod.MONTH, offset, zoneId, locale)
+            val bounds = moodPeriodBounds(MoodGraphPeriod.MONTH, referenceMillis, zoneId, locale)
+            sessionRepository.observeTimerSessionsInRange(bounds.startMillis, bounds.endMillis).map { sessions ->
+                val practicedDates = MeditationCalendarLogic.practicedDatesFromCompletedAt(
+                    completedAtMillis = sessions.map { it.completedAt },
+                    zoneId = zoneId,
+                )
+                MeditationCalendarUiState(
+                    days = MeditationCalendarLogic.buildMonthGrid(
+                        yearMonth = MeditationCalendarLogic.yearMonthFromOffset(offset, zoneId),
+                        practicedDates = practicedDates,
+                        zoneId = zoneId,
+                        locale = locale,
+                    ),
+                    weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
+                    monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, offset, zoneId, locale),
+                )
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = MeditationCalendarUiState(
+                weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
+                monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, 0, zoneId, locale),
+            ),
+        )
 
     val oneNoteConnected: Boolean = oneNoteSync.isConnected()
 
@@ -118,6 +169,10 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             oneNoteSync.enqueueSync(OneNoteEntryType.MEDITATION_REFLECTION, entry.id, manual = true)
         }
+    }
+
+    fun shiftCalendarMonth(forward: Boolean) {
+        calendarMonthOffset.value += if (forward) 1 else -1
     }
 
     private fun finishReflectionCapture() {

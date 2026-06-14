@@ -89,6 +89,7 @@ class HomeActivityRepository(
         label = "Meditation reflection",
         text = entity.reflection,
         subtitle = formatMinutes(entity.durationSeconds),
+        moodLevel = entity.moodLevel,
     )
 
     private fun thoughtDumpRow(
@@ -102,6 +103,7 @@ class HomeActivityRepository(
             "Thought dump"
         },
         text = entity.content,
+        moodLevel = entity.moodLevel,
     )
 
     private fun nvcRow(entity: com.example.meditationparticles.data.local.NvcEntryEntity) =
@@ -112,6 +114,7 @@ class HomeActivityRepository(
             text = listOf(entity.observation, entity.feeling, entity.need, entity.request)
                 .filter { it.isNotBlank() }
                 .joinToString("\n\n"),
+            moodLevel = entity.moodLevel,
         )
 
     private fun refactoringRow(
@@ -127,6 +130,7 @@ class HomeActivityRepository(
             entity.explanation2,
             entity.explanation3,
         ).filter { it.isNotBlank() }.joinToString("\n\n"),
+        moodLevel = entity.moodLevel,
     )
 
     private fun cogRow(entity: com.example.meditationparticles.data.local.CenterOfGravityEntryEntity) =
@@ -135,6 +139,7 @@ class HomeActivityRepository(
             completedAt = entity.createdAt,
             label = "Center of Gravity",
             text = "${entity.thoughtsAndFeelings}\n\n${entity.bodyAndNeeds}".trim(),
+            moodLevel = entity.moodLevel,
         )
 
     private fun futureSelfRow(entity: com.example.meditationparticles.data.local.FutureSelfMessageEntity) =
@@ -143,6 +148,7 @@ class HomeActivityRepository(
             completedAt = entity.createdAtMillis,
             label = "Future Self",
             text = entity.content,
+            moodLevel = entity.moodLevel,
         )
 
     private fun affirmationReviewRow(
@@ -153,6 +159,7 @@ class HomeActivityRepository(
         label = "Affirmations review",
         text = entity.notes,
         subtitle = "${entity.affirmationCount} affirmations",
+        moodLevel = entity.moodLevel,
     )
 
     private fun formatMinutes(durationSeconds: Int): String? {

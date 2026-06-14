@@ -31,7 +31,9 @@ object MoodGraphAxisFormatter {
         return when (period) {
             MoodGraphPeriod.DAY -> dayTicks(startMillis, rangeMillis, zoneId, locale)
             MoodGraphPeriod.WEEK -> weekTicks(startMillis, rangeMillis, zoneId, locale)
-            MoodGraphPeriod.MONTH -> monthTicks(startMillis, rangeMillis, zoneId, locale)
+            MoodGraphPeriod.MONTH,
+            MoodGraphPeriod.CALENDAR,
+            -> monthTicks(startMillis, rangeMillis, zoneId, locale)
         }
     }
 

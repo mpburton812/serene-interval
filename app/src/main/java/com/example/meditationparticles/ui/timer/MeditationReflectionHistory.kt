@@ -24,6 +24,7 @@ import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
 import com.example.meditationparticles.ui.components.HistoryGlassCard
 import com.example.meditationparticles.ui.components.MoodDisplay
+import com.example.meditationparticles.ui.components.MoodEntryIcon
 import com.example.meditationparticles.ui.toolkit.OneNoteEntrySyncButton
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -84,7 +85,9 @@ private fun ReflectionHistoryRow(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        MoodEntryIcon(moodLevel = entry.moodLevel)
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = formatReflectionTimestamp(entry.completedAt),
