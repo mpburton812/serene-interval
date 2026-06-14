@@ -6,6 +6,8 @@ param(
     [string]$ReleaseNotes = "",
     [string]$Tag = "",
     [switch]$SkipBuild,
+    [switch]$PinManifestOnly,
+    [switch]$Upload,
     [switch]$SkipVerify,
     [switch]$Commit,
     [switch]$Push
@@ -16,6 +18,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $downloadScript = Join-Path $PSScriptRoot "download-release-apk.ps1"
 $verifyScript = Join-Path $PSScriptRoot "verify-manifest.ps1"
+$preDeployScript = Join-Path $PSScriptRoot "pre-deploy-check.ps1"
 $manifestPath = Join-Path $repoRoot "release/version.json"
 $localApk = Join-Path $repoRoot "app/build/outputs/apk/debug/app-debug.apk"
 $releaseApkName = "sway_meditation.apk"
@@ -49,23 +52,6 @@ try {
         throw "Could not resolve version from app/build.gradle.kts. Pass -VersionName and -VersionCode."
     }
 
-    Write-Host "Publishing $resolvedTag (versionCode $resolvedVersionCode) ..."
-
-    if (-not $SkipBuild) {
-        Write-Host "Building debug APK (sideload-signed) ..."
-        & .\gradlew.bat assembleDebug --no-daemon
-        if ($LASTEXITCODE -ne 0) { throw "assembleDebug failed (exit $LASTEXITCODE)" }
-    }
-
-    if (-not (Test-Path $localApk)) {
-        throw "Local APK not found: $localApk. Run assembleDebug first or omit -SkipBuild."
-    }
-
-    $stagingApk = Join-Path ([System.IO.Path]::GetTempPath()) ("release-$releaseApkName-" + [guid]::NewGuid().ToString())
-    New-Item -ItemType Directory -Path $stagingApk -Force | Out-Null
-    $releaseApkPath = Join-Path $stagingApk $releaseApkName
-    Copy-Item -Path $localApk -Destination $releaseApkPath -Force
-
     $apkUrl = "https://github.com/mpburton812/serene-interval/releases/download/$resolvedTag/$releaseApkName"
     $releaseExists = $false
     try {
@@ -74,20 +60,54 @@ try {
     }
     catch { }
 
-    if ($releaseExists) {
-        Write-Host "Release $resolvedTag exists; uploading APK asset ..."
-        gh release upload $resolvedTag $releaseApkPath --repo mpburton812/serene-interval --clobber
+    if ($PinManifestOnly) {
+        if (-not $releaseExists) {
+            throw "Release $resolvedTag does not exist. Create/upload the release first or omit -PinManifestOnly."
+        }
+        Write-Host "PinManifestOnly: skipping build/upload; hashing live GitHub asset for $resolvedTag ..."
     }
     else {
-        $notes = if ($ReleaseNotes) { $ReleaseNotes } else { "Release $resolvedTag" }
-        gh release create $resolvedTag $releaseApkPath --repo mpburton812/serene-interval `
-            --title $resolvedTag --notes $notes
-    }
-    if ($LASTEXITCODE -ne 0) { throw "gh release upload/create failed (exit $LASTEXITCODE)" }
-    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $stagingApk
+        Write-Host "Publishing $resolvedTag (versionCode $resolvedVersionCode) ..."
 
-    Write-Host "Waiting for GitHub release asset to propagate ..."
-    Start-Sleep -Seconds 5
+        if (-not $SkipBuild) {
+            Write-Host "Building debug APK (sideload-signed) ..."
+            & .\gradlew.bat assembleDebug --no-daemon
+            if ($LASTEXITCODE -ne 0) { throw "assembleDebug failed (exit $LASTEXITCODE)" }
+        }
+
+        if (-not (Test-Path $localApk)) {
+            throw "Local APK not found: $localApk. Run assembleDebug first or omit -SkipBuild."
+        }
+
+        $stagingApk = Join-Path ([System.IO.Path]::GetTempPath()) ("release-$releaseApkName-" + [guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $stagingApk -Force | Out-Null
+        $releaseApkPath = Join-Path $stagingApk $releaseApkName
+        Copy-Item -Path $localApk -Destination $releaseApkPath -Force
+
+        if ($releaseExists) {
+            if (-not $Upload) {
+                throw @"
+Release $resolvedTag already exists. Uploading a local APK can overwrite CI bytes and cause hash mismatches.
+Use one of:
+  .\release\publish-release.ps1 -PinManifestOnly
+  .\release\publish-release.ps1 -Upload   # only when you intentionally replace the release asset
+After pushing tag v*, wait for release-apk.yml, then run -PinManifestOnly.
+"@
+            }
+            Write-Host "Release $resolvedTag exists; uploading APK asset (-Upload) ..."
+            gh release upload $resolvedTag $releaseApkPath --repo mpburton812/serene-interval --clobber
+        }
+        else {
+            $notes = if ($ReleaseNotes) { $ReleaseNotes } else { "Release $resolvedTag" }
+            gh release create $resolvedTag $releaseApkPath --repo mpburton812/serene-interval `
+                --title $resolvedTag --notes $notes
+        }
+        if ($LASTEXITCODE -ne 0) { throw "gh release upload/create failed (exit $LASTEXITCODE)" }
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $stagingApk
+
+        Write-Host "Waiting for GitHub release asset to propagate ..."
+        Start-Sleep -Seconds 5
+    }
 
     $tmpApk = Join-Path ([System.IO.Path]::GetTempPath()) ("publish-apk-" + [guid]::NewGuid().ToString() + ".apk")
     try {
@@ -122,8 +142,8 @@ try {
     Write-Host "Wrote $manifestPath"
 
     if (-not $SkipVerify) {
-        Write-Host "Verifying manifest against live APK ..."
-        & $verifyScript -Manifest $manifestPath
+        Write-Host "Running pre-deploy check (manifest vs live APK) ..."
+        & $preDeployScript -Manifest $manifestPath -Tag $resolvedTag
     }
 
     if ($Commit) {
