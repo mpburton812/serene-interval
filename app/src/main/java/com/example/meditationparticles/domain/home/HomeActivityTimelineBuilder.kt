@@ -60,6 +60,7 @@ object HomeActivityTimelineBuilder {
         val label: String,
         val text: String,
         val subtitle: String? = null,
+        val moodLevel: Int? = null,
     )
 
     private fun TextEntryRow.toItem(prefix: String, title: String): HomeActivityItem {
@@ -70,6 +71,7 @@ object HomeActivityTimelineBuilder {
             title = title,
             subtitle = subtitle,
             textEntry = trimmed.takeIf { it.isNotEmpty() },
+            moodLevel = moodLevel,
         )
     }
 

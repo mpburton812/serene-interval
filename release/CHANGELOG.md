@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 1.0.20 - 2026-06-14
+
+### Meditation
+
+- Monthly meditation calendar on the timer page with green days for completed sessions
+- Month navigation to review prior meditation history
+
+### Home & summaries
+
+- Show mood icon on Recent Activity entries when a mood was logged
+- Show mood icon on Previous Reflections list entries when a mood was logged
+
 ## 1.0.19 - 2026-06-14
 
 ### Home

@@ -76,6 +76,30 @@ class HomeActivityTimelineBuilderTest {
     }
 
     @Test
+    fun build_includesMoodLevelWhenPresent() {
+        val items = HomeActivityTimelineBuilder.build(
+            sessions = emptyList(),
+            reflections = listOf(
+                HomeActivityTimelineBuilder.TextEntryRow(
+                    id = 3,
+                    completedAt = 5000L,
+                    label = "Meditation reflection",
+                    text = "Calm",
+                    moodLevel = 4,
+                ),
+            ),
+            thoughtDumps = emptyList(),
+            nvcEntries = emptyList(),
+            refactoringEntries = emptyList(),
+            centerOfGravityEntries = emptyList(),
+            futureSelfMessages = emptyList(),
+            affirmationReviews = emptyList(),
+        )
+
+        assertEquals(4, items.first().moodLevel)
+    }
+
+    @Test
     fun build_respectsLimit() {
         val sessions = (1..60).map { index ->
             session(id = index.toLong(), completedAt = index.toLong(), title = "Session $index")

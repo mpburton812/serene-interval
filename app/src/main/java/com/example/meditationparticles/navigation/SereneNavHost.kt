@@ -62,6 +62,8 @@ import com.example.meditationparticles.ui.settings.SettingsScreen
 import com.example.meditationparticles.ui.timer.TimerScreen
 import com.example.meditationparticles.ui.livingtree.LivingTreeScreen
 import com.example.meditationparticles.ui.livingtree.LivingTreeSetupScreen
+import com.example.meditationparticles.domain.mood.MoodGraphPeriod
+import com.example.meditationparticles.ui.mood.MoodCalendarScreen
 import com.example.meditationparticles.ui.mood.MoodGraphScreen
 import com.example.meditationparticles.ui.toolkit.AffirmationsScreen
 import com.example.meditationparticles.ui.toolkit.ToolkitScreen
@@ -387,10 +389,16 @@ fun SereneNavHost(
                 val period = SereneDestination.MoodGraph.parsePeriod(
                     entry.arguments?.getString("period"),
                 )
-                MoodGraphScreen(
-                    period = period,
-                    onBack = { navController.popBackStack() },
-                )
+                if (period == MoodGraphPeriod.CALENDAR) {
+                    MoodCalendarScreen(
+                        onBack = { navController.popBackStack() },
+                    )
+                } else {
+                    MoodGraphScreen(
+                        period = period,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
             composable(SereneDestination.LivingTreeSetup.route) {
                 LivingTreeSetupScreen(
@@ -446,6 +454,11 @@ fun SereneNavHost(
                                 onOpenSettings = {
                                     navController.navigate(SereneDestination.Settings.route)
                                 },
+                                onNavigateToMoodGraph = { period ->
+                                    navController.navigate(SereneDestination.MoodGraph.route(period)) {
+                                        launchSingleTop = true
+                                    }
+                                },
                             )
                         }
                         SereneDestination.Breathe -> {
@@ -480,11 +493,6 @@ fun SereneNavHost(
                                 },
                                 onNavigateToBreathe = {
                                     navigateToTab(SereneDestination.Breathe)
-                                },
-                                onNavigateToMoodGraph = { period ->
-                                    navController.navigate(SereneDestination.MoodGraph.route(period)) {
-                                        launchSingleTop = true
-                                    }
                                 },
                             )
                         }
