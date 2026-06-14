@@ -26,6 +26,30 @@ jobs:
       - name: Rename APK for release
         run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/sway_meditation.apk
 
+      - name: Verify APK metadata matches build.gradle
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}"
+          if [[ -f local.properties ]]; then
+            SDK="$(sed -n 's|^sdk.dir=||p' local.properties | tr -d '\r' | sed 's|\\\\|/|g')"
+          fi
+          AAPT="$(find "$SDK/build-tools" -name aapt -type f 2>/dev/null | sort -V | tail -n1)"
+          if [[ -z "$AAPT" ]]; then
+            echo "::error::aapt not found under $SDK/build-tools"
+            exit 1
+          fi
+          GRADLE_CODE="$(sed -n 's/.*versionCode *= *\([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n1)"
+          GRADLE_NAME="$(sed -n 's/.*versionName *= *"\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n1)"
+          BADGING="$("$AAPT" dump badging app/build/outputs/apk/debug/sway_meditation.apk)"
+          APK_CODE="$(sed -n "s/.*versionCode='\([^']*\)'.*/\1/p" <<<"$BADGING")"
+          APK_NAME="$(sed -n "s/.*versionName='\([^']*\)'.*/\1/p" <<<"$BADGING")"
+          echo "Gradle: versionCode=$GRADLE_CODE versionName=$GRADLE_NAME"
+          echo "APK:    versionCode=$APK_CODE versionName=$APK_NAME"
+          if [[ "$APK_CODE" != "$GRADLE_CODE" || "$APK_NAME" != "$GRADLE_NAME" ]]; then
+            echo "::error::APK metadata does not match app/build.gradle.kts"
+            exit 1
+          fi
+
       - name: Compute local APK SHA256 (build artifact only)
         id: apk_hash
         run: |
