@@ -186,6 +186,7 @@ class LivingTreeRepository(
         personId: Long,
         angleRadians: Double,
         radiusFraction: Double,
+        isUserPlaced: Boolean = true,
     ) {
         val person = personDao.getById(personId) ?: return
         personDao.update(
@@ -195,6 +196,7 @@ class LivingTreeRepository(
                     LivingTreeLayout.MIN_RADIUS_FRACTION.toDouble(),
                     LivingTreeLayout.MAX_RADIUS_FRACTION.toDouble(),
                 ),
+                isUserPlaced = isUserPlaced,
                 updatedAtMillis = System.currentTimeMillis(),
             ),
         )
