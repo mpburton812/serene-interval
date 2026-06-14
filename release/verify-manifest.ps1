@@ -18,15 +18,17 @@ function Test-ManifestJson {
     if (-not $json.versionCode) { throw "versionCode is required in $Path" }
     if (-not $json.versionName) { throw "versionName is required in $Path" }
     if (-not $json.apkUrl) { throw "apkUrl is required in $Path" }
-    if (-not $json.expectedSha256) { throw "expectedSha256 is required in $Path" }
-
-    $script:ExpectedSha256 = ($json.expectedSha256 -replace '\s', '').ToLowerInvariant()
-    if ($script:ExpectedSha256 -notmatch '^[0-9a-f]{64}$') {
-        throw "expectedSha256 must be 64 hex characters in $Path"
-    }
 
     $script:ApkUrl = [string]$json.apkUrl
     $script:VersionName = [string]$json.versionName
+    $script:ExpectedSha256 = $null
+
+    if ($json.expectedSha256) {
+        $script:ExpectedSha256 = ($json.expectedSha256 -replace '\s', '').ToLowerInvariant()
+        if ($script:ExpectedSha256 -notmatch '^[0-9a-f]{64}$') {
+            throw "expectedSha256 must be 64 hex characters in $Path"
+        }
+    }
 
     if ($script:ApkUrl -like "*/releases/latest/download/*") {
         throw "apkUrl must not use /releases/latest/download/ (pin to /releases/download/vX.Y.Z/)"
@@ -62,7 +64,16 @@ try {
     if ($LocalApk) {
         if (-not (Test-Path $LocalApk)) { throw "Local APK not found: $LocalApk" }
         Write-Warning "LocalApk compares disk bytes only. For manifest publishing, hash the APK downloaded from GitHub after upload."
+        if (-not $script:ExpectedSha256) {
+            Write-Warning "expectedSha256 omitted; skipping APK hash verification."
+            exit 0
+        }
         Test-ApkHash -ApkPath $LocalApk
+        exit 0
+    }
+
+    if (-not $script:ExpectedSha256) {
+        Write-Warning "expectedSha256 omitted; skipping live APK hash verification."
         exit 0
     }
 

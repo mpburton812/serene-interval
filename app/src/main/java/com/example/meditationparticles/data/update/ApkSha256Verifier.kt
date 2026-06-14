@@ -26,7 +26,8 @@ object ApkSha256Verifier {
         }
         val actual = computeHex(file)
         check(actual == normalizedExpected) {
-            "Downloaded APK hash mismatch. Expected $normalizedExpected but got $actual."
+            "Downloaded APK hash mismatch. Expected $normalizedExpected but got $actual. " +
+                "Tap Check for updates again, then download immediately."
         }
     }
 }

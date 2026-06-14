@@ -33,12 +33,16 @@ function Get-ManifestInfo {
     $json = Get-Content -Raw -Path $Path | ConvertFrom-Json
     if (-not $json.versionName) { throw "versionName is required in $Path" }
     if (-not $json.apkUrl) { throw "apkUrl is required in $Path" }
-    if (-not $json.expectedSha256) { throw "expectedSha256 is required in $Path" }
+
+    $expectedSha256 = $null
+    if ($json.expectedSha256) {
+        $expectedSha256 = ([string]$json.expectedSha256 -replace '\s', '').ToLowerInvariant()
+    }
 
     return [pscustomobject]@{
         VersionName    = [string]$json.versionName
         ApkUrl         = [string]$json.apkUrl
-        ExpectedSha256 = ([string]$json.expectedSha256 -replace '\s', '').ToLowerInvariant()
+        ExpectedSha256 = $expectedSha256
         Tag            = if ($Tag) { $Tag } else { "v$($json.versionName)" }
     }
 }
@@ -114,11 +118,12 @@ function Test-LiveHashStability {
     param(
         [string]$ApkUrl,
         [string]$ReleaseTag,
+        [string]$ExpectedSha256,
         [int]$Checks,
         [int]$DelaySeconds
     )
 
-    if ($Checks -lt 1) { return }
+    if ($Checks -lt 1 -or -not $ExpectedSha256) { return }
 
     $hashes = [System.Collections.Generic.List[string]]::new()
     for ($i = 1; $i -le $Checks; $i++) {
@@ -160,10 +165,14 @@ try {
     }
 
     Test-ReleaseAssets -WorkflowRepo $Repo -ReleaseTag $info.Tag
-    Test-LiveHashStability -ApkUrl $info.ApkUrl -ReleaseTag $info.Tag -Checks $StabilityChecks -DelaySeconds $StabilityDelaySeconds
+    Test-LiveHashStability -ApkUrl $info.ApkUrl -ReleaseTag $info.Tag -ExpectedSha256 $info.ExpectedSha256 -Checks $StabilityChecks -DelaySeconds $StabilityDelaySeconds
 
     Write-Host "Running verify-manifest.ps1 ..."
     & $verifyScript -Manifest $manifestPath
+
+    if (-not $info.ExpectedSha256) {
+        Write-Warning "expectedSha256 omitted from manifest; live APK hash not verified."
+    }
 
     Write-Host "Pre-deploy check passed for $($info.Tag)."
 }

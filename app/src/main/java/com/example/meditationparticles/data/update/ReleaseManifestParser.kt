@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 object ReleaseManifestParser {
     fun parse(json: String): ReleaseManifest {
-        val root = JSONObject(json)
+        val root = JSONObject(stripUtf8Bom(json))
         return ReleaseManifest(
             versionCode = root.getInt("versionCode"),
             versionName = root.getString("versionName"),
@@ -15,4 +15,7 @@ object ReleaseManifestParser {
             expectedSha256 = root.optString("expectedSha256").takeIf { it.isNotBlank() },
         )
     }
+
+    private fun stripUtf8Bom(json: String): String =
+        if (json.isNotEmpty() && json.first() == '\uFEFF') json.drop(1) else json
 }
