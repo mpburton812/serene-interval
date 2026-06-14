@@ -107,6 +107,8 @@ class AffirmationReviewSessionRepositoryTest {
 
         override suspend fun getAll(): List<AffirmationReviewSessionEntity> = entities.toList()
 
+        override fun observeAll() = kotlinx.coroutines.flow.flowOf(entities.toList())
+
         override suspend fun insert(entity: AffirmationReviewSessionEntity): Long {
             val id = nextId++
             entities += entity.copy(id = id)
@@ -156,6 +158,7 @@ class AffirmationReviewSessionRepositoryTest {
 
     private class EmptyThoughtDumpDao : com.example.meditationparticles.data.local.ThoughtDumpDao {
         override suspend fun getAll(): List<ThoughtDumpEntity> = emptyList()
+        override fun observeAll() = kotlinx.coroutines.flow.flowOf(emptyList<ThoughtDumpEntity>())
         override fun observeByType(logType: String) = throw UnsupportedOperationException()
         override fun observeLatest() = throw UnsupportedOperationException()
         override suspend fun insert(entity: ThoughtDumpEntity) = throw UnsupportedOperationException()

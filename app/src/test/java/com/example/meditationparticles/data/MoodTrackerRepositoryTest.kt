@@ -244,6 +244,8 @@ class MoodTrackerRepositoryTest {
     ) : com.example.meditationparticles.data.local.ThoughtDumpDao {
         override suspend fun getAll(): List<ThoughtDumpEntity> = entries
 
+        override fun observeAll() = kotlinx.coroutines.flow.flowOf(entries)
+
         override fun observeByType(logType: String) = throw UnsupportedOperationException()
 
         override fun observeLatest() = throw UnsupportedOperationException()

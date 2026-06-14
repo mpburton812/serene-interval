@@ -26,6 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.domain.home.HomeActivityItem
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.navigation.SereneDestination
@@ -58,6 +62,8 @@ fun HomeScreen(
 ) {
     val dailyAffirmation by viewModel.dailyAffirmation.collectAsState()
     val quickStartTargets by viewModel.quickStartTargets.collectAsState()
+    val activityTimeline by viewModel.activityTimeline.collectAsState()
+    var openedActivity by remember { mutableStateOf<HomeActivityItem?>(null) }
     val settings = LocalExperienceSettings.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -186,6 +192,18 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
+        HomeActivityTimelineSection(
+            activities = activityTimeline,
+            onOpenTextEntry = { openedActivity = it },
+        )
+
+        openedActivity?.let { activity ->
+            HomeActivityTextDialog(
+                activity = activity,
+                onDismiss = { openedActivity = null },
+            )
         }
 
         Spacer(modifier = Modifier.height(SereneSpacing.stackLg))

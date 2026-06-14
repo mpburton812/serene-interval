@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 1.0.19 - 2026-06-14
+
+### Home
+
+- Recent activity timeline under Quick Start with chronological sessions and journal entries
+- Tap entries with text to open the full note in a dialog
+
+### Living Tree
+
+- Remove floating pipe-texture artifacts; spokes connect center to nodes only
+- Rounded corners on in-sphere name plate backgrounds
+
+### Mood widget
+
+- Evenly distribute mood faces across the widget with equal edge and inter-button spacing
+
 ## 1.0.18 - 2026-06-14
 
 ### Affirmations review

@@ -1,12 +1,6 @@
 package com.example.meditationparticles.ui.livingtree
 
 import android.view.HapticFeedbackConstants
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -72,23 +66,11 @@ fun LivingTreeCanvas(
     val scheme = MaterialTheme.colorScheme
     val isDark = isDarkScheme(scheme)
     val glassOverlay = painterResource(R.drawable.breath_glass_sphere)
-    val pipeTexture = painterResource(R.drawable.breath_pipe_texture)
     val visualScale = (centerRadius / 80f).coerceIn(0.75f, 1.25f)
     val currentNodes by rememberUpdatedState(nodes)
     val currentOnPersonTap by rememberUpdatedState(onPersonTap)
     val currentOnPersonDragPosition by rememberUpdatedState(onPersonDragPosition)
     val currentOnPersonDragEnd by rememberUpdatedState(onPersonDragEnd)
-
-    val shimmerTransition = rememberInfiniteTransition(label = "pipe_shimmer")
-    val shimmerPhase by shimmerTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer_phase",
-    )
 
     Canvas(
         modifier = modifier
@@ -178,8 +160,8 @@ fun LivingTreeCanvas(
                 nodeCenter = Offset(node.x, node.y),
                 nodeRadius = node.radius,
                 scale = visualScale,
-                pipeTexture = pipeTexture,
-                shimmerPhase = shimmerPhase,
+                pipeTexture = null,
+                shimmerPhase = 0f,
             )
         }
 
@@ -284,7 +266,6 @@ private fun DrawScope.drawInSphereName(
     )
     val platePaddingH = 6f
     val platePaddingV = 3f
-    val cornerRadius = CornerRadius(6f, 6f)
     val plateTopLeft = Offset(
         x = topLeft.x - platePaddingH,
         y = topLeft.y - platePaddingV,
@@ -293,6 +274,8 @@ private fun DrawScope.drawInSphereName(
         width = layout.size.width + platePaddingH * 2f,
         height = layout.size.height + platePaddingV * 2f,
     )
+    val plateCorner = minOf(plateSize.height / 2f, plateSize.width / 2f, 14f).coerceAtLeast(6f)
+    val cornerRadius = CornerRadius(plateCorner, plateCorner)
     drawRoundRect(
         color = labelColors.plateFill,
         topLeft = plateTopLeft,

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.domain.home.HomeActivityItem
 import com.example.meditationparticles.domain.mood.MoodSource
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,9 +19,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsPreferences = AppGraph.settings(application)
     private val quickStartPreferences = AppGraph.quickStart(application)
     private val moodTracker = AppGraph.moodTracker(application)
+    private val homeActivityRepository = AppGraph.homeActivity(application)
 
     private val _dailyAffirmation = MutableStateFlow(DefaultFallback)
     val dailyAffirmation: StateFlow<String> = _dailyAffirmation.asStateFlow()
+
+    val activityTimeline: StateFlow<List<HomeActivityItem>> =
+        homeActivityRepository.observeTimeline()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val quickStartTargets: StateFlow<List<QuickStartTarget>> = quickStartPreferences.selectedTargets
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

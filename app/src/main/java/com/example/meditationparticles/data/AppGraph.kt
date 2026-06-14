@@ -60,6 +60,16 @@ object AppGraph {
     @Volatile
     private var livingTreeRepository: LivingTreeRepository? = null
 
+    @Volatile
+    private var homeActivityRepository: HomeActivityRepository? = null
+
+    fun homeActivity(context: Context): HomeActivityRepository =
+        homeActivityRepository ?: synchronized(this) {
+            homeActivityRepository ?: HomeActivityRepository(
+                SereneDatabase.getInstance(context.applicationContext),
+            ).also { homeActivityRepository = it }
+        }
+
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
             affirmationRepository ?: AffirmationRepository(

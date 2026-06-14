@@ -47,6 +47,7 @@ private fun MoodWidgetContent(config: MoodWidgetConfig) {
         MoodWidgetBackgroundStyle.BLACK -> 0xFF000000
     }
     val backgroundColor = Color(backgroundArgb).copy(alpha = config.transparency)
+    val levels = MoodWidgetLayout.moodLevels()
 
     Box(
         modifier = GlanceModifier
@@ -57,11 +58,15 @@ private fun MoodWidgetContent(config: MoodWidgetConfig) {
     ) {
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            (MoodScale.MIN..MoodScale.MAX).forEach { level ->
-                MoodWidgetButton(level = level)
+            levels.forEach { level ->
+                Box(
+                    modifier = GlanceModifier.defaultWeight(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MoodWidgetButton(level = level)
+                }
             }
         }
     }
@@ -74,7 +79,6 @@ private fun MoodWidgetButton(level: Int) {
 
     Box(
         modifier = GlanceModifier
-            .padding(horizontal = 4.dp)
             .size(48.dp)
             .background(ColorProvider(color.copy(alpha = 0.18f)))
             .cornerRadius(24.dp)
