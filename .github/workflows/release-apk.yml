@@ -92,4 +92,6 @@ jobs:
             echo "::error::Live release asset hash differs from CI build. Use the live hash in release/version.json."
             exit 1
           fi
+          echo "::notice::CI upload verified. Pin manifest with: ./release/publish-release.ps1 -PinManifestOnly"
+          echo "::notice::Then run ./release/pre-deploy-check.ps1 before merging release/version.json to main."
           echo "::notice::Use SHA256 $LIVE_SHA in release/version.json (from live GitHub download)."
