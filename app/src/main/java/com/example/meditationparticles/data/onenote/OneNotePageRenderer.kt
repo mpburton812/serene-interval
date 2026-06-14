@@ -1,5 +1,6 @@
 package com.example.meditationparticles.data.onenote
 
+import com.example.meditationparticles.data.local.AffirmationReviewSessionEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.MeditationReflectionEntity
@@ -201,6 +202,29 @@ object OneNotePageRenderer {
         )
     }
 
+    fun renderAffirmationReview(entry: AffirmationReviewSessionEntity): OneNotePageContent {
+        val dateLabel = formatDate(entry.completedAt)
+        val body = buildString {
+            appendTopMeta(toolName = "Affirmation Review", createdAtMillis = entry.completedAt)
+            appendLine(
+                "<p><strong>Affirmations reviewed:</strong> ${entry.affirmationCount}</p>",
+            )
+            appendMoodLine(entry.moodLevel)
+            if (entry.notes.isNotBlank()) {
+                appendParagraph(entry.notes)
+            }
+            appendFooter(entry.id)
+        }
+        return OneNotePageContent(
+            title = "Affirmation Review — $dateLabel",
+            html = wrapHtml(
+                title = "Affirmation Review — $dateLabel",
+                createdAtMillis = entry.completedAt,
+                body = body,
+            ),
+        )
+    }
+
     fun render(entryType: OneNoteEntryType, payload: Any): OneNotePageContent = when (entryType) {
         OneNoteEntryType.NVC -> renderNvc(payload as NvcEntryEntity)
         OneNoteEntryType.REFACTORING -> renderRefactoring(payload as RefactoringEntryEntity)
@@ -209,6 +233,7 @@ object OneNotePageRenderer {
         OneNoteEntryType.ANXIETY_LOG -> renderAnxietyLog(payload as ThoughtDumpEntity)
         OneNoteEntryType.FUTURE_SELF -> renderFutureSelf(payload as FutureSelfMessageEntity)
         OneNoteEntryType.MEDITATION_REFLECTION -> renderMeditationReflection(payload as MeditationReflectionEntity)
+        OneNoteEntryType.AFFIRMATION_REVIEW -> renderAffirmationReview(payload as AffirmationReviewSessionEntity)
     }
 
     internal fun escapeHtml(value: String): String = buildString(value.length) {

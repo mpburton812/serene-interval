@@ -8,6 +8,7 @@ enum class OneNoteEntryType(val displayName: String) {
     ANXIETY_LOG("Anxiety Log"),
     FUTURE_SELF("Future Self"),
     MEDITATION_REFLECTION("Meditation Reflection"),
+    AFFIRMATION_REVIEW("Affirmation Review"),
 }
 
 enum class OneNoteSyncStatus {

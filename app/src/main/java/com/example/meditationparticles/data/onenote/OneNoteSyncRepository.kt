@@ -405,6 +405,9 @@ class OneNoteSyncRepository(
         OneNoteEntryType.MEDITATION_REFLECTION -> database.meditationReflectionDao().getAll()
             .filter { it.moodLevel != null }
             .map { it.id }
+        OneNoteEntryType.AFFIRMATION_REVIEW -> database.affirmationReviewSessionDao().getAll()
+            .filter { it.moodLevel != null }
+            .map { it.id }
     }
 
     private suspend fun loadAllEntryIds(entryType: OneNoteEntryType): List<Long> = when (entryType) {
@@ -420,6 +423,8 @@ class OneNoteSyncRepository(
         OneNoteEntryType.FUTURE_SELF -> database.futureSelfMessageDao().getAll().map { it.id }
         OneNoteEntryType.MEDITATION_REFLECTION ->
             database.meditationReflectionDao().getAll().map { it.id }
+        OneNoteEntryType.AFFIRMATION_REVIEW ->
+            database.affirmationReviewSessionDao().getAll().map { it.id }
     }
 
     private suspend fun loadEntry(entryType: OneNoteEntryType, localEntryId: Long): Any? =
@@ -435,6 +440,7 @@ class OneNoteSyncRepository(
             }
             OneNoteEntryType.FUTURE_SELF -> database.futureSelfMessageDao().getById(localEntryId)
             OneNoteEntryType.MEDITATION_REFLECTION -> database.meditationReflectionDao().getById(localEntryId)
+            OneNoteEntryType.AFFIRMATION_REVIEW -> database.affirmationReviewSessionDao().getById(localEntryId)
         }
 
     private fun scheduleWorker() {

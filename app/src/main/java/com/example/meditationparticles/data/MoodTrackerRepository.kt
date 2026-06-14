@@ -223,5 +223,6 @@ class MoodTrackerRepository(
         const val TABLE_REFACTORING_ENTRIES = "refactoring_entries"
         const val TABLE_CENTER_OF_GRAVITY_ENTRIES = "center_of_gravity_entries"
         const val TABLE_NVC_ENTRIES = "nvc_entries"
+        const val TABLE_AFFIRMATION_REVIEW_SESSIONS = "affirmation_review_sessions"
     }
 }

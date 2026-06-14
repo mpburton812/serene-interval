@@ -80,6 +80,9 @@ class NvcRepositoryTest {
         thoughtDumpDao = object : com.example.meditationparticles.data.local.ThoughtDumpDao {
             override suspend fun getAll() = emptyList<com.example.meditationparticles.data.local.ThoughtDumpEntity>()
 
+            override fun observeAll() =
+                kotlinx.coroutines.flow.flowOf(emptyList<com.example.meditationparticles.data.local.ThoughtDumpEntity>())
+
             override fun observeByType(logType: String) = throw UnsupportedOperationException()
 
             override fun observeLatest() = throw UnsupportedOperationException()

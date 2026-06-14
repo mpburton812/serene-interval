@@ -1,6 +1,12 @@
 package com.example.meditationparticles.ui.toolkit
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,13 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,10 +28,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.meditationparticles.data.local.AffirmationEntity
-import com.example.meditationparticles.ui.theme.SerenePrimary
+import com.example.meditationparticles.domain.affirmations.AffirmationReviewBeadColors
 import com.example.meditationparticles.ui.theme.SereneSpacing
 
 private const val ReviewTransitionMs = 200
@@ -68,12 +69,21 @@ fun AffirmationReviewOverlay(
                     .padding(bottom = SereneSpacing.stackLg),
             )
 
-            Column(
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .fillMaxWidth()
+                    .pointerInput(currentIndex, isCompleting, lastIndex) {
+                        if (isCompleting) return@pointerInput
+                        detectTapGestures { offset ->
+                            if (offset.x < size.width / 2f) {
+                                if (currentIndex > 0) onPrevious()
+                            } else {
+                                onNext()
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center,
             ) {
                 AnimatedContent(
                     targetState = currentIndex,
@@ -150,15 +160,16 @@ private fun ReviewBeadRow(
     ) {
         repeat(total) { index ->
             val isCurrent = index == currentIndex
+            val beadColor = AffirmationReviewBeadColors.colorForIndex(index, total)
             Box(
                 modifier = Modifier
                     .size(if (isCurrent) 12.dp else 8.dp)
                     .clip(CircleShape)
                     .background(
                         if (isCurrent) {
-                            SerenePrimary
+                            beadColor
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                            beadColor.copy(alpha = 0.55f)
                         },
                     ),
             )

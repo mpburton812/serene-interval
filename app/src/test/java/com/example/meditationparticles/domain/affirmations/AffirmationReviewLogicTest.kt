@@ -52,4 +52,13 @@ class AffirmationReviewLogicTest {
         assertEquals(texts, seenTexts)
         assertEquals(texts.size, seenTexts.distinct().size)
     }
+
+    @Test
+    fun canSaveAssessment_requiresMoodOrNotes() {
+        assertFalse(AffirmationReviewLogic.canSaveAssessment(moodLevel = null, notes = ""))
+        assertFalse(AffirmationReviewLogic.canSaveAssessment(moodLevel = null, notes = "   "))
+        assertTrue(AffirmationReviewLogic.canSaveAssessment(moodLevel = 3, notes = ""))
+        assertTrue(AffirmationReviewLogic.canSaveAssessment(moodLevel = null, notes = "Grounded"))
+        assertTrue(AffirmationReviewLogic.canSaveAssessment(moodLevel = 4, notes = "Calm"))
+    }
 }
