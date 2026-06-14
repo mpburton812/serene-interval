@@ -26,6 +26,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -85,9 +87,23 @@ fun LivingTreeScreen(
                 val centerY = canvasHeightPx / 2f
                 val layoutSizing = LivingTreeLayout.computeLayoutSizing(
                     minDimension = minDim,
-                    personCount = state.visiblePeople.size,
+                    totalPeopleCount = state.allPeople.size,
+                )
+                val animatedNodeRadius by animateFloatAsState(
+                    targetValue = layoutSizing.nodeRadius,
+                    animationSpec = tween(durationMillis = 320),
+                    label = "node_radius",
+                )
+                val animatedCenterRadius by animateFloatAsState(
+                    targetValue = layoutSizing.centerRadius,
+                    animationSpec = tween(durationMillis = 320),
+                    label = "center_radius",
                 )
                 val personIds = state.visiblePeople.map { it.person.id }
+                val userPlacedIds = state.visiblePeople
+                    .filter { it.person.isUserPlaced }
+                    .map { it.person.id }
+                    .toSet()
                 val storedPositions = LivingTreeLayout.storedPositionsFromPeople(
                     state.visiblePeople.map {
                         Triple(it.person.id, it.person.angleRadians, it.person.radiusFraction)
@@ -98,9 +114,10 @@ fun LivingTreeScreen(
                     centerX = centerX,
                     centerY = centerY,
                     orbitRadius = layoutSizing.orbitRadius,
-                    nodeRadius = layoutSizing.nodeRadius,
-                    centerRadius = layoutSizing.centerRadius,
+                    nodeRadius = animatedNodeRadius,
+                    centerRadius = animatedCenterRadius,
                     storedPositions = storedPositions,
+                    userPlacedIds = userPlacedIds,
                 ).associateBy { it.id }
 
                 val tagColors = state.tags.associate { it.id to it.colorArgb }
@@ -113,7 +130,7 @@ fun LivingTreeScreen(
                         name = entry.person.name,
                         x = layout.x,
                         y = layout.y,
-                        radius = layout.radius,
+                        radius = animatedNodeRadius,
                         bubbleColors = LivingTreeFilterLogic.bubbleColors(
                             personTags,
                             state.selectedTagIds,
@@ -126,7 +143,7 @@ fun LivingTreeScreen(
                 LivingTreeCanvas(
                     centerLabel = state.centerLabel,
                     nodes = graphNodes,
-                    centerRadius = layoutSizing.centerRadius,
+                    centerRadius = animatedCenterRadius,
                     orbitRadius = layoutSizing.orbitRadius,
                     filterActive = state.filterActive,
                     onPersonTap = { id ->
@@ -142,8 +159,8 @@ fun LivingTreeScreen(
                             centerX = centerX,
                             centerY = centerY,
                             orbitRadius = layoutSizing.orbitRadius,
-                            nodeRadius = layoutSizing.nodeRadius,
-                            centerRadius = layoutSizing.centerRadius,
+                            nodeRadius = animatedNodeRadius,
+                            centerRadius = animatedCenterRadius,
                         )
                         viewModel.onPersonDragEnd(personId, nudged)
                     },

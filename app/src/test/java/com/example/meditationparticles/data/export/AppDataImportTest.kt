@@ -87,6 +87,13 @@ class AppDataImportTest {
     }
 
     @Test
+    fun validateExportJson_readsVersionFive() {
+        val json = """{"exportVersion": 5, "configuration": {}, "entries": {}, "livingTree": {}}"""
+
+        assertEquals(5, AppDataImporter.validateExportJson(json))
+    }
+
+    @Test
     fun validateExportJson_readsVersionFour() {
         val json = """{"exportVersion": 4, "configuration": {}, "entries": {}, "livingTree": {}}"""
 

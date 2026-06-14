@@ -269,6 +269,7 @@ class AppDataExporter(
         put("sortOrder", sortOrder)
         angleRadians?.let { put("angleRadians", it) }
         radiusFraction?.let { put("radiusFraction", it) }
+        put("isUserPlaced", isUserPlaced)
         put("createdAtMillis", createdAtMillis)
         put("updatedAtMillis", updatedAtMillis)
     }
@@ -279,7 +280,7 @@ class AppDataExporter(
     }
 
     companion object {
-        const val EXPORT_VERSION = 4
+        const val EXPORT_VERSION = 5
         const val DEFAULT_FILENAME = "serene-interval-export.json"
     }
 }

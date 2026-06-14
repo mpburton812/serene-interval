@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.0.17 - 2026-06-14
+
+### Living Tree
+
+- Redesign nodes as glass spheres with breath-style rendering, pipe spokes, and shimmer
+- Render person names inside spheres with contrast-aware label styling
+- Tighten bubble layout with 10px gap and improved orbit sizing
+- Persist drag positions with `radiusFraction` and `isUserPlaced` (Room schema v20)
+- Extract shared glass sphere renderer and filter logic for clearer layout code
+
 ## 1.0.16 - 2026-06-05
 
 ### Living Tree
