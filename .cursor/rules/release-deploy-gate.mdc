@@ -1,0 +1,25 @@
+---
+description: Release and in-app update deploy gate — APK hash must match live GitHub asset
+alwaysApply: true
+---
+
+# Release deploy gate
+
+Before merging any PR that changes `release/version.json` or announcing an in-app update is live:
+
+1. Run `.\release\pre-deploy-check.ps1` from repo root (use `-WaitForCi` if tag `v*` was just pushed).
+2. Do **not** merge unless it passes.
+
+## Tag + CI flow (default)
+
+1. Push tag `vX.Y.Z` → wait for `release-apk.yml` to finish.
+2. `.\release\publish-release.ps1 -PinManifestOnly` — pins hash from live download only; never uploads over CI.
+3. `.\release\pre-deploy-check.ps1 -WaitForCi` — required before manifest PR merge.
+
+## Never
+
+- Pin `expectedSha256` from local APK when CI may upload afterward.
+- Run `publish-release.ps1` without `-PinManifestOnly` when release already exists (unless `-Upload` is intentional).
+- Push tag after pinning manifest from a local upload.
+
+See `release/RELEASE.md` for the full checklist.
