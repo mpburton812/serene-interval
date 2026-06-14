@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ThoughtDumpDao {
     @Query("SELECT * FROM thought_dumps ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<ThoughtDumpEntity>>
+
+    @Query("SELECT * FROM thought_dumps ORDER BY createdAt DESC")
     suspend fun getAll(): List<ThoughtDumpEntity>
 
     @Query("SELECT * FROM thought_dumps WHERE logType = :logType ORDER BY createdAt DESC")

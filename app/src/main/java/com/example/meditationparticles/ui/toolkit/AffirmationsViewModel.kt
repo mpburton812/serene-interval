@@ -8,8 +8,9 @@ import com.example.meditationparticles.data.AffirmationRepository
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.domain.affirmations.AffirmationReviewLogic
+import com.example.meditationparticles.domain.mood.MoodScale
+import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.reminder.AffirmationReminderScheduler
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +29,10 @@ data class AffirmationsUiState(
     val editingAffirmation: AffirmationEntity? = null,
     val showReview: Boolean = false,
     val reviewIndex: Int = 0,
-    val reviewCompleting: Boolean = false,
+    val showReviewAssessment: Boolean = false,
+    val completedReviewAffirmationCount: Int = 0,
+    val reviewAssessmentNotes: String = "",
+    val reviewAssessmentMoodLevel: Int? = null,
 ) {
     val currentAffirmation: AffirmationEntity?
         get() = affirmations.getOrNull(currentIndex.coerceIn(0, (affirmations.size - 1).coerceAtLeast(0)))
@@ -42,6 +46,8 @@ data class AffirmationsUiState(
 
 class AffirmationsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: AffirmationRepository = AppGraph.affirmations(application)
+    private val reviewSessionRepository = AppGraph.affirmationReviewSessions(application)
+    private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val preferences = AffirmationPreferences(application)
 
     private val _uiState = MutableStateFlow(AffirmationsUiState())
@@ -87,14 +93,17 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
             it.copy(
                 showReview = true,
                 reviewIndex = 0,
-                reviewCompleting = false,
+                showReviewAssessment = false,
+                completedReviewAffirmationCount = 0,
+                reviewAssessmentNotes = "",
+                reviewAssessmentMoodLevel = null,
             )
         }
     }
 
     fun reviewPrevious() {
         val state = _uiState.value
-        if (!state.showReview || state.reviewCompleting) return
+        if (!state.showReview || state.showReviewAssessment) return
         AffirmationReviewLogic.previousIndex(state.reviewIndex)?.let { previous ->
             _uiState.update { it.copy(reviewIndex = previous) }
         }
@@ -102,7 +111,7 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
 
     fun reviewNext() {
         val state = _uiState.value
-        if (!state.showReview || state.reviewCompleting || state.affirmations.isEmpty()) return
+        if (!state.showReview || state.showReviewAssessment || state.affirmations.isEmpty()) return
         val lastIndex = state.affirmations.lastIndex
         if (AffirmationReviewLogic.shouldCompleteReview(state.reviewIndex, lastIndex)) {
             completeReview()
@@ -114,27 +123,73 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun exitReview() {
-        if (_uiState.value.reviewCompleting) return
+        if (_uiState.value.showReviewAssessment) return
         _uiState.update {
             it.copy(
                 showReview = false,
                 reviewIndex = 0,
-                reviewCompleting = false,
+                showReviewAssessment = false,
+                completedReviewAffirmationCount = 0,
+                reviewAssessmentNotes = "",
+                reviewAssessmentMoodLevel = null,
             )
         }
     }
 
     private fun completeReview() {
-        _uiState.update { it.copy(reviewCompleting = true) }
+        val count = _uiState.value.affirmations.size
+        _uiState.update {
+            it.copy(
+                showReview = false,
+                reviewIndex = 0,
+                showReviewAssessment = true,
+                completedReviewAffirmationCount = count,
+                reviewAssessmentNotes = "",
+                reviewAssessmentMoodLevel = null,
+            )
+        }
+    }
+
+    fun updateReviewAssessmentNotes(notes: String) {
+        _uiState.update { it.copy(reviewAssessmentNotes = notes) }
+    }
+
+    fun updateReviewAssessmentMoodLevel(level: Int?) {
+        _uiState.update { it.copy(reviewAssessmentMoodLevel = MoodScale.normalize(level)) }
+    }
+
+    fun saveReviewAssessment() {
+        val state = _uiState.value
+        if (!state.showReviewAssessment) return
+        if (!AffirmationReviewLogic.canSaveAssessment(state.reviewAssessmentMoodLevel, state.reviewAssessmentNotes)) {
+            return
+        }
+
         viewModelScope.launch {
-            delay(REVIEW_COMPLETION_DELAY_MS)
-            _uiState.update {
-                it.copy(
-                    showReview = false,
-                    reviewIndex = 0,
-                    reviewCompleting = false,
-                )
-            }
+            val completedAt = System.currentTimeMillis()
+            val savedId = reviewSessionRepository.save(
+                notes = state.reviewAssessmentNotes,
+                affirmationCount = state.completedReviewAffirmationCount,
+                completedAt = completedAt,
+                moodLevel = state.reviewAssessmentMoodLevel,
+            )
+            oneNoteSync.enqueueSync(OneNoteEntryType.AFFIRMATION_REVIEW, savedId)
+            dismissReviewAssessment()
+        }
+    }
+
+    fun skipReviewAssessment() {
+        dismissReviewAssessment()
+    }
+
+    private fun dismissReviewAssessment() {
+        _uiState.update {
+            it.copy(
+                showReviewAssessment = false,
+                completedReviewAffirmationCount = 0,
+                reviewAssessmentNotes = "",
+                reviewAssessmentMoodLevel = null,
+            )
         }
     }
 
@@ -217,9 +272,5 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
                 reminderMinute = state.reminderMinute,
             ),
         )
-    }
-
-    companion object {
-        const val REVIEW_COMPLETION_DELAY_MS = 3_000L
     }
 }

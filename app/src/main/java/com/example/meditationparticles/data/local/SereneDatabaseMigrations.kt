@@ -505,6 +505,22 @@ private class Migration19To20 : Migration(19, 20) {
     }
 }
 
+private class Migration20To21 : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS affirmation_review_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                notes TEXT NOT NULL,
+                moodLevel INTEGER,
+                affirmationCount INTEGER NOT NULL,
+                completedAt INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -525,4 +541,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration17To18(),
     Migration18To19(),
     Migration19To20(),
+    Migration20To21(),
 )

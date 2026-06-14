@@ -27,4 +27,7 @@ object AffirmationReviewLogic {
             }
         }
     }
+
+    fun canSaveAssessment(moodLevel: Int?, notes: String): Boolean =
+        moodLevel != null || notes.trim().isNotEmpty()
 }

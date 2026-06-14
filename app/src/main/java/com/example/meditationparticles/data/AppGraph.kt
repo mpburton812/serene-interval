@@ -9,6 +9,8 @@ import com.example.meditationparticles.data.onenote.OneNoteSyncRepository
 
 object AppGraph {
     @Volatile
+    private var affirmationReviewSessionRepository: AffirmationReviewSessionRepository? = null
+    @Volatile
     private var affirmationRepository: AffirmationRepository? = null
     @Volatile
     private var thoughtDumpRepository: ThoughtDumpRepository? = null
@@ -58,11 +60,29 @@ object AppGraph {
     @Volatile
     private var livingTreeRepository: LivingTreeRepository? = null
 
+    @Volatile
+    private var homeActivityRepository: HomeActivityRepository? = null
+
+    fun homeActivity(context: Context): HomeActivityRepository =
+        homeActivityRepository ?: synchronized(this) {
+            homeActivityRepository ?: HomeActivityRepository(
+                SereneDatabase.getInstance(context.applicationContext),
+            ).also { homeActivityRepository = it }
+        }
+
     fun affirmations(context: Context): AffirmationRepository =
         affirmationRepository ?: synchronized(this) {
             affirmationRepository ?: AffirmationRepository(
                 SereneDatabase.getInstance(context.applicationContext).affirmationDao(),
             ).also { affirmationRepository = it }
+        }
+
+    fun affirmationReviewSessions(context: Context): AffirmationReviewSessionRepository =
+        affirmationReviewSessionRepository ?: synchronized(this) {
+            affirmationReviewSessionRepository ?: AffirmationReviewSessionRepository(
+                dao = SereneDatabase.getInstance(context.applicationContext).affirmationReviewSessionDao(),
+                moodTracker = moodTracker(context),
+            ).also { affirmationReviewSessionRepository = it }
         }
 
     fun thoughtDumps(context: Context): ThoughtDumpRepository =

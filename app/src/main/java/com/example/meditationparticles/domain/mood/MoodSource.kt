@@ -10,6 +10,7 @@ enum class MoodSource(val dbValue: String) {
     REFACTORING("REFACTORING"),
     CENTER_OF_GRAVITY("CENTER_OF_GRAVITY"),
     NVC("NVC"),
+    AFFIRMATION_REVIEW("AFFIRMATION_REVIEW"),
     ;
 
     companion object {
