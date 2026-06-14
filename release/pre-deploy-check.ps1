@@ -150,6 +150,25 @@ function Test-LiveHashStability {
     }
 }
 
+function Test-LiveApkMetadata {
+    param(
+        [string]$ApkUrl,
+        [string]$ReleaseTag,
+        [string]$ManifestPath
+    )
+
+    $verifyMetadataScript = Join-Path $PSScriptRoot "verify-apk-metadata.ps1"
+    $tmpApk = Join-Path ([System.IO.Path]::GetTempPath()) ("predeploy-meta-" + [guid]::NewGuid().ToString() + ".apk")
+    try {
+        Write-Host "Verifying live APK versionCode/versionName matches manifest ..."
+        & $downloadScript -ApkUrl $ApkUrl -OutFile $tmpApk -Tag $ReleaseTag
+        & $verifyMetadataScript -Apk $tmpApk -ManifestPath $ManifestPath
+    }
+    finally {
+        Remove-Item -Force -ErrorAction SilentlyContinue $tmpApk
+    }
+}
+
 Push-Location $repoRoot
 try {
     Require-Command gh
@@ -166,6 +185,7 @@ try {
 
     Test-ReleaseAssets -WorkflowRepo $Repo -ReleaseTag $info.Tag
     Test-LiveHashStability -ApkUrl $info.ApkUrl -ReleaseTag $info.Tag -ExpectedSha256 $info.ExpectedSha256 -Checks $StabilityChecks -DelaySeconds $StabilityDelaySeconds
+    Test-LiveApkMetadata -ApkUrl $info.ApkUrl -ReleaseTag $info.Tag -ManifestPath $manifestPath
 
     Write-Host "Running verify-manifest.ps1 ..."
     & $verifyScript -Manifest $manifestPath

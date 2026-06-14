@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.R
+import com.example.meditationparticles.data.update.ApkReleaseMetadataVerifier
 import com.example.meditationparticles.data.update.ApkDownloader
 import com.example.meditationparticles.data.update.ApkSha256Verifier
 import com.example.meditationparticles.data.update.ApkInstallIntent
@@ -139,6 +140,7 @@ class UpdateViewModel(
                     freshManifest.expectedSha256?.let { expected ->
                         ApkSha256Verifier.verify(apkFile, expected)
                     }
+                    ApkReleaseMetadataVerifier.verify(context, apkFile, freshManifest)
                     apkFile
                 }
             }.onSuccess { downloadedApk ->

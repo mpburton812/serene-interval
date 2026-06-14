@@ -79,6 +79,9 @@ try {
             throw "Local APK not found: $localApk. Run assembleDebug first or omit -SkipBuild."
         }
 
+        $verifyMetadataScript = Join-Path $PSScriptRoot "verify-apk-metadata.ps1"
+        & $verifyMetadataScript -Apk $localApk -ManifestPath $manifestPath
+
         $stagingApk = Join-Path ([System.IO.Path]::GetTempPath()) ("release-$releaseApkName-" + [guid]::NewGuid().ToString())
         New-Item -ItemType Directory -Path $stagingApk -Force | Out-Null
         $releaseApkPath = Join-Path $stagingApk $releaseApkName
