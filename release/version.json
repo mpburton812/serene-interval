@@ -1,8 +1,8 @@
 {
-    "versionCode":  17,
-    "versionName":  "1.0.16",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.16/sway_meditation.apk",
-    "expectedSha256":  "2641ebab2edeee49146d39251042a498068f8d0e43e43162fc206aa785c582dd",
-    "releaseNotes":  "- Living Tree: overlap prevention, filtered spacing, drag with haptics\n- versionCode 17",
-    "minVersionCode":  1
+    "versionCode": 18,
+    "versionName": "1.0.17",
+    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.17/sway_meditation.apk",
+    "expectedSha256": "8451f4218497749609faaf8ff4b193f9c89ceb2c181eaf6d21480d173cbd5556",
+    "releaseNotes": "- Living Tree: glass spheres, in-sphere labels, 10px layout\n- Room schema v20; versionCode 18",
+    "minVersionCode": 1
 }
