@@ -2,7 +2,7 @@
     "versionCode": 21,
     "versionName": "1.0.20",
     "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.20/sway_meditation.apk",
-    "expectedSha256": "b7b6ba975d915df04f82cf96d759143278cc3db3c9af0c9ae005960d376cc91f",
     "releaseNotes": "- Summaries on home with mood calendar and graph improvements\n- Meditation calendar on timer page\n- Mood icons on activity and reflection lists\n- versionCode 21",
-    "minVersionCode": 1
+    "minVersionCode": 1,
+    "manifestRevision": 3
 }

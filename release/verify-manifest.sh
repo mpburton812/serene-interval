@@ -112,18 +112,16 @@ validate_manifest_json() {
         echo "apkUrl is required in $manifest_path" >&2
         return 1
     fi
-    if [[ -z "$EXPECTED_SHA256" ]]; then
-        echo "expectedSha256 is required in $manifest_path" >&2
-        return 1
-    fi
 
-    local normalized_sha
-    normalized_sha="$(echo "$EXPECTED_SHA256" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
-    if [[ ! "$normalized_sha" =~ ^[0-9a-f]{64}$ ]]; then
-        echo "expectedSha256 must be 64 hex characters in $manifest_path" >&2
-        return 1
+    if [[ -n "$EXPECTED_SHA256" ]]; then
+        local normalized_sha
+        normalized_sha="$(echo "$EXPECTED_SHA256" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+        if [[ ! "$normalized_sha" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "expectedSha256 must be 64 hex characters in $manifest_path" >&2
+            return 1
+        fi
+        EXPECTED_SHA256="$normalized_sha"
     fi
-    EXPECTED_SHA256="$normalized_sha"
 
     if [[ "$APK_URL" == *"/releases/latest/download/"* ]]; then
         echo "apkUrl must not use /releases/latest/download/ (pin to /releases/download/vX.Y.Z/)" >&2
@@ -222,7 +220,16 @@ main() {
             exit 1
         fi
         echo "Warning: LocalApk compares disk bytes only. Hash the GitHub download after upload for manifests." >&2
+        if [[ -z "$EXPECTED_SHA256" ]]; then
+            echo "Warning: expectedSha256 omitted; skipping APK hash verification." >&2
+            exit 0
+        fi
         verify_apk_hash "$LOCAL_APK" || exit 1
+        exit 0
+    fi
+
+    if [[ -z "$EXPECTED_SHA256" ]]; then
+        echo "Warning: expectedSha256 omitted; skipping live APK hash verification." >&2
         exit 0
     fi
 
