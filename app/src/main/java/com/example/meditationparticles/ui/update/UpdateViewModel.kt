@@ -127,12 +127,16 @@ class UpdateViewModel(
 
             runCatching {
                 withContext(Dispatchers.IO) {
-                    apkDownloader.download(manifest.apkUrl, apkFile) { progress ->
+                    // Always fetch fresh manifest before download (avoids stale CDN / check-then-download mismatch).
+                    val freshManifest = manifestClient.fetch()
+                    _uiState.update { it.copy(manifest = freshManifest) }
+
+                    apkDownloader.download(freshManifest.apkUrl, apkFile) { progress ->
                         _uiState.update { state ->
                             state.copy(downloadProgress = progress)
                         }
                     }
-                    manifest.expectedSha256?.let { expected ->
+                    freshManifest.expectedSha256?.let { expected ->
                         ApkSha256Verifier.verify(apkFile, expected)
                     }
                     apkFile
