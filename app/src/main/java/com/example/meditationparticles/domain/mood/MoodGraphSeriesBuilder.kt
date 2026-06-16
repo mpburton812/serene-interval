@@ -45,10 +45,13 @@ object MoodGraphSeriesBuilder {
         entries: List<MoodEntryEntity>,
         startMillis: Long,
         endMillis: Long,
+        graphEndMillis: Long = endMillis,
         zoneId: ZoneId = ZoneId.systemDefault(),
     ): List<MoodGraphPoint> {
         val monthStart = Instant.ofEpochMilli(startMillis).atZone(zoneId).toLocalDate()
-        val monthEnd = Instant.ofEpochMilli(endMillis).atZone(zoneId).toLocalDate().minusDays(1)
+        val scheduledMonthEnd = Instant.ofEpochMilli(endMillis).atZone(zoneId).toLocalDate().minusDays(1)
+        val graphLastDay = Instant.ofEpochMilli(graphEndMillis - 1).atZone(zoneId).toLocalDate()
+        val monthEnd = minOf(scheduledMonthEnd, graphLastDay)
         if (monthEnd.isBefore(monthStart)) return emptyList()
 
         val entriesByDay = entries.groupBy { entry ->
@@ -76,20 +79,25 @@ object MoodGraphSeriesBuilder {
 
     fun monthDomainMillis(
         startMillis: Long,
-        endMillis: Long,
-    ): Pair<Long, Long> = startMillis to (endMillis - 1).coerceAtLeast(startMillis)
+        graphEndMillis: Long,
+    ): Pair<Long, Long> = startMillis to (graphEndMillis - 1).coerceAtLeast(startMillis)
 
     fun monthXFraction(
         xMillis: Long,
         startMillis: Long,
-        endMillis: Long,
+        graphEndMillis: Long,
         zoneId: ZoneId = ZoneId.systemDefault(),
     ): Float {
         val monthStart = Instant.ofEpochMilli(startMillis).atZone(zoneId).toLocalDate()
-        val monthEndExclusive = Instant.ofEpochMilli(endMillis).atZone(zoneId).toLocalDate()
-        val dayCount = monthStart.until(monthEndExclusive).days.coerceAtLeast(1)
+        val graphLastDay = Instant.ofEpochMilli(graphEndMillis - 1).atZone(zoneId).toLocalDate()
+        val dayCount = monthStart.until(graphLastDay).days + 1
         val day = Instant.ofEpochMilli(xMillis).atZone(zoneId).toLocalDate()
         val dayOffset = monthStart.until(day).days.coerceIn(0, dayCount - 1)
         return dayOffset.toFloat() / (dayCount - 1).coerceAtLeast(1).toFloat()
     }
+
+    fun entriesWithinGraph(
+        entries: List<MoodEntryEntity>,
+        graphEndMillis: Long,
+    ): List<MoodEntryEntity> = entries.filter { it.recordedAtMillis < graphEndMillis }
 }

@@ -72,6 +72,49 @@ class MoodGraphSeriesBuilderTest {
         assertEquals((2.0 + 4.0 + 4.0) / 3.0, tenthPoint.yLevel, 0.01)
     }
 
+    @Test
+    fun monthRollingAverageSeries_stopsAtGraphEndForCurrentMonth() {
+        val zoneId = ZoneId.of("America/New_York")
+        val monthStart = LocalDate.of(2026, 6, 1)
+        val startMillis = monthStart.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val endMillis = monthStart.plusMonths(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val graphEndMillis = LocalDate.of(2026, 6, 5)
+            .atTime(23, 59)
+            .atZone(zoneId)
+            .toInstant()
+            .toEpochMilli()
+        val entries = listOf(
+            entry(LocalDate.of(2026, 6, 1), 2),
+            entry(LocalDate.of(2026, 6, 5), 4),
+            entry(LocalDate.of(2026, 6, 20), 1),
+        )
+
+        val series = MoodGraphSeriesBuilder.monthRollingAverageSeries(
+            entries = entries,
+            startMillis = startMillis,
+            endMillis = endMillis,
+            graphEndMillis = graphEndMillis,
+            zoneId = zoneId,
+        )
+
+        assertTrue(series.none { point ->
+            val day = java.time.Instant.ofEpochMilli(point.xMillis).atZone(zoneId).toLocalDate()
+            day.isAfter(LocalDate.of(2026, 6, 5))
+        })
+    }
+
+    @Test
+    fun entriesWithinGraph_excludesFutureEntries() {
+        val entries = listOf(
+            MoodEntryEntity(1, 2, 1000L, "test", null, null),
+            MoodEntryEntity(2, 3, 5000L, "test", null, null),
+        )
+
+        val visible = MoodGraphSeriesBuilder.entriesWithinGraph(entries, graphEndMillis = 3000L)
+
+        assertEquals(listOf(1L), visible.map { it.id })
+    }
+
     private fun entry(date: LocalDate, level: Int) = MoodEntryEntity(
         id = date.toEpochDay(),
         moodLevel = level,

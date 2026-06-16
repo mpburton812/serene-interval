@@ -1,6 +1,7 @@
 package com.example.meditationparticles.ui.mood
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import com.example.meditationparticles.ui.components.moodColor
 fun MoodCalendarGrid(
     days: List<MoodCalendarDay>,
     weekdayHeaders: List<String>,
+    onDayClick: (MoodCalendarDay) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -55,6 +57,7 @@ fun MoodCalendarGrid(
                 week.forEach { day ->
                     MoodCalendarDayCell(
                         day = day,
+                        onClick = { onDayClick(day) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -66,6 +69,7 @@ fun MoodCalendarGrid(
 @Composable
 private fun MoodCalendarDayCell(
     day: MoodCalendarDay,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val moodLevel = MoodScale.averageToLevel(day.average)
@@ -84,7 +88,14 @@ private fun MoodCalendarDayCell(
         modifier = modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(10.dp))
-            .background(background),
+            .background(background)
+            .then(
+                if (day.inMonth) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Text(

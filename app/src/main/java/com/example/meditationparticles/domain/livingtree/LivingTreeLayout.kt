@@ -1,7 +1,7 @@
 package com.example.meditationparticles.domain.livingtree
 
 import kotlin.math.PI
-import kotlin.math.abs
+import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -14,10 +14,10 @@ object LivingTreeLayout {
     const val CENTER_TO_NODE_RATIO = 1.2f
     const val CANVAS_PADDING = 24f
     const val BUBBLE_GAP = 10f
-    const val ANGLE_EPSILON = 0.05
     const val MIN_RADIUS_FRACTION = 0.35
     const val MAX_RADIUS_FRACTION = 1.0
     const val DEFAULT_SIZE_MULTIPLIER = 3f
+    const val MAX_RING_COUNT = 6
 
     data class LayoutSizing(
         val nodeRadius: Float,
@@ -37,12 +37,16 @@ object LivingTreeLayout {
         val radiusFraction: Double = 1.0,
     )
 
+    data class RingPlan(
+        val radiusFraction: Double,
+        val count: Int,
+    )
+
     /**
-     * Sizes all spheres from [totalPeopleCount] (not filtered visible count).
-     * Unified binary search scales node and center radii together under the 10px gap constraint.
+     * Sizes spheres from [peopleCount]. Uses multi-ring placement before shrinking bubbles.
      */
-    fun computeLayoutSizing(minDimension: Float, totalPeopleCount: Int): LayoutSizing {
-        if (totalPeopleCount <= 0) {
+    fun computeLayoutSizing(minDimension: Float, peopleCount: Int): LayoutSizing {
+        if (peopleCount <= 0) {
             val fallbackNode = MAX_NODE_RADIUS
             return LayoutSizing(
                 nodeRadius = fallbackNode,
@@ -51,9 +55,9 @@ object LivingTreeLayout {
             )
         }
 
-        val desiredNodeRadius = computeNodeRadius(minDimension, totalPeopleCount)
+        val desiredNodeRadius = computeNodeRadius(minDimension, peopleCount)
         val canvasOrbit = maxOrbitRadius(minDimension, absoluteMinNodeRadius).coerceAtLeast(1f)
-        val spacingCap = maxNodeRadiusForOrbit(canvasOrbit, totalPeopleCount)
+        val spacingCap = maxNodeRadiusForOrbit(canvasOrbit, peopleCount)
             .coerceIn(absoluteMinNodeRadius, MAX_NODE_RADIUS)
         val baseNodeRadius = minOf(desiredNodeRadius, spacingCap, MAX_NODE_RADIUS)
             .coerceIn(absoluteMinNodeRadius, MAX_NODE_RADIUS)
@@ -65,7 +69,7 @@ object LivingTreeLayout {
             val mid = (lowScale + highScale) / 2f
             val scaledNode = baseNodeRadius * mid
             val scaledCenter = (baseCenterRadius * mid).coerceAtLeast(scaledNode * CENTER_TO_NODE_RATIO)
-            if (layoutFitsWithoutOverlap(minDimension, totalPeopleCount, scaledNode, scaledCenter)) {
+            if (layoutFitsWithoutOverlap(minDimension, peopleCount, scaledNode, scaledCenter)) {
                 lowScale = mid
             } else {
                 highScale = mid
@@ -74,10 +78,14 @@ object LivingTreeLayout {
 
         val nodeRadius = (baseNodeRadius * lowScale).coerceAtLeast(absoluteMinNodeRadius)
         val centerRadius = (baseCenterRadius * lowScale).coerceAtLeast(nodeRadius * CENTER_TO_NODE_RATIO)
-        val orbitRadius = computeOrbitRadius(minDimension, totalPeopleCount, nodeRadius, centerRadius)
+        val orbitRadius = computeOrbitRadius(minDimension, peopleCount, nodeRadius, centerRadius)
         return LayoutSizing(nodeRadius, orbitRadius, centerRadius)
     }
 
+    /**
+     * Evenly spaces [personIds] on one or more rings. Ignores persisted angles — re-packed whenever
+     * the visible set changes (e.g. tag filter).
+     */
     fun radialPositions(
         personIds: List<Long>,
         centerX: Float,
@@ -88,216 +96,35 @@ object LivingTreeLayout {
         storedPositions: Map<Long, StoredPosition> = emptyMap(),
         userPlacedIds: Set<Long> = emptySet(),
     ): List<NodePosition> {
-        if (personIds.isEmpty()) return emptyList()
-        val resolved = resolveStoredPositions(
-            personIds = personIds,
-            stored = storedPositions,
-            orbitRadius = orbitRadius,
-            nodeRadius = nodeRadius,
-            centerRadius = centerRadius,
-            userPlacedIds = userPlacedIds,
-        )
-        val positions = personIds.map { id ->
-            val position = resolved.getValue(id)
-            nodePositionFromStored(
-                id = id,
-                stored = position,
-                centerX = centerX,
-                centerY = centerY,
-                orbitRadius = orbitRadius,
-                nodeRadius = nodeRadius,
-            )
+        if (personIds.isEmpty() || orbitRadius <= 0f) return emptyList()
+
+        val rings = planRings(personIds.size, orbitRadius, nodeRadius, centerRadius)
+        val positions = mutableListOf<NodePosition>()
+        var personIndex = 0
+        rings.forEachIndexed { ringIndex, ring ->
+            val ringOrbit = orbitRadius * ring.radiusFraction.toFloat()
+            val angleOffset = ringIndex * PI / personIds.size.coerceAtLeast(1)
+            for (slot in 0 until ring.count) {
+                val angle = angleOffset + slot * 2.0 * PI / ring.count
+                val id = personIds[personIndex++]
+                positions += NodePosition(
+                    id = id,
+                    x = centerX + ringOrbit * cos(angle).toFloat(),
+                    y = centerY + ringOrbit * sin(angle).toFloat(),
+                    radius = nodeRadius,
+                )
+            }
         }
-        return resolvePositionOverlaps(
-            positions = positions,
-            centerX = centerX,
-            centerY = centerY,
-            centerRadius = centerRadius,
-            orbitRadius = orbitRadius,
-            nodeRadius = nodeRadius,
-            userPlacedIds = userPlacedIds,
-        )
+        return positions
     }
 
-    /**
-     * Persisted angle/radius values with nulls omitted. Layout resolves duplicates and nulls
-     * via [resolveStoredPositions].
-     */
+    /** @deprecated Layout no longer reads persisted angles; kept for repository/import compatibility. */
     fun storedPositionsFromPeople(
         people: List<Triple<Long, Double?, Double?>>,
-    ): Map<Long, StoredPosition> =
-        people.mapNotNull { (id, angle, radiusFraction) ->
-            angle?.let { id to StoredPosition(it, radiusFraction ?: 1.0) }
-        }.toMap()
+    ): Map<Long, StoredPosition> = emptyMap()
 
-    /**
-     * Hybrid re-pack: auto-place new, overlapping, duplicate, or null positions only.
-     * User-placed nodes are never moved.
-     */
-    fun resolveStoredPositions(
-        personIds: List<Long>,
-        stored: Map<Long, StoredPosition>,
-        orbitRadius: Float = 0f,
-        nodeRadius: Float = 0f,
-        centerRadius: Float = 0f,
-        userPlacedIds: Set<Long> = emptySet(),
-    ): Map<Long, StoredPosition> {
-        if (personIds.isEmpty()) return emptyMap()
+    fun angleForNewPerson(existingCount: Int): Double? = null
 
-        val duplicateIds = findDuplicateAngleIds(personIds, stored)
-        val overlapIds = if (orbitRadius > 0f && nodeRadius > 0f) {
-            findOverlappingStoredIds(personIds, stored, orbitRadius, nodeRadius, centerRadius)
-        } else {
-            emptySet()
-        }
-        val needsAuto = personIds.filter { id ->
-            id !in userPlacedIds &&
-                (stored[id] == null || id in duplicateIds || id in overlapIds)
-        }
-        val resolved = mutableMapOf<Long, StoredPosition>()
-        personIds.forEach { id ->
-            val storedPosition = stored[id]
-            if (storedPosition != null && (id in userPlacedIds || (id !in duplicateIds && id !in overlapIds))) {
-                resolved[id] = storedPosition.copy(
-                    radiusFraction = storedPosition.radiusFraction.coerceIn(
-                        MIN_RADIUS_FRACTION,
-                        MAX_RADIUS_FRACTION,
-                    ),
-                )
-            }
-        }
-
-        val autoCount = needsAuto.size
-        if (autoCount > 0) {
-            needsAuto.forEachIndexed { index, id ->
-                resolved[id] = StoredPosition(
-                    angleRadians = index * 2.0 * PI / autoCount,
-                    radiusFraction = stored[id]?.radiusFraction?.coerceIn(
-                        MIN_RADIUS_FRACTION,
-                        MAX_RADIUS_FRACTION,
-                    ) ?: 1.0,
-                )
-            }
-        }
-        return resolved
-    }
-
-    fun positionFromCanvasPoint(
-        centerX: Float,
-        centerY: Float,
-        orbitRadius: Float,
-        x: Float,
-        y: Float,
-    ): StoredPosition {
-        if (orbitRadius <= 0f) {
-            return StoredPosition(angleRadians = 0.0, radiusFraction = 1.0)
-        }
-        val dx = (x - centerX).toDouble()
-        val dy = (y - centerY).toDouble()
-        val angle = kotlin.math.atan2(dy, dx)
-        val radiusFraction = (hypot(dx, dy) / orbitRadius)
-            .coerceIn(MIN_RADIUS_FRACTION.toDouble(), MAX_RADIUS_FRACTION.toDouble())
-        return StoredPosition(angleRadians = angle, radiusFraction = radiusFraction)
-    }
-
-    /**
-     * Adjusts a dragged position so it does not overlap the center bubble or any satellite.
-     */
-    fun nudgeStoredPosition(
-        draggedId: Long,
-        proposed: StoredPosition,
-        otherStored: Map<Long, StoredPosition>,
-        personIds: List<Long>,
-        centerX: Float,
-        centerY: Float,
-        orbitRadius: Float,
-        nodeRadius: Float,
-        centerRadius: Float,
-    ): StoredPosition {
-        if (orbitRadius <= 0f || personIds.isEmpty()) return proposed
-
-        var candidate = proposed.copy(
-            radiusFraction = proposed.radiusFraction.coerceIn(
-                MIN_RADIUS_FRACTION.toDouble(),
-                MAX_RADIUS_FRACTION.toDouble(),
-            ),
-        )
-        val others = personIds.filter { it != draggedId }.map { id ->
-            nodePositionFromStored(
-                id = id,
-                stored = otherStored[id] ?: StoredPosition(angleRadians = 0.0),
-                centerX = centerX,
-                centerY = centerY,
-                orbitRadius = orbitRadius,
-                nodeRadius = nodeRadius,
-            )
-        }
-
-        for (attempt in 0 until 48) {
-            val dragged = nodePositionFromStored(
-                id = draggedId,
-                stored = candidate,
-                centerX = centerX,
-                centerY = centerY,
-                orbitRadius = orbitRadius,
-                nodeRadius = nodeRadius,
-            )
-            if (!hasOverlap(dragged, others, centerX, centerY, centerRadius)) {
-                return candidate
-            }
-
-            val nudgedFraction = (candidate.radiusFraction + 0.025).coerceAtMost(MAX_RADIUS_FRACTION.toDouble())
-            if (nudgedFraction > candidate.radiusFraction + 1e-6) {
-                candidate = candidate.copy(radiusFraction = nudgedFraction)
-                continue
-            }
-
-            val nudgedAngle = candidate.angleRadians + angularSpacingRadians(personIds.size) * 0.12
-            candidate = candidate.copy(
-                angleRadians = nudgedAngle,
-                radiusFraction = MIN_RADIUS_FRACTION.toDouble(),
-            )
-        }
-        return candidate
-    }
-
-    internal fun findDuplicateAngleIds(
-        personIds: List<Long>,
-        stored: Map<Long, StoredPosition>,
-    ): Set<Long> {
-        val withAngles = personIds.mapNotNull { id ->
-            stored[id]?.angleRadians?.let { id to normalizeAngle(it) }
-        }
-        val duplicateIds = mutableSetOf<Long>()
-        for (i in withAngles.indices) {
-            for (j in i + 1 until withAngles.size) {
-                val (idA, angleA) = withAngles[i]
-                val (idB, angleB) = withAngles[j]
-                if (anglesNear(angleA, angleB)) {
-                    duplicateIds += idA
-                    duplicateIds += idB
-                }
-            }
-        }
-        return duplicateIds
-    }
-
-    internal fun normalizeAngle(angle: Double): Double {
-        val twoPi = 2.0 * PI
-        var normalized = angle % twoPi
-        if (normalized < 0) normalized += twoPi
-        return normalized
-    }
-
-    internal fun anglesNear(a: Double, b: Double): Boolean {
-        val diff = abs(normalizeAngle(a) - normalizeAngle(b))
-        return diff < ANGLE_EPSILON || diff > 2.0 * PI - ANGLE_EPSILON
-    }
-
-    /**
-     * Satellite bubble radius scales with canvas size and total person count.
-     * Few people → ~3× larger bubbles; many people → smaller (down to [absoluteMinNodeRadius]).
-     */
     fun computeNodeRadius(minDimension: Float, personCount: Int): Float {
         if (personCount <= 0) return MAX_NODE_RADIUS
         val countScale = countScale(personCount)
@@ -317,9 +144,6 @@ object LivingTreeLayout {
         return maxOf(fromNode, fromCanvas).coerceIn(minBound, maxBound)
     }
 
-    /**
-     * Spread satellites across available canvas while respecting angular spacing and center clearance.
-     */
     fun computeOrbitRadius(
         minDimension: Float,
         personCount: Int,
@@ -333,11 +157,48 @@ object LivingTreeLayout {
             return minOf(maxOrbit * 0.75f, maxOrbit).coerceAtLeast(minForCenter)
         }
 
-        val minForSpacing = minOrbitRadiusForSpacing(personCount, nodeRadius)
         val minForCenter = minOrbitRadiusForCenterClearance(nodeRadius, centerRadius)
         val utilization = orbitUtilization(personCount)
         val preferred = maxOrbit * utilization
-        return minOf(maxOrbit, maxOf(minForSpacing, minForCenter, preferred))
+        return minOf(maxOrbit, maxOf(minForCenter, preferred))
+    }
+
+    fun planRings(
+        totalCount: Int,
+        orbitRadius: Float,
+        nodeRadius: Float,
+        centerRadius: Float,
+    ): List<RingPlan> {
+        if (totalCount <= 0) return emptyList()
+
+        var remaining = totalCount
+        val rings = mutableListOf<RingPlan>()
+        for (fraction in ringFractions()) {
+            if (remaining <= 0) break
+            val ringOrbit = orbitRadius * fraction.toFloat()
+            val capacity = maxBubblesOnRing(ringOrbit, nodeRadius, centerRadius)
+            if (capacity <= 0) continue
+            val take = minOf(remaining, capacity)
+            rings += RingPlan(radiusFraction = fraction, count = take)
+            remaining -= take
+        }
+        return rings
+    }
+
+    fun maxBubblesOnRing(ringOrbit: Float, nodeRadius: Float, centerRadius: Float): Int {
+        if (ringOrbit <= 0f) return 0
+        if (ringOrbit < centerRadius + nodeRadius + BUBBLE_GAP - 0.5f) return 0
+        val halfAngle = asin(((nodeRadius + BUBBLE_GAP / 2f) / ringOrbit).coerceIn(0f, 1f))
+        if (halfAngle <= 0f) return 0
+        return (PI / halfAngle).toInt().coerceAtLeast(1)
+    }
+
+    fun ringFractions(): List<Double> {
+        if (MAX_RING_COUNT <= 1) return listOf(MAX_RADIUS_FRACTION)
+        val step = (MAX_RADIUS_FRACTION - MIN_RADIUS_FRACTION) / (MAX_RING_COUNT - 1)
+        return (0 until MAX_RING_COUNT).map { index ->
+            MAX_RADIUS_FRACTION - index * step
+        }
     }
 
     fun minOrbitRadiusForCenterClearance(nodeRadius: Float, centerRadius: Float): Float =
@@ -362,8 +223,6 @@ object LivingTreeLayout {
     fun angularSpacingRadians(personCount: Int): Double =
         if (personCount <= 0) 0.0 else 2.0 * PI / personCount
 
-    fun angleForNewPerson(existingCount: Int): Double? = null
-
     fun minCenterDistance(
         x1: Float,
         y1: Float,
@@ -383,16 +242,7 @@ object LivingTreeLayout {
         gap: Float = BUBBLE_GAP,
     ): Boolean = minCenterDistance(x1, y1, r1, x2, y2, r2) < gap
 
-    /** Absolute lower cap; binary search never produces spheres below this (no 1px bubbles). */
     internal const val absoluteMinNodeRadius = 11f
-
-    internal fun minNodeRadiusForCount(personCount: Int): Float = when {
-        personCount <= 5 -> 84f
-        personCount <= 10 -> 72f
-        personCount <= 20 -> 54f
-        personCount <= 30 -> 36f
-        else -> absoluteMinNodeRadius
-    }
 
     internal fun countScale(personCount: Int): Float = when {
         personCount <= 5 -> 1.0f
@@ -422,140 +272,43 @@ object LivingTreeLayout {
         val maxOrbit = maxOrbitRadius(minDimension, nodeRadius)
         val orbitRadius = computeOrbitRadius(minDimension, personCount, nodeRadius, centerRadius)
         if (orbitRadius > maxOrbit + 0.5f) return false
-        if (personCount <= 1) {
-            return orbitRadius >= centerRadius + nodeRadius + BUBBLE_GAP - 0.5f
-        }
 
-        val chord = 2.0 * orbitRadius * sin(PI / personCount)
-        val requiredSatellite = 2.0 * nodeRadius + BUBBLE_GAP
-        if (chord < requiredSatellite - 0.5) return false
+        val ringCapacity = planRings(personCount, orbitRadius, nodeRadius, centerRadius)
+            .sumOf { it.count }
+        if (ringCapacity < personCount) return false
 
-        return orbitRadius >= centerRadius + nodeRadius + BUBBLE_GAP - 0.5f
-    }
-
-    internal fun nodePositionFromStored(
-        id: Long,
-        stored: StoredPosition,
-        centerX: Float,
-        centerY: Float,
-        orbitRadius: Float,
-        nodeRadius: Float,
-    ): NodePosition {
-        val effectiveRadius = orbitRadius * stored.radiusFraction.toFloat()
-        return NodePosition(
-            id = id,
-            x = centerX + effectiveRadius * cos(stored.angleRadians).toFloat(),
-            y = centerY + effectiveRadius * sin(stored.angleRadians).toFloat(),
-            radius = nodeRadius,
+        val ids = (1L..personCount.toLong()).toList()
+        val positions = radialPositions(
+            personIds = ids,
+            centerX = minDimension / 2f,
+            centerY = minDimension / 2f,
+            orbitRadius = orbitRadius,
+            nodeRadius = nodeRadius,
+            centerRadius = centerRadius,
+        )
+        if (positions.size != personCount) return false
+        return !positionsOverlap(
+            positions = positions,
+            centerX = minDimension / 2f,
+            centerY = minDimension / 2f,
+            centerRadius = centerRadius,
         )
     }
 
-    internal fun findOverlappingStoredIds(
-        personIds: List<Long>,
-        stored: Map<Long, StoredPosition>,
-        orbitRadius: Float,
-        nodeRadius: Float,
-        centerRadius: Float,
-    ): Set<Long> {
-        val positions = personIds.mapNotNull { id ->
-            stored[id]?.let { storedPosition ->
-                nodePositionFromStored(
-                    id = id,
-                    stored = storedPosition,
-                    centerX = 0f,
-                    centerY = 0f,
-                    orbitRadius = orbitRadius,
-                    nodeRadius = nodeRadius,
-                )
-            }
-        }
-        val overlapping = mutableSetOf<Long>()
-        for (i in positions.indices) {
-            val a = positions[i]
-            if (circlesOverlap(a.x, a.y, a.radius, 0f, 0f, centerRadius)) {
-                overlapping += a.id
-            }
-            for (j in i + 1 until positions.size) {
-                val b = positions[j]
-                if (circlesOverlap(a.x, a.y, a.radius, b.x, b.y, b.radius)) {
-                    overlapping += a.id
-                    overlapping += b.id
-                }
-            }
-        }
-        return overlapping
-    }
-
-    internal fun resolvePositionOverlaps(
+    internal fun positionsOverlap(
         positions: List<NodePosition>,
         centerX: Float,
         centerY: Float,
         centerRadius: Float,
-        orbitRadius: Float,
-        nodeRadius: Float,
-        userPlacedIds: Set<Long> = emptySet(),
-    ): List<NodePosition> {
-        if (positions.size <= 1 || orbitRadius <= 0f) return positions
-
-        val adjusted = positions.toMutableList()
-        for (index in adjusted.indices) {
-            val position = adjusted[index]
-            if (position.id in userPlacedIds) continue
-
-            val angle = kotlin.math.atan2(
-                (position.y - centerY).toDouble(),
-                (position.x - centerX).toDouble(),
-            )
-            var fraction = (hypot(
-                (position.x - centerX).toDouble(),
-                (position.y - centerY).toDouble(),
-            ) / orbitRadius).coerceIn(
-                MIN_RADIUS_FRACTION.toDouble(),
-                MAX_RADIUS_FRACTION.toDouble(),
-            ).toFloat()
-            var x = position.x
-            var y = position.y
-
-            for (attempt in 0 until 32) {
-                val overlapsCenter = circlesOverlap(x, y, nodeRadius, centerX, centerY, centerRadius)
-                val overlapsPeer = adjusted.withIndex().any { (peerIndex, peer) ->
-                    peerIndex != index &&
-                        circlesOverlap(x, y, nodeRadius, peer.x, peer.y, peer.radius)
-                }
-                if (!overlapsCenter && !overlapsPeer) {
-                    adjusted[index] = position.copy(x = x, y = y)
-                    break
-                }
-                fraction = (fraction + 0.03f).coerceAtMost(MAX_RADIUS_FRACTION.toFloat())
-                x = centerX + orbitRadius * fraction * cos(angle).toFloat()
-                y = centerY + orbitRadius * fraction * sin(angle).toFloat()
-            }
-            if (adjusted[index].x != x || adjusted[index].y != y) {
-                adjusted[index] = position.copy(x = x, y = y)
-            }
-        }
-        return adjusted
-    }
-
-    internal fun hasOverlap(
-        dragged: NodePosition,
-        others: List<NodePosition>,
-        centerX: Float,
-        centerY: Float,
-        centerRadius: Float,
     ): Boolean {
-        if (circlesOverlap(dragged.x, dragged.y, dragged.radius, centerX, centerY, centerRadius)) {
-            return true
+        for (i in positions.indices) {
+            val a = positions[i]
+            if (circlesOverlap(a.x, a.y, a.radius, centerX, centerY, centerRadius)) return true
+            for (j in i + 1 until positions.size) {
+                val b = positions[j]
+                if (circlesOverlap(a.x, a.y, a.radius, b.x, b.y, b.radius)) return true
+            }
         }
-        return others.any { other ->
-            circlesOverlap(
-                dragged.x,
-                dragged.y,
-                dragged.radius,
-                other.x,
-                other.y,
-                other.radius,
-            )
-        }
+        return false
     }
 }

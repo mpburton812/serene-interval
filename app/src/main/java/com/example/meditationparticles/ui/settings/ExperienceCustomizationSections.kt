@@ -263,7 +263,7 @@ fun ExperienceSection(
             onCheckedChange = onToolkitChanged,
         )
         SettingsToggleRow(
-            label = "Living Tree",
+            label = "Living Flower",
             icon = Icons.Default.AccountTree,
             checked = settings.enableLivingTree,
             onCheckedChange = onLivingTreeChanged,

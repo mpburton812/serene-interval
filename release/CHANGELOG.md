@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 1.0.21 - 2026-06-14
+
+### Mood graphs
+
+- Draw graph lines with step paths (horizontal into each point, horizontal out) instead of smooth curves
+- Block navigation and data for future days, weeks, and months; clip current-period graphs to now
+- Bold dotted trend line for period averages, including 7-day rolling mode
+- 7-day rolling month graph shows daily trailing-average plot points with step connections
+
+### Mood calendar
+
+- Tap a day to open a list of that day’s mood check-ins and activity events
+- Tap an event for details (mood label or full journal/session text)
+
+### Living Flower
+
+- Rename Living Tree to Living Flower across navigation and settings
+- Multi-ring bubble layout with even spacing; remove drag repositioning
+- Re-space bubbles evenly when tag filters change
+
 ## 1.0.20 - 2026-06-14
 
 ### Meditation

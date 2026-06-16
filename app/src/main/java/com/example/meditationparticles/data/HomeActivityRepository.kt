@@ -6,6 +6,8 @@ import com.example.meditationparticles.domain.home.HomeActivityTimelineBuilder
 import com.example.meditationparticles.domain.sessions.MeditationSession
 import com.example.meditationparticles.domain.sessions.SessionType
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -71,6 +73,20 @@ class HomeActivityRepository(
                 limit = limit,
             )
         }.flowOn(Dispatchers.Default)
+    }
+
+    fun observeActivitiesForDay(
+        date: LocalDate,
+        zoneId: ZoneId = ZoneId.systemDefault(),
+        limit: Int = 2_000,
+    ): Flow<List<HomeActivityItem>> {
+        val startMillis = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val endMillis = date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+        return observeTimeline(limit = limit).map { items ->
+            items
+                .filter { it.completedAt in startMillis until endMillis }
+                .sortedByDescending { it.completedAt }
+        }
     }
 
     private data class TimelineSnapshot(

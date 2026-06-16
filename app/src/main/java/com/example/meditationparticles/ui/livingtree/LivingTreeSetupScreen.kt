@@ -233,7 +233,7 @@ fun LivingTreeSetupScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Living Tree Setup") },
+                title = { Text("Living Flower Setup") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -375,7 +375,7 @@ fun LivingTreeSetupScreen(
         AlertDialog(
             onDismissRequest = viewModel::dismissDeleteConfirmations,
             title = { Text("Delete tag?") },
-            text = { Text("Remove \"${tag.name}\" from Living Tree? This cannot be undone.") },
+            text = { Text("Remove \"${tag.name}\" from Living Flower? This cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = viewModel::confirmDeleteTag) { Text("Delete") }
             },
@@ -389,7 +389,7 @@ fun LivingTreeSetupScreen(
         AlertDialog(
             onDismissRequest = viewModel::dismissDeleteConfirmations,
             title = { Text("Delete person?") },
-            text = { Text("Remove \"${person.name}\" from Living Tree? This cannot be undone.") },
+            text = { Text("Remove \"${person.name}\" from Living Flower? This cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = viewModel::confirmDeletePerson) { Text("Delete") }
             },
