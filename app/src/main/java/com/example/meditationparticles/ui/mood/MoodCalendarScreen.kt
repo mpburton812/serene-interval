@@ -29,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,7 +41,6 @@ import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.components.MoodEntryIcon
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +54,7 @@ fun MoodCalendarScreen(
     }
     val state by viewModel.uiState.collectAsState()
     val daySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val locale = LocalConfiguration.current.locales[0]
 
     Scaffold(
         modifier = modifier,
@@ -139,7 +140,7 @@ fun MoodCalendarScreen(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
                 Text(
-                    text = DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.getDefault()).format(selectedDay),
+                    text = DateTimeFormatter.ofPattern("EEEE, MMMM d", locale).format(selectedDay),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
