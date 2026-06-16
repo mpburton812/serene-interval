@@ -60,7 +60,7 @@ fun LivingTreeScreen(
     SereneTabBackground(modifier = modifier) {
         Column(modifier = Modifier.fillMaxSize()) {
             SereneTabHeader(
-                title = "Living Tree",
+                title = "Living Flower",
                 description = "Your people, organized by the roles they play in your life.",
                 controls = {
                     IconButton(onClick = onOpenSetup) {
@@ -87,7 +87,7 @@ fun LivingTreeScreen(
                 val centerY = canvasHeightPx / 2f
                 val layoutSizing = LivingTreeLayout.computeLayoutSizing(
                     minDimension = minDim,
-                    totalPeopleCount = state.allPeople.size,
+                    peopleCount = state.visiblePeople.size,
                 )
                 val animatedNodeRadius by animateFloatAsState(
                     targetValue = layoutSizing.nodeRadius,
@@ -100,15 +100,6 @@ fun LivingTreeScreen(
                     label = "center_radius",
                 )
                 val personIds = state.visiblePeople.map { it.person.id }
-                val userPlacedIds = state.visiblePeople
-                    .filter { it.person.isUserPlaced }
-                    .map { it.person.id }
-                    .toSet() + state.dragPositionOverrides.keys
-                val storedPositions = LivingTreeLayout.storedPositionsFromPeople(
-                    state.visiblePeople.map {
-                        Triple(it.person.id, it.person.angleRadians, it.person.radiusFraction)
-                    },
-                ) + state.dragPositionOverrides
                 val positions = LivingTreeLayout.radialPositions(
                     personIds = personIds,
                     centerX = centerX,
@@ -116,8 +107,6 @@ fun LivingTreeScreen(
                     orbitRadius = layoutSizing.orbitRadius,
                     nodeRadius = animatedNodeRadius,
                     centerRadius = animatedCenterRadius,
-                    storedPositions = storedPositions,
-                    userPlacedIds = userPlacedIds,
                 ).associateBy { it.id }
 
                 val tagColors = state.tags.associate { it.id to it.colorArgb }
@@ -144,25 +133,9 @@ fun LivingTreeScreen(
                     centerLabel = state.centerLabel,
                     nodes = graphNodes,
                     centerRadius = animatedCenterRadius,
-                    orbitRadius = layoutSizing.orbitRadius,
                     filterActive = state.filterActive,
                     onPersonTap = { id ->
                         state.allPeople.find { it.person.id == id }?.let(viewModel::selectPerson)
-                    },
-                    onPersonDragPosition = viewModel::onPersonDragPosition,
-                    onPersonDragEnd = { personId, position ->
-                        val nudged = LivingTreeLayout.nudgeStoredPosition(
-                            draggedId = personId,
-                            proposed = position,
-                            otherStored = storedPositions - personId,
-                            personIds = personIds,
-                            centerX = centerX,
-                            centerY = centerY,
-                            orbitRadius = layoutSizing.orbitRadius,
-                            nodeRadius = animatedNodeRadius,
-                            centerRadius = animatedCenterRadius,
-                        )
-                        viewModel.onPersonDragEnd(personId, nudged)
                     },
                     modifier = Modifier.fillMaxSize(),
                 )

@@ -198,7 +198,7 @@ fun SettingsScreen(
                 )
                 Text(
                     text = "Download a JSON backup of your settings and journal entries, or restore " +
-                        "from a previous export. Living Tree includes personal names — treat backups " +
+                        "from a previous export. Living Flower includes personal names — treat backups " +
                         "as sensitive. Audio recordings are referenced by path only and are " +
                         "not included in the backup file.",
                     style = MaterialTheme.typography.bodyMedium,

@@ -21,6 +21,7 @@ fun MoodPeriodNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    canGoForward: Boolean = true,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -40,10 +41,15 @@ fun MoodPeriodNavigator(
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )
-        IconButton(onClick = onNext) {
+        IconButton(onClick = onNext, enabled = canGoForward) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Next period",
+                tint = if (canGoForward) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                },
             )
         }
     }
