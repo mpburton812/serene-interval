@@ -83,7 +83,7 @@ private val allBottomNavItems = listOf(
     BottomNavItem(SereneDestination.Toolkit, "Toolkit", Icons.Outlined.Handyman, Icons.Default.Handyman),
     BottomNavItem(
         SereneDestination.LivingTree,
-        "Tree",
+        "Flower",
         Icons.Outlined.AccountTree,
         Icons.Default.AccountTree,
     ),

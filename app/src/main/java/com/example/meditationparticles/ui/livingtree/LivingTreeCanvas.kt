@@ -1,8 +1,6 @@
 package com.example.meditationparticles.ui.livingtree
 
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -17,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -31,13 +28,10 @@ import com.example.meditationparticles.R
 import com.example.meditationparticles.canvas.LivingTreeSphereFill
 import com.example.meditationparticles.canvas.drawLivingTreeGlassSphere
 import com.example.meditationparticles.canvas.drawLivingTreeSpoke
-import com.example.meditationparticles.domain.livingtree.LivingTreeLayout
 import com.example.meditationparticles.domain.livingtree.LivingTreeTextContrast
 import com.example.meditationparticles.ui.theme.isDarkScheme
 import kotlin.math.hypot
 import kotlin.math.roundToInt
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 
 data class LivingTreeGraphNode(
     val id: Long,
@@ -56,97 +50,27 @@ fun LivingTreeCanvas(
     centerRadius: Float,
     onPersonTap: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    orbitRadius: Float = 0f,
     filterActive: Boolean = false,
-    onPersonDragPosition: ((Long, LivingTreeLayout.StoredPosition) -> Unit)? = null,
-    onPersonDragEnd: ((Long, LivingTreeLayout.StoredPosition) -> Unit)? = null,
 ) {
     val textMeasurer = rememberTextMeasurer()
-    val view = LocalView.current
     val scheme = MaterialTheme.colorScheme
     val isDark = isDarkScheme(scheme)
     val glassOverlay = painterResource(R.drawable.breath_glass_sphere)
     val visualScale = (centerRadius / 80f).coerceIn(0.75f, 1.25f)
     val currentNodes by rememberUpdatedState(nodes)
     val currentOnPersonTap by rememberUpdatedState(onPersonTap)
-    val currentOnPersonDragPosition by rememberUpdatedState(onPersonDragPosition)
-    val currentOnPersonDragEnd by rememberUpdatedState(onPersonDragEnd)
 
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(orbitRadius) {
-                coroutineScope {
-                    var suppressTap = false
-
-                    launch {
-                        detectTapGestures { offset ->
-                            if (suppressTap) return@detectTapGestures
-                            currentNodes.firstOrNull { node ->
-                                hypot(
-                                    (offset.x - node.x).toDouble(),
-                                    (offset.y - node.y).toDouble(),
-                                ) <= node.radius
-                            }?.let { currentOnPersonTap(it.id) }
-                        }
-                    }
-
-                    if (currentOnPersonDragPosition != null && currentOnPersonDragEnd != null && orbitRadius > 0f) {
-                        launch {
-                            var draggingId: Long? = null
-                            var dragMoved = false
-                            var grabOffset = Offset.Zero
-                            var lastPosition = LivingTreeLayout.StoredPosition(angleRadians = 0.0)
-
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = { offset ->
-                                    val node = currentNodes.firstOrNull { candidate ->
-                                        hypot(
-                                            (offset.x - candidate.x).toDouble(),
-                                            (offset.y - candidate.y).toDouble(),
-                                        ) <= candidate.radius
-                                    }
-                                    draggingId = node?.id
-                                    dragMoved = false
-                                    suppressTap = false
-                                    if (node != null) {
-                                        grabOffset = offset - Offset(node.x, node.y)
-                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                    }
-                                },
-                                onDrag = { change, _ ->
-                                    val id = draggingId ?: return@detectDragGesturesAfterLongPress
-                                    dragMoved = true
-                                    suppressTap = true
-                                    val centerX = size.width / 2f
-                                    val centerY = size.height / 2f
-                                    val targetCenter = change.position - grabOffset
-                                    lastPosition = LivingTreeLayout.positionFromCanvasPoint(
-                                        centerX = centerX,
-                                        centerY = centerY,
-                                        orbitRadius = orbitRadius,
-                                        x = targetCenter.x,
-                                        y = targetCenter.y,
-                                    )
-                                    currentOnPersonDragPosition?.invoke(id, lastPosition)
-                                    change.consume()
-                                },
-                                onDragEnd = {
-                                    draggingId?.let { id ->
-                                        if (dragMoved) {
-                                            currentOnPersonDragEnd?.invoke(id, lastPosition)
-                                        }
-                                    }
-                                    draggingId = null
-                                    suppressTap = false
-                                },
-                                onDragCancel = {
-                                    draggingId = null
-                                    suppressTap = false
-                                },
-                            )
-                        }
-                    }
+            .pointerInput(nodes) {
+                detectTapGestures { offset ->
+                    currentNodes.firstOrNull { node ->
+                        hypot(
+                            (offset.x - node.x).toDouble(),
+                            (offset.y - node.y).toDouble(),
+                        ) <= node.radius
+                    }?.let { currentOnPersonTap(it.id) }
                 }
             },
     ) {

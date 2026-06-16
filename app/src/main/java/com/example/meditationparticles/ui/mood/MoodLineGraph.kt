@@ -31,41 +31,48 @@ fun MoodLineGraph(
     period: MoodGraphPeriod,
     startMillis: Long,
     endMillis: Long,
+    graphEndMillis: Long,
     average: Double?,
     monthGraphMode: MoodMonthGraphMode = MoodMonthGraphMode.TOTAL_AVERAGE,
     modifier: Modifier = Modifier,
 ) {
-    val sorted = entries.sortedBy { it.recordedAtMillis }
+    val visibleEntries = remember(entries, graphEndMillis) {
+        MoodGraphSeriesBuilder.entriesWithinGraph(entries, graphEndMillis)
+    }
+    val sorted = remember(visibleEntries) { visibleEntries.sortedBy { it.recordedAtMillis } }
     val zoneId = remember { ZoneId.systemDefault() }
     val locale = remember { Locale.getDefault() }
     val axisColor = MaterialTheme.colorScheme.outline
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val lineColor = MaterialTheme.colorScheme.primary
-    val averageLineColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.85f)
+    val averageLineColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f)
     val useMonthRolling = period == MoodGraphPeriod.MONTH &&
         monthGraphMode == MoodMonthGraphMode.ROLLING_7_DAY
-    val graphPoints = remember(sorted, period, monthGraphMode, startMillis, endMillis, zoneId) {
+    val graphPoints = remember(sorted, period, monthGraphMode, startMillis, endMillis, graphEndMillis, zoneId) {
         if (useMonthRolling) {
-            MoodGraphSeriesBuilder.monthRollingAverageSeries(sorted, startMillis, endMillis, zoneId)
+            MoodGraphSeriesBuilder.monthRollingAverageSeries(
+                entries = sorted,
+                startMillis = startMillis,
+                endMillis = endMillis,
+                graphEndMillis = graphEndMillis,
+                zoneId = zoneId,
+            )
         } else {
             MoodGraphSeriesBuilder.entryPoints(sorted)
         }
     }
-    val xDomain = remember(graphPoints, useMonthRolling, startMillis, endMillis) {
+    val xDomain = remember(graphPoints, useMonthRolling, startMillis, graphEndMillis) {
         if (useMonthRolling) {
-            MoodGraphSeriesBuilder.monthDomainMillis(startMillis, endMillis)
+            MoodGraphSeriesBuilder.monthDomainMillis(startMillis, graphEndMillis)
         } else {
-            MoodGraphSeriesBuilder.dataSpanMillis(graphPoints) ?: (startMillis to endMillis)
+            MoodGraphSeriesBuilder.dataSpanMillis(graphPoints)
+                ?: (startMillis to (graphEndMillis - 1).coerceAtLeast(startMillis))
         }
     }
-    val showAverageLine = average != null && (
-        period == MoodGraphPeriod.DAY ||
-            period == MoodGraphPeriod.WEEK ||
-            (period == MoodGraphPeriod.MONTH && monthGraphMode == MoodMonthGraphMode.TOTAL_AVERAGE)
-        )
-    val xTicks = remember(period, startMillis, endMillis, zoneId, locale) {
-        MoodGraphAxisFormatter.xAxisTicks(period, startMillis, endMillis, zoneId, locale)
+    val showAverageLine = average != null && period != MoodGraphPeriod.CALENDAR
+    val xTicks = remember(period, startMillis, graphEndMillis, zoneId, locale) {
+        MoodGraphAxisFormatter.xAxisTicks(period, startMillis, graphEndMillis, zoneId, locale)
     }
     val yTicks = remember { MoodGraphAxisFormatter.yAxisTicks() }
 
@@ -92,7 +99,7 @@ fun MoodLineGraph(
 
         fun xForPoint(xMillis: Long): Float {
             val fraction = if (useMonthRolling) {
-                MoodGraphSeriesBuilder.monthXFraction(xMillis, startMillis, endMillis, zoneId)
+                MoodGraphSeriesBuilder.monthXFraction(xMillis, startMillis, graphEndMillis, zoneId)
             } else {
                 MoodGraphSeriesBuilder.xFraction(
                     xMillis = xMillis,
@@ -172,14 +179,14 @@ fun MoodLineGraph(
             )
         }
 
-        if (showAverageLine && average != null) {
+        if (showAverageLine) {
             val averageY = yForLevel(average)
             drawLine(
                 color = averageLineColor,
                 start = Offset(plotLeft, averageY),
                 end = Offset(plotRight, averageY),
-                strokeWidth = 2.5f,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f)),
+                strokeWidth = 4.5f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 10f)),
             )
         }
 
@@ -192,22 +199,28 @@ fun MoodLineGraph(
             )
         }
 
+        val dotRadius = if (useMonthRolling) 10f else 8f
+
         if (points.size == 1) {
             val level = graphPoints.first().yLevel
-            val moodLevel = MoodScale.averageToLevel(level) ?: MoodScale.MIN
+            val moodLevel = if (useMonthRolling) {
+                MoodScale.averageToLevel(level) ?: MoodScale.MIN
+            } else {
+                sorted.first().moodLevel
+            }
             drawCircle(
                 color = moodColor(moodLevel),
-                radius = 8f,
+                radius = dotRadius,
                 center = points.first(),
             )
             return@Canvas
         }
 
-        val path = MoodGraphCurve.buildSmoothPath(points)
+        val path = MoodGraphCurve.buildStepPath(points)
         drawPath(
             path = path,
             color = lineColor,
-            style = Stroke(width = 5f, cap = StrokeCap.Round),
+            style = Stroke(width = if (useMonthRolling) 4f else 5f, cap = StrokeCap.Round),
         )
         points.forEachIndexed { index, point ->
             val level = graphPoints[index].yLevel
@@ -218,7 +231,7 @@ fun MoodLineGraph(
             }
             drawCircle(
                 color = moodColor(moodLevel),
-                radius = 8f,
+                radius = dotRadius,
                 center = point,
             )
         }

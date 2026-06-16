@@ -79,93 +79,68 @@ class LivingTreeLayoutTest {
             centerY = 100f,
             orbitRadius = 80f,
             nodeRadius = 24f,
+            centerRadius = 40f,
         )
 
         assertEquals(3, positions.size)
         assertEquals(180f, positions[0].x, 0.01f)
         assertEquals(100f, positions[0].y, 0.01f)
         positions.forEach { assertEquals(24f, it.radius, 0.01f) }
+        assertNoOverlap(3, LivingTreeLayout.LayoutSizing(24f, 80f, 40f), positions)
     }
 
     @Test
-    fun radialPositions_nullStoredAngles_useEvenSpacingNotZero() {
+    fun radialPositions_ignoresPersistedAngles_andEvenlySpaces() {
         val ids = List(7) { index -> (index + 1).toLong() }
-        val stored = LivingTreeLayout.storedPositionsFromPeople(
-            ids.map { Triple(it, null, null) },
-        )
-        assertTrue(stored.isEmpty())
+        val sizing = LivingTreeLayout.computeLayoutSizing(canvas, ids.size)
 
         val positions = LivingTreeLayout.radialPositions(
             personIds = ids,
-            centerX = 0f,
-            centerY = 0f,
-            orbitRadius = 100f,
-            nodeRadius = 20f,
-            storedPositions = stored,
+            centerX = canvas / 2f,
+            centerY = canvas / 2f,
+            orbitRadius = sizing.orbitRadius,
+            nodeRadius = sizing.nodeRadius,
+            centerRadius = sizing.centerRadius,
+            storedPositions = ids.associateWith {
+                LivingTreeLayout.StoredPosition(angleRadians = 0.0, radiusFraction = 0.35)
+            },
         )
 
         assertEquals(7, positions.size)
         val distinct = positions.map { Pair(it.x.toInt(), it.y.toInt()) }.toSet()
         assertEquals(7, distinct.size)
-    }
-
-    @Test
-    fun radialPositions_duplicateStoredAngles_reSpreadEvenly() {
-        val ids = List(7) { index -> (index + 1).toLong() }
-        val stored = ids.associateWith {
-            LivingTreeLayout.StoredPosition(angleRadians = 0.0, radiusFraction = 1.0)
-        }
-
-        val positions = LivingTreeLayout.radialPositions(
-            personIds = ids,
-            centerX = 0f,
-            centerY = 0f,
-            orbitRadius = 100f,
-            nodeRadius = 20f,
-            storedPositions = stored,
-        )
-
-        assertEquals(7, positions.size)
-        val distinct = positions.map { Pair(it.x.toInt(), it.y.toInt()) }.toSet()
-        assertEquals(7, distinct.size)
+        assertNoOverlap(ids.size, sizing, positions)
     }
 
     @Test
     fun radialPositions_filteredSubset_evenlySpacesVisiblePeople() {
-        val visibleIds = listOf(1L, 3L, 5L, 7L, 9L, 11L, 13L)
-        val stored = LivingTreeLayout.storedPositionsFromPeople(
-            visibleIds.map { Triple(it, 0.0, 1.0) },
-        )
+        val visibleIds = listOf(1L, 3L, 5L, 7L)
+        val sizing = LivingTreeLayout.computeLayoutSizing(canvas, visibleIds.size)
 
         val positions = LivingTreeLayout.radialPositions(
             personIds = visibleIds,
             centerX = 50f,
             centerY = 50f,
-            orbitRadius = 80f,
-            nodeRadius = 16f,
-            storedPositions = stored,
+            orbitRadius = sizing.orbitRadius,
+            nodeRadius = sizing.nodeRadius,
+            centerRadius = sizing.centerRadius,
         )
 
-        assertEquals(7, positions.size)
+        assertEquals(4, positions.size)
         val distinct = positions.map { Pair(it.x.toInt(), it.y.toInt()) }.toSet()
-        assertEquals(7, distinct.size)
+        assertEquals(4, distinct.size)
+        assertNoOverlap(visibleIds.size, sizing, positions, canvasDim = canvas)
     }
 
     @Test
-    fun storedPositionsFromPeople_omitsNullDbValues() {
+    fun storedPositionsFromPeople_returnsEmptyMap() {
         val stored = LivingTreeLayout.storedPositionsFromPeople(
             listOf(
                 Triple(1L, 1.5, 0.8),
                 Triple(2L, null, null),
-                Triple(3L, 0.0, 1.0),
             ),
         )
-
-        assertEquals(2, stored.size)
-        assertEquals(1.5, stored[1L]!!.angleRadians, 0.0001)
-        assertEquals(0.8, stored[1L]!!.radiusFraction, 0.0001)
-        assertEquals(0.0, stored[3L]!!.angleRadians, 0.0001)
-        assertTrue(2L !in stored)
+        assertTrue(stored.isEmpty())
     }
 
     @Test
@@ -181,13 +156,19 @@ class LivingTreeLayoutTest {
     }
 
     @Test
-    fun adjacentChord_atComputedOrbit_avoidsOverlapForModerateCounts() {
-        val count = 20
-        val sizing = LivingTreeLayout.computeLayoutSizing(canvas, count)
-        val chord = 2.0 * sizing.orbitRadius * sin(PI / count)
-        val required = 2.0 * sizing.nodeRadius + LivingTreeLayout.BUBBLE_GAP
+    fun planRings_usesMultipleRingsBeforeShrinkingNodes() {
+        val sizing = LivingTreeLayout.computeLayoutSizing(canvas, 24)
+        val rings = LivingTreeLayout.planRings(
+            totalCount = 24,
+            orbitRadius = sizing.orbitRadius,
+            nodeRadius = sizing.nodeRadius,
+            centerRadius = sizing.centerRadius,
+        )
 
-        assertTrue(chord >= required - 1.0)
+        assertTrue(rings.sumOf { it.count } >= 24)
+        if (rings.size > 1) {
+            assertTrue(rings.first().radiusFraction > rings.last().radiusFraction)
+        }
     }
 
     @Test
@@ -217,106 +198,15 @@ class LivingTreeLayoutTest {
     }
 
     @Test
-    fun radialPositions_persistedOverlap_reSpreadEvenly() {
-        val ids = List(7) { index -> (index + 1).toLong() }
-        val stored = ids.associateWith {
-            LivingTreeLayout.StoredPosition(angleRadians = 0.5, radiusFraction = 0.35)
-        }
-        val sizing = LivingTreeLayout.computeLayoutSizing(canvas, ids.size)
-
-        val positions = LivingTreeLayout.radialPositions(
-            personIds = ids,
-            centerX = canvas / 2f,
-            centerY = canvas / 2f,
-            orbitRadius = sizing.orbitRadius,
-            nodeRadius = sizing.nodeRadius,
-            centerRadius = sizing.centerRadius,
-            storedPositions = stored,
-        )
-
-        assertEquals(7, positions.size)
-        val distinct = positions.map { Pair(it.x.toInt(), it.y.toInt()) }.toSet()
-        assertEquals(7, distinct.size)
-        assertNoOverlap(ids.size, sizing, positions)
-    }
-
-    @Test
     fun bubbleGap_isTenPixels() {
         assertEquals(10f, LivingTreeLayout.BUBBLE_GAP, 0.001f)
     }
 
     @Test
-    fun computeLayoutSizing_centerShrinksWithNodesForLargeGroups() {
-        val sizing = LivingTreeLayout.computeLayoutSizing(canvas, 50)
-        assertTrue(sizing.centerRadius >= sizing.nodeRadius * LivingTreeLayout.CENTER_TO_NODE_RATIO * 0.99f)
-        assertTrue(sizing.centerRadius <= LivingTreeLayout.MAX_CENTER_RADIUS)
-    }
-
-    @Test
-    fun resolveStoredPositions_userPlacedOverlap_isNotRepacked() {
-        val ids = listOf(1L, 2L, 3L)
-        val overlapAngle = 1.1
-        val stored = mapOf(
-            1L to LivingTreeLayout.StoredPosition(angleRadians = overlapAngle, radiusFraction = 1.0),
-            2L to LivingTreeLayout.StoredPosition(angleRadians = overlapAngle, radiusFraction = 1.0),
-            3L to LivingTreeLayout.StoredPosition(angleRadians = 2.5, radiusFraction = 1.0),
-        )
-        val sizing = LivingTreeLayout.computeLayoutSizing(canvas, ids.size)
-
-        val resolved = LivingTreeLayout.resolveStoredPositions(
-            personIds = ids,
-            stored = stored,
-            orbitRadius = sizing.orbitRadius,
-            nodeRadius = sizing.nodeRadius,
-            centerRadius = sizing.centerRadius,
-            userPlacedIds = setOf(2L),
-        )
-
-        assertEquals(overlapAngle, resolved[2L]!!.angleRadians, 0.0001)
-        assertEquals(1.0, resolved[2L]!!.radiusFraction, 0.0001)
-    }
-
-    @Test
-    fun computeLayoutSizing_usesTotalCountNotFilteredSubset() {
-        val fullSizing = LivingTreeLayout.computeLayoutSizing(canvas, 40)
-        val filteredSizing = LivingTreeLayout.computeLayoutSizing(canvas, 4)
-        assertTrue(fullSizing.nodeRadius < filteredSizing.nodeRadius)
-    }
-
-    @Test
-    fun nudgeStoredPosition_avoidsCenterAndPeerOverlap() {
-        val ids = listOf(1L, 2L, 3L)
-        val sizing = LivingTreeLayout.computeLayoutSizing(canvas, ids.size)
-        val centerX = canvas / 2f
-        val centerY = canvas / 2f
-        val others = mapOf(
-            2L to LivingTreeLayout.StoredPosition(angleRadians = PI / 2, radiusFraction = 1.0),
-            3L to LivingTreeLayout.StoredPosition(angleRadians = PI, radiusFraction = 1.0),
-        )
-        val proposed = LivingTreeLayout.StoredPosition(angleRadians = 0.0, radiusFraction = 0.35)
-
-        val nudged = LivingTreeLayout.nudgeStoredPosition(
-            draggedId = 1L,
-            proposed = proposed,
-            otherStored = others,
-            personIds = ids,
-            centerX = centerX,
-            centerY = centerY,
-            orbitRadius = sizing.orbitRadius,
-            nodeRadius = sizing.nodeRadius,
-            centerRadius = sizing.centerRadius,
-        )
-
-        val positions = LivingTreeLayout.radialPositions(
-            personIds = ids,
-            centerX = centerX,
-            centerY = centerY,
-            orbitRadius = sizing.orbitRadius,
-            nodeRadius = sizing.nodeRadius,
-            centerRadius = sizing.centerRadius,
-            storedPositions = others + (1L to nudged),
-        )
-        assertNoOverlap(ids.size, sizing, positions)
+    fun computeLayoutSizing_fewerVisiblePeople_largerBubbles() {
+        val manySizing = LivingTreeLayout.computeLayoutSizing(canvas, 40)
+        val fewSizing = LivingTreeLayout.computeLayoutSizing(canvas, 4)
+        assertTrue(fewSizing.nodeRadius > manySizing.nodeRadius)
     }
 
     private fun assertNoOverlap(
@@ -334,6 +224,7 @@ class LivingTreeLayoutTest {
             nodeRadius = sizing.nodeRadius,
             centerRadius = sizing.centerRadius,
         )
+        assertEquals(count, nodes.size)
         val minSeparation = 2f * sizing.nodeRadius + LivingTreeLayout.BUBBLE_GAP - 1f
         val centerSeparation = sizing.centerRadius + sizing.nodeRadius + LivingTreeLayout.BUBBLE_GAP - 1f
         val centerX = canvasDim / 2f

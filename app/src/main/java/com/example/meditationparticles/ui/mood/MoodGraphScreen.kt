@@ -86,6 +86,7 @@ fun MoodGraphScreen(
                 title = state.periodTitle,
                 onPrevious = { viewModel.shiftPeriod(forward = false) },
                 onNext = { viewModel.shiftPeriod(forward = true) },
+                canGoForward = state.canGoForward,
             )
 
             if (period == MoodGraphPeriod.MONTH) {
@@ -119,6 +120,7 @@ fun MoodGraphScreen(
                     period = period,
                     startMillis = state.startMillis,
                     endMillis = state.endMillis,
+                    graphEndMillis = state.graphEndMillis,
                     average = state.average,
                     monthGraphMode = state.monthGraphMode,
                     modifier = Modifier

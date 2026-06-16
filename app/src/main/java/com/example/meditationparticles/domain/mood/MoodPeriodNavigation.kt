@@ -7,6 +7,23 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.WeekFields
 import java.util.Locale
 
+const val MAX_FUTURE_PERIOD_OFFSET = 0
+
+fun canShiftPeriodForward(offset: Int): Boolean = offset < MAX_FUTURE_PERIOD_OFFSET
+
+fun clampPeriodOffset(offset: Int): Int = minOf(offset, MAX_FUTURE_PERIOD_OFFSET)
+
+fun effectiveGraphEndMillis(
+    period: MoodGraphPeriod,
+    offset: Int,
+    fullEndMillis: Long,
+    zoneId: ZoneId = ZoneId.systemDefault(),
+    nowMillis: Long = System.currentTimeMillis(),
+): Long {
+    if (offset < MAX_FUTURE_PERIOD_OFFSET) return fullEndMillis
+    return minOf(fullEndMillis, nowMillis)
+}
+
 fun periodReferenceMillis(
     period: MoodGraphPeriod,
     offset: Int,
