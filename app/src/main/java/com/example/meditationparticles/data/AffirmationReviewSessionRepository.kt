@@ -4,6 +4,7 @@ import com.example.meditationparticles.data.local.AffirmationReviewSessionDao
 import com.example.meditationparticles.data.local.AffirmationReviewSessionEntity
 import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.domain.mood.MoodSource
+import kotlinx.coroutines.flow.Flow
 
 class AffirmationReviewSessionRepository(
     private val dao: AffirmationReviewSessionDao,
@@ -35,6 +36,9 @@ class AffirmationReviewSessionRepository(
         }
         return id
     }
+
+    fun observeInRange(startMillis: Long, endMillis: Long): Flow<List<AffirmationReviewSessionEntity>> =
+        dao.observeInRange(startMillis, endMillis)
 
     suspend fun getById(id: Long): AffirmationReviewSessionEntity? = dao.getById(id)
 

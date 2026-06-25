@@ -1,6 +1,7 @@
 package com.example.meditationparticles.domain.livingtree
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.PI
@@ -209,6 +210,68 @@ class LivingTreeLayoutTest {
         assertTrue(fewSizing.nodeRadius > manySizing.nodeRadius)
     }
 
+    @Test
+    fun maxNodeRadiusForMultiRingLayout_usesMultipleRingsForLargeGroups() {
+        val sizing = LivingTreeLayout.computeLayoutSizing(1080f, 24)
+        assertNoOverlap(24, sizing, canvasDim = 1080f)
+        assertNoPipeOverlap(24, sizing, canvasDim = 1080f)
+        val rings = LivingTreeLayout.planRings(
+            totalCount = 24,
+            orbitRadius = sizing.orbitRadius,
+            nodeRadius = sizing.nodeRadius,
+            centerRadius = sizing.centerRadius,
+        )
+        assertTrue(rings.sumOf { it.count } >= 24)
+    }
+
+    @Test
+    fun circleOverlapsSpoke_detectsPipeCollision() {
+        val centerRadius = 40f
+        val nodeRadius = 24f
+        val centerX = 100f
+        val centerY = 100f
+        val nodeX = 180f
+        val nodeY = 100f
+        val onPipeY = centerY + 18f
+        val onPipeX = 120f
+        assertTrue(
+            LivingTreeLayout.circleOverlapsSpoke(
+                circleX = onPipeX,
+                circleY = onPipeY,
+                circleRadius = nodeRadius,
+                centerX = centerX,
+                centerY = centerY,
+                centerRadius = centerRadius,
+                nodeX = nodeX,
+                nodeY = nodeY,
+                nodeRadius = nodeRadius,
+            ),
+        )
+        assertFalse(
+            LivingTreeLayout.circleOverlapsSpoke(
+                circleX = centerX,
+                circleY = centerY - 120f,
+                circleRadius = nodeRadius,
+                centerX = centerX,
+                centerY = centerY,
+                centerRadius = centerRadius,
+                nodeX = nodeX,
+                nodeY = nodeY,
+                nodeRadius = nodeRadius,
+            ),
+        )
+    }
+
+    @Test
+    fun computeLayoutSizing_largeGroups_noPipeCrossing() {
+        val phoneCanvas = 1080f
+        listOf(20, 30, 45).forEach { count ->
+            val sizing = LivingTreeLayout.computeLayoutSizing(phoneCanvas, count)
+            assertNoOverlap(count, sizing, canvasDim = phoneCanvas)
+            assertNoPipeOverlap(count, sizing, canvasDim = phoneCanvas)
+        }
+    }
+
     private fun assertNoOverlap(
         count: Int,
         sizing: LivingTreeLayout.LayoutSizing,
@@ -251,6 +314,46 @@ class LivingTreeLayoutTest {
                 "Node ${node.id} overlaps center at count=$count (dist=$centerDistance)",
                 centerDistance >= centerSeparation,
             )
+        }
+    }
+
+    private fun assertNoPipeOverlap(
+        count: Int,
+        sizing: LivingTreeLayout.LayoutSizing,
+        positions: List<LivingTreeLayout.NodePosition>? = null,
+        canvasDim: Float = canvas,
+    ) {
+        val ids = (1L..count.toLong()).toList()
+        val nodes = positions ?: LivingTreeLayout.radialPositions(
+            personIds = ids,
+            centerX = canvasDim / 2f,
+            centerY = canvasDim / 2f,
+            orbitRadius = sizing.orbitRadius,
+            nodeRadius = sizing.nodeRadius,
+            centerRadius = sizing.centerRadius,
+        )
+        val centerX = canvasDim / 2f
+        val centerY = canvasDim / 2f
+        for (i in nodes.indices) {
+            val observer = nodes[i]
+            for (j in nodes.indices) {
+                if (i == j) continue
+                val target = nodes[j]
+                assertFalse(
+                    "Node ${observer.id} overlaps pipe to node ${target.id} at count=$count",
+                    LivingTreeLayout.circleOverlapsSpoke(
+                        circleX = observer.x,
+                        circleY = observer.y,
+                        circleRadius = observer.radius,
+                        centerX = centerX,
+                        centerY = centerY,
+                        centerRadius = sizing.centerRadius,
+                        nodeX = target.x,
+                        nodeY = target.y,
+                        nodeRadius = target.radius,
+                    ),
+                )
+            }
         }
     }
 }

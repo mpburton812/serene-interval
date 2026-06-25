@@ -10,6 +10,13 @@ interface AffirmationReviewSessionDao {
     @Query("SELECT * FROM affirmation_review_sessions ORDER BY completedAt DESC")
     fun observeAll(): Flow<List<AffirmationReviewSessionEntity>>
 
+    @Query(
+        "SELECT * FROM affirmation_review_sessions " +
+            "WHERE completedAt >= :startMillis AND completedAt < :endMillis " +
+            "ORDER BY completedAt DESC",
+    )
+    fun observeInRange(startMillis: Long, endMillis: Long): Flow<List<AffirmationReviewSessionEntity>>
+
     @Query("SELECT * FROM affirmation_review_sessions ORDER BY completedAt DESC")
     suspend fun getAll(): List<AffirmationReviewSessionEntity>
 

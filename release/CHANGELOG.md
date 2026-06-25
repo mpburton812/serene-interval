@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 1.0.22 - 2026-06-25
+
+### Affirmations
+
+- Monthly affirmation review calendar between Affirmations Review and My Collection
+- Daily Reminder moved below the affirmation calendar
+
+### Living Flower
+
+- Multi-ring sphere placement maximizes bubble size while avoiding overlap
+- Spokes (pipes) validated so spheres do not cross pipe paths between center and other nodes
+
 ## 1.0.21 - 2026-06-14
 
 ### Mood graphs
