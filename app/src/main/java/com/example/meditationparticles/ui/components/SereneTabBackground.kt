@@ -33,8 +33,8 @@ fun SereneTabBackground(
     val isSystemDark = isSystemInDarkTheme()
     val isDark = isDarkScheme(MaterialTheme.colorScheme)
 
-    LaunchedEffect(settings.themeMode, isSystemDark) {
-        rotation.sync(settings.themeMode, isSystemDark)
+    LaunchedEffect(settings.landscapeThemeId, settings.themeMode, isSystemDark) {
+        rotation.sync(settings.landscapeThemeId, settings.themeMode, isSystemDark)
     }
     val scrim = MaterialTheme.colorScheme.background
     val scrimBrush = if (isDark) {

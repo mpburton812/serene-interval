@@ -1,8 +1,10 @@
 package com.example.meditationparticles.ui.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Waves
@@ -39,10 +42,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.settings.LandscapeThemeCatalog
+import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
+import com.example.meditationparticles.domain.settings.backgroundPeriodForTheme
 import com.example.meditationparticles.domain.settings.timeOfDayPeriod
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import com.example.meditationparticles.ui.components.GlassCard
@@ -217,6 +225,102 @@ fun ThemeModeChip(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun LandscapeThemeSection(
+    settings: ExperienceSettings,
+    onLandscapeThemeSelected: (SanctuaryLandscapeThemeId) -> Unit,
+) {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val isSystemDark = isSystemInDarkTheme()
+    val period = backgroundPeriodForTheme(settings.themeMode, hour, isSystemDark)
+
+    Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
+        Text(
+            text = "Tab backdrop",
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = "Choose the landscape behind your tabs. With time-responsive appearance, " +
+                "day and night variants shift automatically.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SanctuaryLandscapeThemeId.pickerOptions.forEach { theme ->
+                LandscapeThemeChip(
+                    theme = theme,
+                    previewDrawable = LandscapeThemeCatalog.previewDrawable(theme, period),
+                    selected = settings.landscapeThemeId == theme,
+                    onClick = { onLandscapeThemeSelected(theme) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LandscapeThemeChip(
+    theme: SanctuaryLandscapeThemeId,
+    previewDrawable: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    }
+
+    Column(
+        modifier = Modifier
+            .clip(shape)
+            .border(1.dp, borderColor, shape)
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 88.dp, height = 52.dp)
+                .clip(RoundedCornerShape(8.dp)),
+        ) {
+            Image(
+                painter = painterResource(previewDrawable),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (selected) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(16.dp),
+                )
+            }
+        }
+        Text(
+            text = theme.label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+    }
+}
+
 @Composable
 fun ExperienceSection(
     settings: ExperienceSettings,
@@ -225,6 +329,7 @@ fun ExperienceSection(
     onAffirmationsChanged: (Boolean) -> Unit,
     onToolkitChanged: (Boolean) -> Unit,
     onLivingTreeChanged: (Boolean) -> Unit,
+    onVisualsChanged: (Boolean) -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
         Text(
@@ -267,6 +372,12 @@ fun ExperienceSection(
             icon = Icons.Default.AccountTree,
             checked = settings.enableLivingTree,
             onCheckedChange = onLivingTreeChanged,
+        )
+        SettingsToggleRow(
+            label = "Visual Sanctuary",
+            icon = Icons.Default.Landscape,
+            checked = settings.enableVisuals,
+            onCheckedChange = onVisualsChanged,
         )
     }
 }
@@ -315,4 +426,120 @@ fun SettingsToggleRow(
     }
 }
 
-// Visual Sanctuary was removed.
+@Composable
+fun VisualSanctuarySection(
+    enabledScenes: Set<String>,
+    onToggleScene: (CalmingVisualizationId) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Landscape,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            )
+            Text(
+                text = "Visual Sanctuary Scenes",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+        Text(
+            text = "Pick your preferred ambient particle scenes.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        val scenes = listOf(
+            SceneOption(CalmingVisualizationId.Snowfall, "Snowfall", Icons.Default.AcUnit),
+            SceneOption(CalmingVisualizationId.Rainfall, "Rainfall", Icons.Default.WaterDrop),
+            SceneOption(CalmingVisualizationId.Firepit, "Firepit", Icons.Default.LocalFireDepartment),
+            SceneOption(CalmingVisualizationId.Sandblow, "Sandblow", Icons.Default.Waves),
+            SceneOption(CalmingVisualizationId.Leaffall, "Leaffall", Icons.Default.Eco),
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            scenes.chunked(2).forEach { rowScenes ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowScenes.forEach { scene ->
+                        SceneToggleChip(
+                            scene = scene,
+                            selected = enabledScenes.contains(scene.id.name),
+                            onClick = { onToggleScene(scene.id) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (rowScenes.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class SceneOption(
+    val id: CalmingVisualizationId,
+    val label: String,
+    val icon: ImageVector,
+)
+
+@Composable
+fun SceneToggleChip(
+    scene: SceneOption,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    }
+    val backgroundColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(backgroundColor)
+            .border(1.dp, borderColor, shape)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+    ) {
+        if (selected) {
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(18.dp),
+            )
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = scene.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+            )
+            Text(
+                text = scene.label,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+    }
+}
