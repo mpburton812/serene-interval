@@ -95,6 +95,8 @@ class AppDataExporter(
             put("enabledToolIds", JSONArray(toolkit.enabledToolIds.map { it.name }))
             put("proactiveOrder", JSONArray(toolkit.proactiveOrder.map { it.name }))
             put("reactiveOrder", JSONArray(toolkit.reactiveOrder.map { it.name }))
+            put("heartsProactiveOrder", JSONArray(toolkit.heartsProactiveOrder.map { it.name }))
+            put("heartsReactiveOrder", JSONArray(toolkit.heartsReactiveOrder.map { it.name }))
             put("usageCounts", JSONObject().apply {
                 toolkit.usageCounts.forEach { (id, count) ->
                     put(id.name, count)

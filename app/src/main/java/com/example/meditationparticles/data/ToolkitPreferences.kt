@@ -2,6 +2,7 @@ package com.example.meditationparticles.data
 
 import android.content.Context
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,8 @@ data class ToolkitPrefsSnapshot(
     val enabledToolIds: Set<ToolkitToolId>,
     val proactiveOrder: List<ToolkitToolId>,
     val reactiveOrder: List<ToolkitToolId>,
+    val heartsProactiveOrder: List<ToolkitToolId>,
+    val heartsReactiveOrder: List<ToolkitToolId>,
     val usageCounts: Map<ToolkitToolId, Int> = emptyMap(),
 ) {
     val hasAnyToolEnabled: Boolean get() = enabledToolIds.isNotEmpty()
@@ -33,10 +36,22 @@ class ToolkitPreferences(context: Context) {
             proactiveOrder = readOrder(
                 key = KEY_PROACTIVE_ORDER,
                 category = ToolkitCategory.Proactive,
+                lane = ToolkitLane.Core,
             ),
             reactiveOrder = readOrder(
                 key = KEY_REACTIVE_ORDER,
                 category = ToolkitCategory.Reactive,
+                lane = ToolkitLane.Core,
+            ),
+            heartsProactiveOrder = readOrder(
+                key = KEY_HEARTS_PROACTIVE_ORDER,
+                category = ToolkitCategory.Proactive,
+                lane = ToolkitLane.Hearts,
+            ),
+            heartsReactiveOrder = readOrder(
+                key = KEY_HEARTS_REACTIVE_ORDER,
+                category = ToolkitCategory.Reactive,
+                lane = ToolkitLane.Hearts,
             ),
             usageCounts = readUsageCounts(),
         )
@@ -68,7 +83,7 @@ class ToolkitPreferences(context: Context) {
     }
 
     fun saveProactiveOrder(order: List<ToolkitToolId>) {
-        val normalized = ToolkitLayout.normalizeOrder(ToolkitCategory.Proactive, order)
+        val normalized = ToolkitLayout.normalizeOrder(ToolkitCategory.Proactive, ToolkitLane.Core, order)
         prefs.edit()
             .putString(KEY_PROACTIVE_ORDER, normalized.joinToString(",") { it.name })
             .apply()
@@ -76,11 +91,27 @@ class ToolkitPreferences(context: Context) {
     }
 
     fun saveReactiveOrder(order: List<ToolkitToolId>) {
-        val normalized = ToolkitLayout.normalizeOrder(ToolkitCategory.Reactive, order)
+        val normalized = ToolkitLayout.normalizeOrder(ToolkitCategory.Reactive, ToolkitLane.Core, order)
         prefs.edit()
             .putString(KEY_REACTIVE_ORDER, normalized.joinToString(",") { it.name })
             .apply()
         _snapshot.update { it.copy(reactiveOrder = normalized) }
+    }
+
+    fun saveHeartsProactiveOrder(order: List<ToolkitToolId>) {
+        val normalized = ToolkitLayout.normalizeOrder(ToolkitCategory.Proactive, ToolkitLane.Hearts, order)
+        prefs.edit()
+            .putString(KEY_HEARTS_PROACTIVE_ORDER, normalized.joinToString(",") { it.name })
+            .apply()
+        _snapshot.update { it.copy(heartsProactiveOrder = normalized) }
+    }
+
+    fun saveHeartsReactiveOrder(order: List<ToolkitToolId>) {
+        val normalized = ToolkitLayout.normalizeOrder(ToolkitCategory.Reactive, ToolkitLane.Hearts, order)
+        prefs.edit()
+            .putString(KEY_HEARTS_REACTIVE_ORDER, normalized.joinToString(",") { it.name })
+            .apply()
+        _snapshot.update { it.copy(heartsReactiveOrder = normalized) }
     }
 
     fun incrementUsageCount(toolId: ToolkitToolId) {
@@ -130,14 +161,14 @@ class ToolkitPreferences(context: Context) {
         }.toSet().ifEmpty { ToolkitLayout.defaultEnabledTools() }
     }
 
-    private fun readOrder(key: String, category: ToolkitCategory): List<ToolkitToolId> {
-        val raw = prefs.getString(key, null) ?: return ToolkitLayout.defaultOrder(category)
-        if (raw.isBlank()) return ToolkitLayout.defaultOrder(category)
+    private fun readOrder(key: String, category: ToolkitCategory, lane: ToolkitLane): List<ToolkitToolId> {
+        val raw = prefs.getString(key, null) ?: return ToolkitLayout.defaultOrder(category, lane)
+        if (raw.isBlank()) return ToolkitLayout.defaultOrder(category, lane)
         val parsed = raw.split(",")
             .mapNotNull { name ->
                 runCatching { ToolkitToolId.valueOf(name.trim()) }.getOrNull()
             }
-        return ToolkitLayout.normalizeOrder(category, parsed)
+        return ToolkitLayout.normalizeOrder(category, lane, parsed)
     }
 
     private fun readUsageCounts(): Map<ToolkitToolId, Int> {
@@ -171,6 +202,8 @@ class ToolkitPreferences(context: Context) {
         private const val KEY_ENABLED_TOOLS = "enabled_tool_ids"
         private const val KEY_PROACTIVE_ORDER = "proactive_order"
         private const val KEY_REACTIVE_ORDER = "reactive_order"
+        private const val KEY_HEARTS_PROACTIVE_ORDER = "hearts_proactive_order"
+        private const val KEY_HEARTS_REACTIVE_ORDER = "hearts_reactive_order"
         private const val KEY_USAGE_COUNTS = "tool_usage_counts"
     }
 }
