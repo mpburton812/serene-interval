@@ -12,6 +12,7 @@ import com.example.meditationparticles.domain.settings.ExperienceSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -41,7 +42,9 @@ class LivingTreeViewModel(application: Application) : AndroidViewModel(applicati
         selectedPerson,
     ) { snapshot, settings, selected, person ->
         buildUiState(snapshot.people, snapshot.tagById, settings, selected, person)
-    }.stateIn(
+    }
+        .catch { emit(LivingTreeUiState()) }
+        .stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         LivingTreeUiState(),

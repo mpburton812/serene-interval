@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 data class OneNotePrefsSnapshot(
     val syncEnabled: Boolean = false,
@@ -32,13 +31,14 @@ class OneNotePreferences(context: Context) {
     val snapshot: StateFlow<OneNotePrefsSnapshot> = _snapshot.asStateFlow()
 
     init {
-        store.ensureMigratedBlocking()
         scope.launch {
-            store.dataStore.data.collect { value ->
-                _snapshot.value = value
+            runCatching {
+                store.ensureMigrated()
+                store.dataStore.data.collect { value ->
+                    _snapshot.value = value
+                }
             }
         }
-        _snapshot.value = runBlocking(Dispatchers.IO) { store.read() }
     }
 
     fun load(): OneNotePrefsSnapshot = _snapshot.value
