@@ -164,13 +164,15 @@ fun SereneNavHost(
 
     LaunchedEffect(settings.onboardingCompleted) {
         if (!settings.onboardingCompleted) return@LaunchedEffect
-        val manager = AppGraph.autoBackup(context)
-        val prefs = AppGraph.autoBackupPreferences(context)
-        val snapshot = prefs.load()
-        val hasData = withContext(Dispatchers.IO) { manager.hasProtectableUserData() }
-        if (manager.shouldShowBackupPrompt(snapshot, hasData)) {
-            showBackupPrompt = true
-            prefs.markBackupPromptShown()
+        runCatching {
+            val manager = AppGraph.autoBackup(context)
+            val prefs = AppGraph.autoBackupPreferences(context)
+            val snapshot = prefs.load()
+            val hasData = withContext(Dispatchers.IO) { manager.hasProtectableUserData() }
+            if (manager.shouldShowBackupPrompt(snapshot, hasData)) {
+                showBackupPrompt = true
+                prefs.markBackupPromptShown()
+            }
         }
     }
 
