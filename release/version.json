@@ -1,8 +1,8 @@
 ﻿{
-  "versionCode": 29,
-  "versionName": "1.0.28",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.28/sway_meditation.apk",
-  "expectedSha256": "538b65b2e6c041f42901fb24111edc6b34ccfc84e3f6a037e75bcb9f3261e6db",
-  "releaseNotes": "Launch crash hotfix: backup prompt no longer closes Room database on startup.",
+  "versionCode": 30,
+  "versionName": "1.0.29",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.29/sway_meditation.apk",
+  "expectedSha256": "d9758fadae93d266408a0cbfafe0fabc2966919880596290bfa1210d87ae38f5",
+  "releaseNotes": "Launch crash hotfix: removed custom backup agent and startup backup work from v1.0.27. Journal DB now included in standard Android device backup.",
   "minVersionCode": 1
 }
