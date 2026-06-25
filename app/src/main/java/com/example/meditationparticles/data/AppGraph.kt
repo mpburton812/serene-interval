@@ -66,6 +66,37 @@ object AppGraph {
     @Volatile
     private var homeActivityRepository: HomeActivityRepository? = null
 
+    @Volatile
+    private var autoBackupPreferences: com.example.meditationparticles.data.backup.AutoBackupPreferences? = null
+
+    @Volatile
+    private var autoBackupManager: com.example.meditationparticles.data.backup.AutoBackupManager? = null
+
+    @Volatile
+    private var autoBackupScheduler: com.example.meditationparticles.data.backup.AutoBackupScheduler? = null
+
+    fun autoBackupPreferences(context: Context): com.example.meditationparticles.data.backup.AutoBackupPreferences =
+        autoBackupPreferences ?: synchronized(this) {
+            autoBackupPreferences ?: com.example.meditationparticles.data.backup.AutoBackupPreferences(
+                context.applicationContext,
+            ).also { autoBackupPreferences = it }
+        }
+
+    fun autoBackup(context: Context): com.example.meditationparticles.data.backup.AutoBackupManager =
+        autoBackupManager ?: synchronized(this) {
+            autoBackupManager ?: com.example.meditationparticles.data.backup.AutoBackupManager(
+                context.applicationContext,
+                autoBackupPreferences(context),
+            ).also { autoBackupManager = it }
+        }
+
+    fun autoBackupScheduler(context: Context): com.example.meditationparticles.data.backup.AutoBackupScheduler =
+        autoBackupScheduler ?: synchronized(this) {
+            autoBackupScheduler ?: com.example.meditationparticles.data.backup.AutoBackupScheduler(
+                context.applicationContext,
+            ).also { autoBackupScheduler = it }
+        }
+
     fun homeActivity(context: Context): HomeActivityRepository =
         homeActivityRepository ?: synchronized(this) {
             homeActivityRepository ?: HomeActivityRepository(
