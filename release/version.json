@@ -1,7 +1,8 @@
-{
-  "versionCode": 27,
-  "versionName": "1.0.26",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.26/sway_meditation.apk",
-  "expectedSha256": "f4f8d63e403ae715340374372841da76a3438f060a062e822d040f5d3f513b0a",
-  "releaseNotes": "Launch crash hotfix for Pixel/Android 15+: async OneNote prefs init, lazy tab loading, IO-thread startup DB work, and guarded Room flows."
+﻿{
+  "versionCode": 28,
+  "versionName": "1.0.27",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.27/sway_meditation.apk",
+  "expectedSha256": "440e2aa20390cc6b8638ae0767f645d2e6d5f7b6975f303ede8bf7c5b974aef6",
+  "releaseNotes": "Phase 2 landscape themes, Visual Sanctuary restore, and data protection: automatic folder backups, optional Google device backup, and first-run backup prompt.",
+  "minVersionCode": 1
 }
