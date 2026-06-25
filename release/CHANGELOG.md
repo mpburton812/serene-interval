@@ -2,9 +2,11 @@
 
 ## Unreleased
 
-### Launch crash hotfix (v2)
+## 1.0.26 - 2026-06-25
 
-- Remove main-thread blocking from OneNote preferences initialization (Tink/Keystore)
+### Launch crash hotfix (Pixel / Android 15+)
+
+- Remove main-thread blocking from OneNote preferences initialization
 - Load only the visible bottom-nav tab on launch instead of all tabs at once
 - Move startup database work off the main thread
 - Lazy-init OneNote sync in tab ViewModels; guard Room flows with catch
