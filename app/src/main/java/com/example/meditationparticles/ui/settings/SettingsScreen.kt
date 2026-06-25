@@ -217,7 +217,6 @@ fun SettingsScreen(
                 snapshot = autoBackupSnapshot,
                 isRunningBackup = settingsUiState.isRunningAutoBackup,
                 onAutoBackupEnabledChange = viewModel::setAutoBackupEnabled,
-                onCloudBackupEnabledChange = viewModel::setCloudBackupEnabled,
                 onFrequencySelected = viewModel::setAutoBackupFrequency,
                 onChooseFolder = { backupFolderLauncher.launch(null) },
                 onBackupNow = viewModel::runAutoBackupNow,
