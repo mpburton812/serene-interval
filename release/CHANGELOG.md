@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.0.29 - 2026-06-25
+
+### Launch crash hotfix (v1.0.27–1.0.28 follow-up)
+
+- Remove custom backup agent that could destabilize startup/restore after update
+- Remove startup backup prompt and main-thread backup scheduling
+- Include journal database in standard Android device backup (when system backup is on)
+- Defer WorkManager backup scheduling until 10s after app is running
+
 ## 1.0.28 - 2026-06-25
 
 ### Launch crash hotfix
