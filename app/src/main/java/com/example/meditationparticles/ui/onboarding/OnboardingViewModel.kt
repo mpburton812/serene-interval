@@ -20,9 +20,9 @@ import kotlinx.coroutines.launch
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppGraph.settings(application)
     private val quickStartPreferences = AppGraph.quickStart(application)
-    private val oneNotePreferences = AppGraph.oneNotePreferences(application)
-    private val oneNoteAuth = AppGraph.oneNoteAuth(application)
-    private val oneNoteSync = AppGraph.oneNoteSync(application)
+    private val oneNotePreferences by lazy { AppGraph.oneNotePreferences(application) }
+    private val oneNoteAuth by lazy { AppGraph.oneNoteAuth(application) }
+    private val oneNoteSync by lazy { AppGraph.oneNoteSync(application) }
     private val appContext = application.applicationContext
 
     private val toolkitPreferences = AppGraph.toolkit(application)
