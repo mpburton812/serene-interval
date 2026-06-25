@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.0.24 - 2026-06-25
+
+### Sway sanctuary walkthrough (Phase 1)
+
+- Paged onboarding: Welcome, Name, Appearance, Spaces, Quick Start, Toolkit, Review
+- Settings → Remodel your Sway (non-destructive; journals and history preserved)
+- Zero toolkit tools hides the Toolkit tab; re-enabling any tool restores it
+- HEARTS entries appear on home activity timeline when tools are disabled
+- User-facing branding renamed to Sway
+
 ## 1.0.23 - 2026-06-25
 
 ### Toolkit — HEARTS lane

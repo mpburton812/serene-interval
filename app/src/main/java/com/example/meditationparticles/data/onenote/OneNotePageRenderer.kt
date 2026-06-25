@@ -287,7 +287,7 @@ object OneNotePageRenderer {
 
     private fun StringBuilder.appendFooter(localEntryId: Long) {
         appendLine(
-            "<p><small>Synced from Serene Interval · Entry #$localEntryId</small></p>",
+            "<p><small>Synced from Sway · Entry #$localEntryId</small></p>",
         )
     }
 
