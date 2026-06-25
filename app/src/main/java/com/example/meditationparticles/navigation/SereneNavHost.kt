@@ -74,9 +74,6 @@ import com.example.meditationparticles.ui.toolkit.ToolkitScreen
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import com.example.meditationparticles.ui.visualizations.VisualizationsScreen
 import com.example.meditationparticles.ui.visualizations.VisualizationPlayerScreen
-import com.example.meditationparticles.ui.backup.BackupSetupPromptDialog
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 private val allBottomNavItems = listOf(
     BottomNavItem(SereneDestination.Home, "Home", Icons.Outlined.Home, Icons.Default.Home),
@@ -138,7 +135,6 @@ fun SereneNavHost(
     var quickStartBreathingPatternId by remember { mutableStateOf<String?>(null) }
     var quickStartToolkitToolId by remember { mutableStateOf<ToolkitToolId?>(null) }
     var quickStartReturnToHome by remember { mutableStateOf(false) }
-    var showBackupPrompt by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -160,34 +156,6 @@ fun SereneNavHost(
         if (resumeCount > 1 && isTabBackgroundRoute(currentRoute)) {
             tabBackgroundRotation.advance(settings.landscapeThemeId, settings.themeMode, isSystemDark)
         }
-    }
-
-    LaunchedEffect(settings.onboardingCompleted) {
-        if (!settings.onboardingCompleted) return@LaunchedEffect
-        runCatching {
-            val manager = AppGraph.autoBackup(context)
-            val prefs = AppGraph.autoBackupPreferences(context)
-            val snapshot = prefs.load()
-            val hasData = withContext(Dispatchers.IO) { manager.hasProtectableUserData() }
-            if (manager.shouldShowBackupPrompt(snapshot, hasData)) {
-                showBackupPrompt = true
-                prefs.markBackupPromptShown()
-            }
-        }
-    }
-
-    if (showBackupPrompt) {
-        BackupSetupPromptDialog(
-            onEnableBackup = {
-                showBackupPrompt = false
-                navController.navigate(SereneDestination.Settings.route)
-            },
-            onDismiss = { showBackupPrompt = false },
-            onDismissPermanently = {
-                showBackupPrompt = false
-                AppGraph.autoBackupPreferences(context).dismissBackupPromptPermanently()
-            },
-        )
     }
 
     LaunchedEffect(pendingFutureSelfMessageId, settings.onboardingCompleted) {
