@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
+import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
@@ -47,6 +48,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
     fun setThemeMode(mode: ThemeMode) {
         _draft.update { it.copy(themeMode = mode) }
+    }
+
+    fun setLandscapeTheme(id: SanctuaryLandscapeThemeId) {
+        _draft.update { it.copy(landscapeThemeId = id) }
     }
 
     fun setEnableBreathing(enabled: Boolean) {

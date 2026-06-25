@@ -37,6 +37,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.export.AppDataExporter
+import com.example.meditationparticles.ui.settings.AutoBackupSection
+import com.example.meditationparticles.ui.settings.LandscapeThemeSection
+import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import java.io.IOException
@@ -56,6 +59,7 @@ fun SettingsScreen(
     val quickStartTargets by viewModel.quickStartTargets.collectAsState()
     val enabledToolkitTools by viewModel.enabledToolkitTools.collectAsState()
     val settingsUiState by viewModel.uiState.collectAsState()
+    val autoBackupSnapshot by viewModel.autoBackupSnapshot.collectAsState()
     val oneNotePrefs by viewModel.oneNotePrefs.collectAsState()
     val oneNoteUiState by viewModel.oneNoteUiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
@@ -81,6 +85,14 @@ fun SettingsScreen(
             viewModel.reportImportError(
                 error.message ?: "Could not read selected file.",
             )
+        }
+    }
+
+    val backupFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.onBackupFolderSelected(uri)
         }
     }
 
@@ -172,6 +184,11 @@ fun SettingsScreen(
                 onThemeModeSelected = viewModel::setThemeMode,
             )
 
+            LandscapeThemeSection(
+                settings = settings,
+                onLandscapeThemeSelected = viewModel::setLandscapeTheme,
+            )
+
             ExperienceSection(
                 settings = settings,
                 onBreathingChanged = viewModel::setEnableBreathing,
@@ -179,7 +196,15 @@ fun SettingsScreen(
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onLivingTreeChanged = viewModel::setEnableLivingTree,
+                onVisualsChanged = viewModel::setEnableVisuals,
             )
+
+            if (settings.enableVisuals) {
+                VisualSanctuarySection(
+                    enabledScenes = settings.enabledScenes,
+                    onToggleScene = viewModel::toggleScene,
+                )
+            }
 
             QuickStartSelectionSection(
                 settings = settings,
@@ -188,11 +213,28 @@ fun SettingsScreen(
                 onToggle = viewModel::toggleQuickStart,
             )
 
+            AutoBackupSection(
+                snapshot = autoBackupSnapshot,
+                isRunningBackup = settingsUiState.isRunningAutoBackup,
+                onAutoBackupEnabledChange = viewModel::setAutoBackupEnabled,
+                onCloudBackupEnabledChange = viewModel::setCloudBackupEnabled,
+                onFrequencySelected = viewModel::setAutoBackupFrequency,
+                onChooseFolder = { backupFolderLauncher.launch(null) },
+                onBackupNow = viewModel::runAutoBackupNow,
+            )
+            settingsUiState.autoBackupError?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
             Column(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
                 Text(
-                    text = "Your data",
+                    text = "Manual export",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )

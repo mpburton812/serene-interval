@@ -2,6 +2,8 @@ package com.example.meditationparticles.ui.settings
 
 import android.app.Activity
 import android.app.Application
+import android.app.backup.BackupManager
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
@@ -13,6 +15,8 @@ import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.data.export.AppDataImporter
 import com.example.meditationparticles.data.export.ImportParseException
+import com.example.meditationparticles.data.backup.AutoBackupSnapshot
+import com.example.meditationparticles.domain.backup.AutoBackupFrequency
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -20,6 +24,7 @@ import kotlinx.coroutines.flow.map
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
+import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,6 +42,8 @@ data class SettingsUiState(
     val importSummary: String? = null,
     val importError: String? = null,
     val showImportDialog: Boolean = false,
+    val isRunningAutoBackup: Boolean = false,
+    val autoBackupError: String? = null,
 )
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -47,6 +54,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val exporter = AppDataExporter(application)
     private val importer = AppDataImporter(application)
+    private val autoBackupPreferences = AppGraph.autoBackupPreferences(application)
+    private val autoBackupManager = AppGraph.autoBackup(application)
+    private val autoBackupScheduler = AppGraph.autoBackupScheduler(application)
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -71,6 +81,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 SharingStarted.WhileSubscribed(5_000),
                 ToolkitLayout.defaultEnabledTools(),
             )
+
+    val autoBackupSnapshot: StateFlow<AutoBackupSnapshot> = autoBackupPreferences.snapshot
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AutoBackupSnapshot())
 
     init {
         quickStartPreferences.load(preferences.settings.value)
@@ -109,6 +122,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setThemeMode(mode: ThemeMode) {
         preferences.update { it.copy(themeMode = mode) }
+    }
+
+    fun setLandscapeTheme(id: SanctuaryLandscapeThemeId) {
+        preferences.update { it.copy(landscapeThemeId = id) }
     }
 
     fun setEnableBreathing(enabled: Boolean) {
@@ -159,6 +176,68 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun resetOnboarding() {
         preferences.update { it.copy(onboardingCompleted = false) }
+    }
+
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        val snapshot = autoBackupPreferences.load()
+        if (enabled && snapshot.destinationTreeUri.isNullOrBlank()) {
+            _uiState.value = _uiState.value.copy(
+                autoBackupError = "Choose a backup folder before enabling automatic backup.",
+            )
+            return
+        }
+        autoBackupPreferences.update { it.copy(autoBackupEnabled = enabled) }
+        applyAutoBackupSchedule()
+        _uiState.value = _uiState.value.copy(autoBackupError = null)
+    }
+
+    fun setCloudBackupEnabled(enabled: Boolean) {
+        autoBackupPreferences.update { it.copy(cloudBackupEnabled = enabled) }
+        BackupManager(getApplication()).dataChanged()
+    }
+
+    fun setAutoBackupFrequency(frequency: AutoBackupFrequency) {
+        autoBackupPreferences.update { it.copy(frequency = frequency) }
+        applyAutoBackupSchedule()
+    }
+
+    fun onBackupFolderSelected(uri: Uri) {
+        val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+            android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        getApplication<Application>().contentResolver.takePersistableUriPermission(uri, flags)
+        autoBackupPreferences.update {
+            it.copy(
+                destinationTreeUri = uri.toString(),
+                autoBackupEnabled = true,
+            )
+        }
+        applyAutoBackupSchedule()
+        runAutoBackupNow()
+        _uiState.value = _uiState.value.copy(autoBackupError = null)
+    }
+
+    fun runAutoBackupNow() {
+        if (_uiState.value.isRunningAutoBackup) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRunningAutoBackup = true, autoBackupError = null)
+            val result = autoBackupManager.runBackup(force = true)
+            _uiState.value = _uiState.value.copy(
+                isRunningAutoBackup = false,
+                autoBackupError = if (result.success) null else result.message,
+            )
+        }
+    }
+
+    fun dismissBackupPromptPermanently() {
+        autoBackupPreferences.dismissBackupPromptPermanently()
+    }
+
+    fun clearAutoBackupStatus() {
+        _uiState.value = _uiState.value.copy(autoBackupError = null)
+    }
+
+    private fun applyAutoBackupSchedule() {
+        autoBackupScheduler.apply(autoBackupPreferences.load())
     }
 
     fun prepareExport() {

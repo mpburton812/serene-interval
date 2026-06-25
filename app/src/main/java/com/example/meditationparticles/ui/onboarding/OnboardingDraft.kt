@@ -3,6 +3,7 @@ package com.example.meditationparticles.ui.onboarding
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -12,6 +13,7 @@ data class OnboardingDraft(
     val preferredName: String = "",
     val sanctuaryName: String = "",
     val themeMode: ThemeMode = ThemeMode.Light,
+    val landscapeThemeId: SanctuaryLandscapeThemeId = SanctuaryLandscapeThemeId.Beach,
     val enableBreathing: Boolean = true,
     val enableTimer: Boolean = true,
     val enableAffirmations: Boolean = true,
@@ -45,6 +47,7 @@ data class OnboardingDraft(
         futureSelfSchedulingAvailable: Boolean = true,
     ): ExperienceSettings = ExperienceSettings(
         themeMode = themeMode,
+        landscapeThemeId = landscapeThemeId,
         preferredName = preferredName.trim(),
         sanctuaryName = sanctuaryName.trim(),
         onboardingCompleted = true,
@@ -76,6 +79,7 @@ data class OnboardingDraft(
                 } else {
                     settings.themeMode
                 },
+                landscapeThemeId = settings.landscapeThemeId,
                 enableBreathing = settings.enableBreathing,
                 enableTimer = settings.enableTimer,
                 enableAffirmations = settings.enableAffirmations,
