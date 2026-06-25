@@ -24,7 +24,7 @@ data class ExperienceSettings(
 
     val displayName: String get() = preferredName.trim().ifBlank { "there" }
 
-    val sanctuaryTitle: String get() = sanctuaryName.trim().ifBlank { "Your Sanctuary" }
+    val sanctuaryTitle: String get() = sanctuaryName.trim().ifBlank { "Your Sway" }
 
     fun withToolToggle(transform: (ExperienceSettings) -> ExperienceSettings): ExperienceSettings {
         val next = transform(this)

@@ -87,37 +87,57 @@ fun OnboardingScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(SereneSpacing.containerMargin),
+            .background(MaterialTheme.colorScheme.background),
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
     ) {
-        Spacer(modifier = Modifier.height(SereneSpacing.stackMd))
-
-        OnboardingHeader(step = draft.step)
+        if (draft.step != OnboardingStep.Customization) {
+            Spacer(modifier = Modifier.height(SereneSpacing.stackMd))
+            OnboardingHeader(step = draft.step)
+        }
 
         when (draft.step) {
             OnboardingStep.Customization -> {
-                OnboardingCustomizationStep(
-                    draft = draft,
-                    settingsPreview = settingsPreview,
-                    viewModel = viewModel,
-                    onContinue = {
-                        if (viewModel.continueFromCustomization()) onComplete()
+                val walkthroughViewModel: com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughViewModel =
+                    androidx.lifecycle.viewmodel.compose.viewModel()
+                com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughScreen(
+                    mode = com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughMode.FirstVisit,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = SereneSpacing.containerMargin),
+                    viewModel = walkthroughViewModel,
+                    onFinished = {
+                        viewModel.applyWalkthroughDraft(walkthroughViewModel.draft.value)
+                        if (viewModel.continueFromWalkthrough()) {
+                            onComplete()
+                        }
                     },
+                    onBackOut = {},
                 )
             }
             OnboardingStep.ExactAlarms -> {
-                OnboardingExactAlarmsStep(
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = SereneSpacing.containerMargin),
+                ) {
+                    OnboardingExactAlarmsStep(
                     permissionState = draft.permissionState,
                     onOpenSettings = viewModel::openExactAlarmSettings,
                     onContinue = {
                         if (viewModel.continueFromExactAlarms()) onComplete()
                     },
                 )
+                }
             }
             OnboardingStep.Notifications -> {
-                OnboardingNotificationsStep(
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = SereneSpacing.containerMargin),
+                ) {
+                    OnboardingNotificationsStep(
                     permissionState = draft.permissionState,
                     onRequestPermission = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -130,10 +150,17 @@ fun OnboardingScreen(
                         if (viewModel.continueFromNotifications()) onComplete()
                     },
                 )
+                }
             }
             OnboardingStep.OneNoteConnect -> {
-                val activity = LocalActivity.current as? ComponentActivity
-                OnboardingOneNoteConnectStep(
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = SereneSpacing.containerMargin),
+                ) {
+                    val activity = LocalActivity.current as? ComponentActivity
+                    OnboardingOneNoteConnectStep(
                     onConnect = {
                         activity?.let { host ->
                             viewModel.connectOneNote(host) { connected ->
@@ -148,6 +175,7 @@ fun OnboardingScreen(
                         if (viewModel.continueFromOneNoteConnect()) onComplete()
                     },
                 )
+                }
             }
         }
     }
@@ -157,8 +185,7 @@ fun OnboardingScreen(
 private fun OnboardingHeader(step: OnboardingStep) {
     val appName = stringResource(R.string.app_name)
     val (title, subtitle) = when (step) {
-        OnboardingStep.Customization -> "Let's Build Your Sanctuary" to
-            "Let's shape a space that feels uniquely yours."
+        OnboardingStep.Customization -> "" to ""
         OnboardingStep.ExactAlarms -> "Alarms & Reminders" to
             "Scheduled features need permission to deliver on time."
         OnboardingStep.Notifications -> "Notifications" to
@@ -411,7 +438,7 @@ private fun OnboardingOneNoteConnectStep(
 ) {
     if (!BuildConfig.ONENOTE_SYNC_AVAILABLE) {
         OnboardingPrimaryButton(
-            text = "Enter Your Sanctuary",
+            text = "Enter your Sway",
             enabled = true,
             onClick = onSkip,
         )
@@ -431,7 +458,7 @@ private fun OnboardingOneNoteConnectStep(
             )
             Text(
                 text = "When connected, new toolkit journal entries sync to a OneNote section " +
-                    "named \"Serene Interval\". Audio stays in the app only.",
+                    "named \"Sway\". Audio stays in the app only.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -445,7 +472,7 @@ private fun OnboardingOneNoteConnectStep(
     }
 
     OnboardingPrimaryButton(
-        text = "Enter Your Sanctuary",
+        text = "Enter your Sway",
         enabled = true,
         onClick = onSkip,
     )
