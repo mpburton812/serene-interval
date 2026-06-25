@@ -17,6 +17,15 @@ enum class ToolkitToolId {
     Refactoring,
     NonViolentCommunication,
     RelocateCenterOfGravity,
+    DelightDeposit,
+    AttunementMap,
+    RepairReconnect,
+    SecureSelfCheck,
+    PresenceTimer,
+    AppreciationRitual,
+    NeedsBeforeNegotiation,
+    AttachmentStorySnapshot,
+    HeartsFlowerPartners,
 }
 
 data class ToolkitTool(
@@ -24,6 +33,7 @@ data class ToolkitTool(
     val title: String,
     val description: String,
     val category: ToolkitCategory,
+    val lane: ToolkitLane = ToolkitLane.Core,
     val steps: List<String>,
 )
 
@@ -151,12 +161,91 @@ object ToolkitCatalog {
                 "What am I feeling in my body right now? What do I need in this moment to feel slightly more grounded?",
             ),
         ),
+        ToolkitTool(
+            id = ToolkitToolId.DelightDeposit,
+            title = "Delight Deposit",
+            description = "Name specific joy and how you'll express appreciation.",
+            category = ToolkitCategory.Proactive,
+            lane = ToolkitLane.Hearts,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.AttunementMap,
+            title = "Attunement Map",
+            description = "Map observations, hypotheses, and curious questions before speaking.",
+            category = ToolkitCategory.Proactive,
+            lane = ToolkitLane.Hearts,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.SecureSelfCheck,
+            title = "Secure Self Check",
+            description = "Offer yourself the comfort and care you need right now.",
+            category = ToolkitCategory.Proactive,
+            lane = ToolkitLane.Hearts,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.AppreciationRitual,
+            title = "Appreciation Ritual",
+            description = "Weekly practice of naming three delights about a connection.",
+            category = ToolkitCategory.Proactive,
+            lane = ToolkitLane.Hearts,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.AttachmentStorySnapshot,
+            title = "Attachment Story Snapshot",
+            description = "Gently re-author your attachment history with compassion.",
+            category = ToolkitCategory.Proactive,
+            lane = ToolkitLane.Hearts,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.HeartsFlowerPartners,
+            title = "Partner HEARTS Touchpoints",
+            description = "See your Flower partners and recent HEARTS practices with them.",
+            category = ToolkitCategory.Proactive,
+            lane = ToolkitLane.Hearts,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.RepairReconnect,
+            title = "Repair & Reconnect",
+            description = "Turn toward reconnection after conflict or distance.",
+            category = ToolkitCategory.Reactive,
+            lane = ToolkitLane.Hearts,
+            steps = emptyList(),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.PresenceTimer,
+            title = "Presence Timer",
+            description = "A brief reset to be fully here with yourself or someone else.",
+            category = ToolkitCategory.Reactive,
+            lane = ToolkitLane.Hearts,
+            steps = listOf(
+                "Set your device aside or turn it face-down.",
+                "Take one slow breath. Feel your feet and your seat.",
+                "Ask: Who am I with right now — or who is on my heart?",
+                "Choose one sentence of presence you can offer in the next moment.",
+            ),
+        ),
+        ToolkitTool(
+            id = ToolkitToolId.NeedsBeforeNegotiation,
+            title = "Needs Before Negotiation",
+            description = "Clarify needs before a hard conversation.",
+            category = ToolkitCategory.Reactive,
+            lane = ToolkitLane.Hearts,
+            steps = emptyList(),
+        ),
     )
 
     fun byId(id: ToolkitToolId): ToolkitTool? = all.find { it.id == id }
 
-    fun byCategory(category: ToolkitCategory): List<ToolkitTool> =
-        all.filter { it.category == category }
+    fun byCategory(category: ToolkitCategory, lane: ToolkitLane = ToolkitLane.Core): List<ToolkitTool> =
+        all.filter { it.category == category && it.lane == lane }
+
+    fun byLane(lane: ToolkitLane): List<ToolkitTool> = all.filter { it.lane == lane }
 
     fun randomReactive(): ToolkitTool? =
         byCategory(ToolkitCategory.Reactive).randomOrNull()

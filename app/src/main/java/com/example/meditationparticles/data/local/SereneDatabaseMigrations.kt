@@ -521,6 +521,34 @@ private class Migration20To21 : Migration(20, 21) {
     }
 }
 
+private class Migration21To22 : Migration(21, 22) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS hearts_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                toolId TEXT NOT NULL,
+                personId INTEGER,
+                personName TEXT NOT NULL,
+                step1 TEXT NOT NULL,
+                step2 TEXT NOT NULL,
+                step3 TEXT NOT NULL,
+                step4 TEXT NOT NULL,
+                step5 TEXT NOT NULL,
+                moodLevel INTEGER,
+                createdAt INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_hearts_entries_personId
+            ON hearts_entries (personId)
+            """.trimIndent(),
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -542,4 +570,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration18To19(),
     Migration19To20(),
     Migration20To21(),
+    Migration21To22(),
 )

@@ -31,13 +31,20 @@ import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.material.icons.filled.Healing
+import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,6 +68,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.BuildConfig
+import com.example.meditationparticles.data.local.HeartsEntryEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
@@ -68,8 +76,10 @@ import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
 import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
+import com.example.meditationparticles.domain.toolkit.HeartsToolConfig
 import com.example.meditationparticles.navigation.PendingToolkitNavigation
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
@@ -146,6 +156,12 @@ fun AnxietyToolkitTab(
             nvcRequest = state.nvcRequest,
             nvcEntries = state.nvcEntries,
             openedNvcEntry = state.openedNvcEntry,
+            heartsStepIndex = state.heartsStepIndex,
+            heartsSteps = state.heartsSteps,
+            heartsPersonName = state.heartsPersonName,
+            heartsEntries = state.heartsEntries,
+            openedHeartsEntry = state.openedHeartsEntry,
+            heartsPartnerSummaries = state.heartsPartnerSummaries,
             onThoughtDumpChange = viewModel::updateThoughtDump,
             onDraftMoodLevelChange = viewModel::updateDraftMoodLevel,
             onAnxietyLogChange = viewModel::updateAnxietyLog,
@@ -208,6 +224,25 @@ fun AnxietyToolkitTab(
             onNextNvcStep = viewModel::nextNvcStep,
             onPreviousNvcStep = viewModel::previousNvcStep,
             onNvcStepChange = viewModel::goToNvcStep,
+            onHeartsPersonNameChange = viewModel::updateHeartsPersonName,
+            onHeartsStepChange = viewModel::updateHeartsStep,
+            onSaveHeartsEntry = { viewModel.saveHeartsEntry(onComplete = completeToolFlow) },
+            onClearHeartsDraft = viewModel::clearHeartsDraft,
+            onOpenHeartsEntry = viewModel::openHeartsEntry,
+            onDeleteHeartsEntry = viewModel::deleteHeartsEntry,
+            onCloseHeartsEntry = viewModel::closeHeartsEntry,
+            onNextHeartsStep = viewModel::nextHeartsStep,
+            onPreviousHeartsStep = viewModel::previousHeartsStep,
+            onGoToHeartsStep = viewModel::goToHeartsStep,
+            onOpenDelightForPartner = { partner ->
+                viewModel.openHeartsToolForPartner(ToolkitToolId.DelightDeposit, partner)
+            },
+            onOpenAttunementForPartner = { partner ->
+                viewModel.openHeartsToolForPartner(ToolkitToolId.AttunementMap, partner)
+            },
+            onOpenRepairForPartner = { partner ->
+                viewModel.openHeartsToolForPartner(ToolkitToolId.RepairReconnect, partner)
+            },
             onNext = viewModel::nextStep,
             onPrevious = viewModel::previousStep,
             onClose = viewModel::closeTool,
@@ -247,6 +282,25 @@ fun AnxietyToolkitTab(
             tools = state.reactiveTools,
             onToolClick = viewModel::openTool,
             onReorder = viewModel::reorderReactiveTool,
+            accentBorder = true,
+        )
+
+        ToolkitSection(
+            title = "HEARTS · Proactive",
+            icon = Icons.Default.Favorite,
+            titleColor = MaterialTheme.colorScheme.primary,
+            tools = state.heartsProactiveTools,
+            onToolClick = viewModel::openTool,
+            onReorder = viewModel::reorderHeartsProactiveTool,
+        )
+
+        ToolkitSection(
+            title = "HEARTS · Reactive",
+            icon = Icons.Default.Healing,
+            titleColor = SereneTertiary,
+            tools = state.heartsReactiveTools,
+            onToolClick = viewModel::openTool,
+            onReorder = viewModel::reorderHeartsReactiveTool,
             accentBorder = true,
         )
     }
@@ -481,6 +535,12 @@ private fun ToolDetailScreen(
     nvcRequest: String,
     nvcEntries: List<NvcEntryEntity>,
     openedNvcEntry: NvcEntryEntity?,
+    heartsStepIndex: Int,
+    heartsSteps: List<String>,
+    heartsPersonName: String,
+    heartsEntries: List<HeartsEntryEntity>,
+    openedHeartsEntry: HeartsEntryEntity?,
+    heartsPartnerSummaries: List<HeartsPartnerSummary>,
     onThoughtDumpChange: (String) -> Unit,
     onDraftMoodLevelChange: (Int?) -> Unit,
     onAnxietyLogChange: (String) -> Unit,
@@ -531,6 +591,19 @@ private fun ToolDetailScreen(
     onNextNvcStep: () -> Unit,
     onPreviousNvcStep: () -> Unit,
     onNvcStepChange: (Int) -> Unit,
+    onHeartsPersonNameChange: (String) -> Unit,
+    onHeartsStepChange: (Int, String) -> Unit,
+    onSaveHeartsEntry: () -> Unit,
+    onClearHeartsDraft: () -> Unit,
+    onOpenHeartsEntry: (HeartsEntryEntity) -> Unit,
+    onDeleteHeartsEntry: (HeartsEntryEntity) -> Unit,
+    onCloseHeartsEntry: () -> Unit,
+    onNextHeartsStep: () -> Unit,
+    onPreviousHeartsStep: () -> Unit,
+    onGoToHeartsStep: (Int) -> Unit,
+    onOpenDelightForPartner: (HeartsPartnerSummary) -> Unit,
+    onOpenAttunementForPartner: (HeartsPartnerSummary) -> Unit,
+    onOpenRepairForPartner: (HeartsPartnerSummary) -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
@@ -715,6 +788,36 @@ private fun ToolDetailScreen(
                     },
                 )
             }
+            ToolkitToolId.HeartsFlowerPartners -> {
+                HeartsFlowerPartnersContent(
+                    partners = heartsPartnerSummaries,
+                    onOpenDelightForPartner = onOpenDelightForPartner,
+                    onOpenAttunementForPartner = onOpenAttunementForPartner,
+                    onOpenRepairForPartner = onOpenRepairForPartner,
+                )
+            }
+            in HeartsToolConfig.journalToolIds() -> {
+                HeartsToolkitContent(
+                    tool = tool,
+                    stepIndex = heartsStepIndex,
+                    steps = heartsSteps,
+                    personName = heartsPersonName,
+                    selectedMoodLevel = draftMoodLevel,
+                    entries = heartsEntries,
+                    openedEntry = openedHeartsEntry,
+                    onPersonNameChange = onHeartsPersonNameChange,
+                    onMoodLevelChange = onDraftMoodLevelChange,
+                    onStepChange = onHeartsStepChange,
+                    onGoToStep = onGoToHeartsStep,
+                    onPrevious = onPreviousHeartsStep,
+                    onNext = onNextHeartsStep,
+                    onSave = onSaveHeartsEntry,
+                    onClear = onClearHeartsDraft,
+                    onOpenEntry = onOpenHeartsEntry,
+                    onDeleteEntry = onDeleteHeartsEntry,
+                    onCloseEntry = onCloseHeartsEntry,
+                )
+            }
             else -> {
                 GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
                     Column(
@@ -789,24 +892,39 @@ private fun toolIcon(id: ToolkitToolId): ImageVector = when (id) {
     ToolkitToolId.Refactoring -> Icons.Default.Psychology
     ToolkitToolId.NonViolentCommunication -> Icons.Default.Forum
     ToolkitToolId.RelocateCenterOfGravity -> Icons.Default.MyLocation
+    ToolkitToolId.DelightDeposit -> Icons.Default.Star
+    ToolkitToolId.AttunementMap -> Icons.Default.RecordVoiceOver
+    ToolkitToolId.RepairReconnect -> Icons.Default.Handshake
+    ToolkitToolId.SecureSelfCheck -> Icons.Default.SelfImprovement
+    ToolkitToolId.PresenceTimer -> Icons.Default.Timer
+    ToolkitToolId.AppreciationRitual -> Icons.Default.Favorite
+    ToolkitToolId.NeedsBeforeNegotiation -> Icons.Default.Psychology
+    ToolkitToolId.AttachmentStorySnapshot -> Icons.Default.EditNote
+    ToolkitToolId.HeartsFlowerPartners -> Icons.Default.LocalFlorist
 }
 
 @Composable
 private fun toolIconBackground(tool: ToolkitTool): androidx.compose.ui.graphics.Color =
-    when (tool.category) {
-        ToolkitCategory.Proactive -> when (tool.id) {
-            ToolkitToolId.BoundarySetting -> SerenePrimaryContainer.copy(alpha = 0.2f)
-            else -> SereneSecondaryContainer.copy(alpha = 0.45f)
+    when (tool.lane) {
+        ToolkitLane.Hearts -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        ToolkitLane.Core -> when (tool.category) {
+            ToolkitCategory.Proactive -> when (tool.id) {
+                ToolkitToolId.BoundarySetting -> SerenePrimaryContainer.copy(alpha = 0.2f)
+                else -> SereneSecondaryContainer.copy(alpha = 0.45f)
+            }
+            ToolkitCategory.Reactive -> SereneTertiaryContainer.copy(alpha = 0.25f)
         }
-        ToolkitCategory.Reactive -> SereneTertiaryContainer.copy(alpha = 0.25f)
     }
 
 @Composable
 private fun toolIconTint(tool: ToolkitTool): androidx.compose.ui.graphics.Color =
-    when (tool.category) {
-        ToolkitCategory.Proactive -> when (tool.id) {
-            ToolkitToolId.BoundarySetting -> MaterialTheme.colorScheme.primary
-            else -> MaterialTheme.colorScheme.secondary
+    when (tool.lane) {
+        ToolkitLane.Hearts -> MaterialTheme.colorScheme.primary
+        ToolkitLane.Core -> when (tool.category) {
+            ToolkitCategory.Proactive -> when (tool.id) {
+                ToolkitToolId.BoundarySetting -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.secondary
+            }
+            ToolkitCategory.Reactive -> SereneTertiary
         }
-        ToolkitCategory.Reactive -> SereneTertiary
     }

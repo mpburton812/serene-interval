@@ -47,6 +47,7 @@ import com.example.meditationparticles.R
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
@@ -236,8 +237,10 @@ private fun OnboardingCustomizationStep(
         if (draft.enableToolkit) {
             OnboardingSectionCard {
                 ToolkitToolSelectionContent(
-                    proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
-                    reactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
+                    proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Core) +
+                        ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Hearts),
+                    reactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Core) +
+                        ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Hearts),
                     enabledToolIds = draft.enabledToolkitTools,
                     onToggleTool = viewModel::toggleToolkitTool,
                 )

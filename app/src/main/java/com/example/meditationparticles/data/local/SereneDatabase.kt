@@ -16,6 +16,7 @@ import androidx.room.RoomDatabase
         RefactoringEntryEntity::class,
         CenterOfGravityEntryEntity::class,
         NvcEntryEntity::class,
+        HeartsEntryEntity::class,
         OneNoteSyncMappingEntity::class,
         OneNoteSyncQueueEntity::class,
         MoodEntryEntity::class,
@@ -23,7 +24,7 @@ import androidx.room.RoomDatabase
         LivingTreePersonEntity::class,
         LivingTreePersonTagCrossRef::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -36,6 +37,7 @@ abstract class SereneDatabase : RoomDatabase() {
     abstract fun refactoringEntryDao(): RefactoringEntryDao
     abstract fun centerOfGravityEntryDao(): CenterOfGravityEntryDao
     abstract fun nvcEntryDao(): NvcEntryDao
+    abstract fun heartsEntryDao(): HeartsEntryDao
     abstract fun oneNoteSyncDao(): OneNoteSyncDao
     abstract fun moodEntryDao(): MoodEntryDao
     abstract fun livingTreeTagDao(): LivingTreeTagDao
