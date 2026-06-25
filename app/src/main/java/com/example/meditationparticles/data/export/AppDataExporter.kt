@@ -77,6 +77,7 @@ class AppDataExporter(
     ): JSONObject = JSONObject().apply {
         put("experienceSettings", JSONObject().apply {
             put("themeMode", settings.themeMode.name)
+            put("landscapeThemeId", settings.landscapeThemeId.name)
             put("preferredName", settings.preferredName)
             put("sanctuaryName", settings.sanctuaryName)
             put("onboardingCompleted", settings.onboardingCompleted)
