@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import com.example.meditationparticles.data.export.AppDataExporter
-import com.example.meditationparticles.data.local.SereneDatabase
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -59,38 +58,9 @@ class AutoBackupManager(
         }
     }
 
-    suspend fun hasProtectableUserData(): Boolean = withContext(Dispatchers.IO) {
-        runCatching {
-            val sqlite = SereneDatabase.getInstance(context).openHelper.readableDatabase
-            sqlite.query(USER_DATA_EXISTS_SQL).use { cursor ->
-                cursor.moveToFirst() && cursor.getInt(0) == 1
-            }
-        }.getOrDefault(false)
-    }
-
-    fun shouldShowBackupPrompt(snapshot: AutoBackupSnapshot, hasUserData: Boolean): Boolean =
-        hasUserData &&
-            !snapshot.autoBackupEnabled &&
-            !snapshot.backupPromptDismissed &&
-            !snapshot.backupPromptShown
-
     companion object {
         private const val MAX_RETAINED_BACKUPS = 14
         private val FILE_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmm", Locale.US)
-
-        private const val USER_DATA_EXISTS_SQL = """
-            SELECT
-                EXISTS(SELECT 1 FROM mood_entries LIMIT 1)
-                OR EXISTS(SELECT 1 FROM thought_dumps LIMIT 1)
-                OR EXISTS(SELECT 1 FROM affirmations LIMIT 1)
-                OR EXISTS(SELECT 1 FROM future_self_messages LIMIT 1)
-                OR EXISTS(SELECT 1 FROM refactoring_entries LIMIT 1)
-                OR EXISTS(SELECT 1 FROM center_of_gravity_entries LIMIT 1)
-                OR EXISTS(SELECT 1 FROM nvc_entries LIMIT 1)
-                OR EXISTS(SELECT 1 FROM meditation_reflections LIMIT 1)
-                OR EXISTS(SELECT 1 FROM hearts_entries LIMIT 1)
-                OR EXISTS(SELECT 1 FROM living_tree_people LIMIT 1)
-        """
 
         fun buildBackupFileName(now: Instant = Instant.now()): String {
             val stamp = FILE_NAME_FORMATTER.format(now.atZone(ZoneId.systemDefault()))

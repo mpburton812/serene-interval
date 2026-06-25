@@ -2,7 +2,6 @@ package com.example.meditationparticles.ui.settings
 
 import android.app.Activity
 import android.app.Application
-import android.app.backup.BackupManager
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -191,11 +190,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(autoBackupError = null)
     }
 
-    fun setCloudBackupEnabled(enabled: Boolean) {
-        autoBackupPreferences.update { it.copy(cloudBackupEnabled = enabled) }
-        BackupManager(getApplication()).dataChanged()
-    }
-
     fun setAutoBackupFrequency(frequency: AutoBackupFrequency) {
         autoBackupPreferences.update { it.copy(frequency = frequency) }
         applyAutoBackupSchedule()
@@ -226,10 +220,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 autoBackupError = if (result.success) null else result.message,
             )
         }
-    }
-
-    fun dismissBackupPromptPermanently() {
-        autoBackupPreferences.dismissBackupPromptPermanently()
     }
 
     fun clearAutoBackupStatus() {
