@@ -52,9 +52,11 @@ import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
+import com.example.meditationparticles.ui.settings.LandscapeThemeSection
 import com.example.meditationparticles.ui.settings.NamingSection
 import com.example.meditationparticles.ui.settings.QuickStartSelectionSection
 import com.example.meditationparticles.ui.settings.ThemeSection
+import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughMode
 import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughScreen
@@ -242,6 +244,10 @@ private fun OnboardingCustomizationStep(
                 settings = settingsPreview,
                 onThemeModeSelected = viewModel::setThemeMode,
             )
+            LandscapeThemeSection(
+                settings = settingsPreview,
+                onLandscapeThemeSelected = viewModel::setLandscapeTheme,
+            )
         }
 
         OnboardingSectionCard {
@@ -252,7 +258,14 @@ private fun OnboardingCustomizationStep(
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onLivingTreeChanged = viewModel::setEnableLivingTree,
+                onVisualsChanged = viewModel::setEnableVisuals,
             )
+            if (settingsPreview.enableVisuals) {
+                VisualSanctuarySection(
+                    enabledScenes = draft.enabledScenes,
+                    onToggleScene = viewModel::toggleScene,
+                )
+            }
         }
 
         OnboardingSectionCard {

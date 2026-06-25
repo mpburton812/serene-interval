@@ -35,9 +35,11 @@ import com.example.meditationparticles.domain.toolkit.ToolkitCategory
 import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
+import com.example.meditationparticles.ui.settings.LandscapeThemeSection
 import com.example.meditationparticles.ui.settings.NamingSection
 import com.example.meditationparticles.ui.settings.QuickStartSelectionSection
 import com.example.meditationparticles.ui.settings.ThemeSection
+import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 
@@ -208,7 +210,7 @@ private fun WalkthroughHeader(
 private fun stepSubtitle(step: SanctuaryWalkthroughStep): String = when (step) {
     SanctuaryWalkthroughStep.Welcome -> ""
     SanctuaryWalkthroughStep.Name -> "Name this space and how we greet you."
-    SanctuaryWalkthroughStep.Appearance -> "Choose light, dark, or time-responsive colors."
+    SanctuaryWalkthroughStep.Appearance -> "Choose colors and a tab backdrop landscape."
     SanctuaryWalkthroughStep.Spaces -> "Turn on the areas you want in your Sway."
     SanctuaryWalkthroughStep.QuickStart -> "Pick four home-screen shortcuts."
     SanctuaryWalkthroughStep.Toolkit -> "Select practices to include. Your past entries are never deleted."
@@ -242,9 +244,14 @@ private fun WalkthroughStepContent(
                     settings = settingsPreview,
                     onThemeModeSelected = viewModel::setThemeMode,
                 )
+                LandscapeThemeSection(
+                    settings = settingsPreview,
+                    onLandscapeThemeSelected = viewModel::setLandscapeTheme,
+                )
             }
             SanctuaryWalkthroughStep.Spaces -> WalkthroughCard {
                 SpacesStepContent(
+                    draft = draft,
                     settings = settingsPreview,
                     viewModel = viewModel,
                 )
@@ -305,6 +312,7 @@ private fun WelcomeStepContent() {
 
 @Composable
 private fun SpacesStepContent(
+    draft: com.example.meditationparticles.ui.onboarding.OnboardingDraft,
     settings: ExperienceSettings,
     viewModel: SanctuaryWalkthroughViewModel,
 ) {
@@ -321,7 +329,14 @@ private fun SpacesStepContent(
             onAffirmationsChanged = viewModel::setEnableAffirmations,
             onToolkitChanged = viewModel::setEnableToolkit,
             onLivingTreeChanged = viewModel::setEnableLivingTree,
+            onVisualsChanged = viewModel::setEnableVisuals,
         )
+        if (settings.enableVisuals) {
+            VisualSanctuarySection(
+                enabledScenes = draft.enabledScenes,
+                onToggleScene = viewModel::toggleScene,
+            )
+        }
     }
 }
 
@@ -377,7 +392,7 @@ private fun ReviewStepContent(
             if (settings.preferredName.isNotBlank()) {
                 ReviewRow("Greeting", settings.preferredName)
             }
-            ReviewRow("Appearance", settings.themeMode.label)
+            ReviewRow("Appearance", "${settings.themeMode.label}, ${settings.landscapeThemeId.label}")
             ReviewRow("Spaces", spaces.joinToString(", ").ifBlank { "None" })
             ReviewRow("Quick Start", "${draft.quickStartTargets.size} shortcuts")
         }

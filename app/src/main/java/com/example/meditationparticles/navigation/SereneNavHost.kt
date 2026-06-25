@@ -92,6 +92,12 @@ private val allBottomNavItems = listOf(
         Icons.Outlined.AccountTree,
         Icons.Default.AccountTree,
     ),
+    BottomNavItem(
+        SereneDestination.Visualizations,
+        "Visuals",
+        Icons.Outlined.Landscape,
+        Icons.Default.Landscape,
+    ),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -101,6 +107,7 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Affirmations.route,
     SereneDestination.Toolkit.route,
     SereneDestination.LivingTree.route,
+    SereneDestination.Visualizations.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -139,15 +146,15 @@ fun SereneNavHost(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(currentRoute, settings.themeMode, isSystemDark) {
+    LaunchedEffect(currentRoute, settings.landscapeThemeId, settings.themeMode, isSystemDark) {
         if (isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
+            tabBackgroundRotation.advance(settings.landscapeThemeId, settings.themeMode, isSystemDark)
         }
     }
 
-    LaunchedEffect(resumeCount, settings.themeMode, isSystemDark) {
+    LaunchedEffect(resumeCount, settings.landscapeThemeId, settings.themeMode, isSystemDark) {
         if (resumeCount > 1 && isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
+            tabBackgroundRotation.advance(settings.landscapeThemeId, settings.themeMode, isSystemDark)
         }
     }
 
@@ -183,6 +190,7 @@ fun SereneNavHost(
         settings.enableAffirmations,
         settings.enableToolkit,
         settings.enableLivingTree,
+        settings.enableVisuals,
     ) {
         allBottomNavItems.filter { item ->
             when (item.destination) {
@@ -192,6 +200,7 @@ fun SereneNavHost(
                 SereneDestination.Affirmations -> settings.enableAffirmations
                 SereneDestination.Toolkit -> settings.enableToolkit
                 SereneDestination.LivingTree -> settings.enableLivingTree
+                SereneDestination.Visualizations -> settings.enableVisuals
                 else -> false
             }
         }
@@ -547,6 +556,17 @@ fun SereneNavHost(
                             LivingTreeScreen(
                                 onOpenSetup = {
                                     navController.navigate(SereneDestination.LivingTreeSetup.route) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
+                        SereneDestination.Visualizations -> {
+                            VisualizationsScreen(
+                                onOpenVisualization = { vizId ->
+                                    navController.navigate(
+                                        SereneDestination.Visualizations.playerRoute(vizId.name),
+                                    ) {
                                         launchSingleTop = true
                                     }
                                 },

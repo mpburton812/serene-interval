@@ -37,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.export.AppDataExporter
+import com.example.meditationparticles.ui.settings.LandscapeThemeSection
+import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import java.io.IOException
@@ -172,6 +174,11 @@ fun SettingsScreen(
                 onThemeModeSelected = viewModel::setThemeMode,
             )
 
+            LandscapeThemeSection(
+                settings = settings,
+                onLandscapeThemeSelected = viewModel::setLandscapeTheme,
+            )
+
             ExperienceSection(
                 settings = settings,
                 onBreathingChanged = viewModel::setEnableBreathing,
@@ -179,7 +186,15 @@ fun SettingsScreen(
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onLivingTreeChanged = viewModel::setEnableLivingTree,
+                onVisualsChanged = viewModel::setEnableVisuals,
             )
+
+            if (settings.enableVisuals) {
+                VisualSanctuarySection(
+                    enabledScenes = settings.enabledScenes,
+                    onToggleScene = viewModel::toggleScene,
+                )
+            }
 
             QuickStartSelectionSection(
                 settings = settings,

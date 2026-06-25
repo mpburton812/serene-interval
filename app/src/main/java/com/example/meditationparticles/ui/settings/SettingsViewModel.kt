@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.map
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
+import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -109,6 +110,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setThemeMode(mode: ThemeMode) {
         preferences.update { it.copy(themeMode = mode) }
+    }
+
+    fun setLandscapeTheme(id: SanctuaryLandscapeThemeId) {
+        preferences.update { it.copy(landscapeThemeId = id) }
     }
 
     fun setEnableBreathing(enabled: Boolean) {

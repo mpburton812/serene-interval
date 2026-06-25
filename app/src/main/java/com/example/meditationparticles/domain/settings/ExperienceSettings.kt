@@ -4,6 +4,7 @@ import com.example.meditationparticles.domain.visualizations.CalmingVisualizatio
 
 data class ExperienceSettings(
     val themeMode: ThemeMode = ThemeMode.TimeResponsive,
+    val landscapeThemeId: SanctuaryLandscapeThemeId = SanctuaryLandscapeThemeId.Beach,
     val preferredName: String = "",
     val sanctuaryName: String = "",
     val onboardingCompleted: Boolean = false,
