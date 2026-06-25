@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Launch crash hotfix (v2)
+
+- Remove main-thread blocking from OneNote preferences initialization (Tink/Keystore)
+- Load only the visible bottom-nav tab on launch instead of all tabs at once
+- Move startup database work off the main thread
+- Lazy-init OneNote sync in tab ViewModels; guard Room flows with catch
+- Align MainActivity theme with edge-to-edge setup
+
 ## 1.0.25 - 2026-06-25
 
 ### Launch crash hotfix
