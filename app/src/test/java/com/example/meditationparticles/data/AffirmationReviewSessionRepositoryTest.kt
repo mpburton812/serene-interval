@@ -109,6 +109,11 @@ class AffirmationReviewSessionRepositoryTest {
 
         override fun observeAll() = kotlinx.coroutines.flow.flowOf(entities.toList())
 
+        override fun observeInRange(startMillis: Long, endMillis: Long) =
+            kotlinx.coroutines.flow.flowOf(
+                entities.filter { it.completedAt in startMillis until endMillis },
+            )
+
         override suspend fun insert(entity: AffirmationReviewSessionEntity): Long {
             val id = nextId++
             entities += entity.copy(id = id)

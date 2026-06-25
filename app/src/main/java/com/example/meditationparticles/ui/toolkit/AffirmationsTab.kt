@@ -75,6 +75,7 @@ fun AffirmationsTab(
     viewModel: AffirmationsViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val affirmationCalendar by viewModel.affirmationCalendar.collectAsState()
     val context = LocalContext.current
     val audioPlayer = remember { TimerAudioPlayer(context) }
 
@@ -128,52 +129,14 @@ fun AffirmationsTab(
                     Text("Affirmations Review")
                 }
 
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "My Collection",
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                    Text(
-                        text = "Your personal echoes of strength",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (state.affirmations.isNotEmpty()) {
-                        Text(
-                            text = "Press and hold to reorder",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                    state.importMessage?.let { message ->
-                        Text(
-                            text = message,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                }
-
-                if (state.affirmations.isEmpty()) {
-                    GlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "No affirmations yet. Add your first one.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(24.dp),
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                } else {
-                    ReorderableAffirmationList(
-                        affirmations = state.affirmations,
-                        onEdit = viewModel::showEditDialog,
-                        onDelete = viewModel::deleteAffirmation,
-                        onReorder = viewModel::reorderAffirmations,
-                    )
-                }
+                AffirmationCalendarSection(
+                    monthTitle = affirmationCalendar.monthTitle,
+                    days = affirmationCalendar.days,
+                    weekdayHeaders = affirmationCalendar.weekdayHeaders,
+                    onPreviousMonth = { viewModel.shiftCalendarMonth(forward = false) },
+                    onNextMonth = { viewModel.shiftCalendarMonth(forward = true) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 12.dp) {
                     Row(
@@ -235,6 +198,53 @@ fun AffirmationsTab(
                             },
                         )
                     }
+                }
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "My Collection",
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                    Text(
+                        text = "Your personal echoes of strength",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (state.affirmations.isNotEmpty()) {
+                        Text(
+                            text = "Press and hold to reorder",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                    state.importMessage?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+
+                if (state.affirmations.isEmpty()) {
+                    GlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "No affirmations yet. Add your first one.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(24.dp),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                } else {
+                    ReorderableAffirmationList(
+                        affirmations = state.affirmations,
+                        onEdit = viewModel::showEditDialog,
+                        onDelete = viewModel::deleteAffirmation,
+                        onReorder = viewModel::reorderAffirmations,
+                    )
                 }
             }
             }

@@ -7,15 +7,34 @@ import com.example.meditationparticles.data.AffirmationPreferences
 import com.example.meditationparticles.data.AffirmationRepository
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.local.AffirmationEntity
+import com.example.meditationparticles.domain.affirmations.AffirmationCalendarLogic
 import com.example.meditationparticles.domain.affirmations.AffirmationReviewLogic
+import com.example.meditationparticles.domain.mood.MoodCalendarLogic
+import com.example.meditationparticles.domain.mood.MoodGraphPeriod
 import com.example.meditationparticles.domain.mood.MoodScale
+import com.example.meditationparticles.domain.mood.moodPeriodBounds
+import com.example.meditationparticles.domain.mood.moodPeriodTitle
+import com.example.meditationparticles.domain.mood.periodReferenceMillis
 import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.reminder.AffirmationReminderScheduler
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.ZoneId
+import java.util.Locale
+
+data class AffirmationCalendarUiState(
+    val days: List<com.example.meditationparticles.domain.affirmations.AffirmationCalendarDay> = emptyList(),
+    val weekdayHeaders: List<String> = emptyList(),
+    val monthTitle: String = "",
+)
 
 data class AffirmationsUiState(
     val affirmations: List<AffirmationEntity> = emptyList(),
@@ -49,9 +68,43 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
     private val reviewSessionRepository = AppGraph.affirmationReviewSessions(application)
     private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val preferences = AffirmationPreferences(application)
+    private val calendarMonthOffset = MutableStateFlow(0)
+    private val zoneId = ZoneId.systemDefault()
+    private val locale = Locale.getDefault()
 
     private val _uiState = MutableStateFlow(AffirmationsUiState())
     val uiState: StateFlow<AffirmationsUiState> = _uiState.asStateFlow()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val affirmationCalendar: StateFlow<AffirmationCalendarUiState> = calendarMonthOffset
+        .flatMapLatest { offset ->
+            val referenceMillis = periodReferenceMillis(MoodGraphPeriod.MONTH, offset, zoneId, locale)
+            val bounds = moodPeriodBounds(MoodGraphPeriod.MONTH, referenceMillis, zoneId, locale)
+            reviewSessionRepository.observeInRange(bounds.startMillis, bounds.endMillis).map { sessions ->
+                val reviewedDates = AffirmationCalendarLogic.reviewedDatesFromCompletedAt(
+                    completedAtMillis = sessions.map { it.completedAt },
+                    zoneId = zoneId,
+                )
+                AffirmationCalendarUiState(
+                    days = AffirmationCalendarLogic.buildMonthGrid(
+                        yearMonth = AffirmationCalendarLogic.yearMonthFromOffset(offset, zoneId),
+                        reviewedDates = reviewedDates,
+                        zoneId = zoneId,
+                        locale = locale,
+                    ),
+                    weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
+                    monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, offset, zoneId, locale),
+                )
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = AffirmationCalendarUiState(
+                weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
+                monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, 0, zoneId, locale),
+            ),
+        )
 
     init {
         viewModelScope.launch {
@@ -245,6 +298,10 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch {
             repository.reorder(fromIndex, toIndex)
         }
+    }
+
+    fun shiftCalendarMonth(forward: Boolean) {
+        calendarMonthOffset.value += if (forward) 1 else -1
     }
 
     fun setReminder(enabled: Boolean, hour: Int, minute: Int) {
