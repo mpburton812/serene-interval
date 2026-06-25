@@ -1,8 +1,7 @@
-﻿{
-    "versionCode": 24,
-    "versionName": "1.0.23",
-    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.23/sway_meditation.apk",
-    "expectedSha256": "6c94a11a9a7cbefc2ca5928ef055fbcdf53520a362dde34248f52ac9f41b8b7a",
-    "releaseNotes": "- Toolkit: new HEARTS lane with Proactive and Reactive sections\n- HEARTS practices: Delight, Attunement, Repair, Secure Self, Presence, Appreciation, Needs, Attachment Story\n- Partner HEARTS Touchpoints from Flower (Partner tag)\n- versionCode 24",
-    "minVersionCode": 1
+{
+  "versionCode": 25,
+  "versionName": "1.0.24",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.24/sway_meditation.apk",
+  "expectedSha256": "b409712900fbdadc09b8201ad9c6c7fcaae9766128b31a1d06e9496ddc7d8489",
+  "releaseNotes": "Sway sanctuary walkthrough (Phase 1): first-visit customization, remodel from Settings, non-destructive toolkit changes, HEARTS history preserved when tools are off, and Sway branding."
 }
