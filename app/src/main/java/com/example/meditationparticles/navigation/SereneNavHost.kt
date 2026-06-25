@@ -198,7 +198,8 @@ fun SereneNavHost(
     }
 
     val tabPagerState = rememberPagerState(
-        initialPage = tabIndexForRoute(currentRoute, bottomNavItems) ?: 0,
+        initialPage = (tabIndexForRoute(currentRoute, bottomNavItems) ?: 0)
+            .coerceIn(0, bottomNavItems.lastIndex.coerceAtLeast(0)),
         pageCount = { bottomNavItems.size.coerceAtLeast(1) },
     )
 

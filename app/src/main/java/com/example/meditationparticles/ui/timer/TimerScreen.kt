@@ -583,7 +583,7 @@ fun TimerScreen(
                         MeditationReflectionHistory(
                             entries = reflections,
                             openedEntry = openedReflection,
-                            oneNoteConnected = viewModel.oneNoteConnected,
+                            oneNoteConnected = viewModel.isOneNoteConnected(),
                             onOpenEntry = viewModel::openReflection,
                             onDeleteEntry = viewModel::deleteReflection,
                             onCloseEntry = viewModel::closeReflection,
