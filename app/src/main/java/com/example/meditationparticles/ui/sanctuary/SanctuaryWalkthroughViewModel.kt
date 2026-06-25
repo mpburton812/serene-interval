@@ -4,11 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
+import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.permissions.SchedulingPermissions
+import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import com.example.meditationparticles.ui.onboarding.OnboardingDraft
 import com.example.meditationparticles.ui.onboarding.toggleQuickStart
+import com.example.meditationparticles.ui.onboarding.toggleScene
 import com.example.meditationparticles.ui.onboarding.toggleToolkitTool
 import com.example.meditationparticles.ui.onboarding.withToolEnabled
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +46,10 @@ class SanctuaryWalkthroughViewModel(application: Application) : AndroidViewModel
 
     fun setThemeMode(mode: ThemeMode) {
         _draft.update { it.copy(themeMode = mode) }
+    }
+
+    fun setLandscapeTheme(id: SanctuaryLandscapeThemeId) {
+        _draft.update { it.copy(landscapeThemeId = id) }
     }
 
     fun setEnableBreathing(enabled: Boolean) {
@@ -81,6 +88,10 @@ class SanctuaryWalkthroughViewModel(application: Application) : AndroidViewModel
 
     fun setEnableVisuals(enabled: Boolean) {
         _draft.update { it.withToolEnabled(enableVisuals = enabled) }
+    }
+
+    fun toggleScene(id: CalmingVisualizationId) {
+        _draft.update { it.toggleScene(id) }
     }
 
     fun goToStep(step: SanctuaryWalkthroughStep) {

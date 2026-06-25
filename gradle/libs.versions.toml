@@ -20,6 +20,7 @@ workManager = "2.11.1"
 datastore = "1.1.7"
 tink = "1.18.0"
 json = "20251224"
+documentfile = "1.1.0"
 glance = "1.1.1"
 
 [libraries]
@@ -54,6 +55,7 @@ tink-android = { group = "com.google.crypto.tink", name = "tink-android", versio
 org-json = { group = "org.json", name = "json", version.ref = "json" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

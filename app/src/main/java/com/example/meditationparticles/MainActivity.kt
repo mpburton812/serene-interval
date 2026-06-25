@@ -29,6 +29,8 @@ class MainActivity : ComponentActivity() {
         deliverOverdueFutureSelfMessages()
         runMoodScaleOneNoteBackfillIfNeeded()
         runMoodTrackerBackfillIfNeeded()
+        AppGraph.autoBackupScheduler(applicationContext)
+            .apply(AppGraph.autoBackupPreferences(applicationContext).load())
         setContent {
             val updateViewModel: UpdateViewModel = viewModel()
             SereneApp(

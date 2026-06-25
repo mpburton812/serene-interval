@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 1.0.27 - 2026-06-25
+
+### Sanctuary Phase 2 — landscape themes
+
+- Seven tab backdrop landscapes (beach, cabin, desert, snowscape, deep woods, moon, space) with day/night variants
+- Space day uses a golden-sun gradient; time-responsive appearance shifts landscapes automatically
+- Restored Visual Sanctuary scene picker and bottom-nav Visualizations tab toggle
+- Landscape theme picker in Settings, walkthrough, and onboarding
+
+### Data protection
+
+- Automatic JSON backups to a user-chosen folder (daily or weekly) via WorkManager; retains the latest 14 files
+- Optional Google device backup for the journal database when enabled in Settings
+- First-run prompt to set up backups after journal data is created
+- Clear Settings copy that uninstalling Sway deletes in-app data unless backups are enabled
+
 ## 1.0.26 - 2026-06-25
 
 ### Launch crash hotfix (Pixel / Android 15+)

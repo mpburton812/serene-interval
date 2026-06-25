@@ -74,6 +74,9 @@ import com.example.meditationparticles.ui.toolkit.ToolkitScreen
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import com.example.meditationparticles.ui.visualizations.VisualizationsScreen
 import com.example.meditationparticles.ui.visualizations.VisualizationPlayerScreen
+import com.example.meditationparticles.ui.backup.BackupSetupPromptDialog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val allBottomNavItems = listOf(
     BottomNavItem(SereneDestination.Home, "Home", Icons.Outlined.Home, Icons.Default.Home),
@@ -92,6 +95,12 @@ private val allBottomNavItems = listOf(
         Icons.Outlined.AccountTree,
         Icons.Default.AccountTree,
     ),
+    BottomNavItem(
+        SereneDestination.Visualizations,
+        "Visuals",
+        Icons.Outlined.Landscape,
+        Icons.Default.Landscape,
+    ),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -101,6 +110,7 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Affirmations.route,
     SereneDestination.Toolkit.route,
     SereneDestination.LivingTree.route,
+    SereneDestination.Visualizations.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -128,6 +138,7 @@ fun SereneNavHost(
     var quickStartBreathingPatternId by remember { mutableStateOf<String?>(null) }
     var quickStartToolkitToolId by remember { mutableStateOf<ToolkitToolId?>(null) }
     var quickStartReturnToHome by remember { mutableStateOf(false) }
+    var showBackupPrompt by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -139,16 +150,42 @@ fun SereneNavHost(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(currentRoute, settings.themeMode, isSystemDark) {
+    LaunchedEffect(currentRoute, settings.landscapeThemeId, settings.themeMode, isSystemDark) {
         if (isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
+            tabBackgroundRotation.advance(settings.landscapeThemeId, settings.themeMode, isSystemDark)
         }
     }
 
-    LaunchedEffect(resumeCount, settings.themeMode, isSystemDark) {
+    LaunchedEffect(resumeCount, settings.landscapeThemeId, settings.themeMode, isSystemDark) {
         if (resumeCount > 1 && isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
+            tabBackgroundRotation.advance(settings.landscapeThemeId, settings.themeMode, isSystemDark)
         }
+    }
+
+    LaunchedEffect(settings.onboardingCompleted) {
+        if (!settings.onboardingCompleted) return@LaunchedEffect
+        val manager = AppGraph.autoBackup(context)
+        val prefs = AppGraph.autoBackupPreferences(context)
+        val snapshot = prefs.load()
+        val hasData = withContext(Dispatchers.IO) { manager.hasProtectableUserData() }
+        if (manager.shouldShowBackupPrompt(snapshot, hasData)) {
+            showBackupPrompt = true
+            prefs.markBackupPromptShown()
+        }
+    }
+
+    if (showBackupPrompt) {
+        BackupSetupPromptDialog(
+            onEnableBackup = {
+                showBackupPrompt = false
+                navController.navigate(SereneDestination.Settings.route)
+            },
+            onDismiss = { showBackupPrompt = false },
+            onDismissPermanently = {
+                showBackupPrompt = false
+                AppGraph.autoBackupPreferences(context).dismissBackupPromptPermanently()
+            },
+        )
     }
 
     LaunchedEffect(pendingFutureSelfMessageId, settings.onboardingCompleted) {
@@ -183,6 +220,7 @@ fun SereneNavHost(
         settings.enableAffirmations,
         settings.enableToolkit,
         settings.enableLivingTree,
+        settings.enableVisuals,
     ) {
         allBottomNavItems.filter { item ->
             when (item.destination) {
@@ -192,6 +230,7 @@ fun SereneNavHost(
                 SereneDestination.Affirmations -> settings.enableAffirmations
                 SereneDestination.Toolkit -> settings.enableToolkit
                 SereneDestination.LivingTree -> settings.enableLivingTree
+                SereneDestination.Visualizations -> settings.enableVisuals
                 else -> false
             }
         }
@@ -547,6 +586,17 @@ fun SereneNavHost(
                             LivingTreeScreen(
                                 onOpenSetup = {
                                     navController.navigate(SereneDestination.LivingTreeSetup.route) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
+                        SereneDestination.Visualizations -> {
+                            VisualizationsScreen(
+                                onOpenVisualization = { vizId ->
+                                    navController.navigate(
+                                        SereneDestination.Visualizations.playerRoute(vizId.name),
+                                    ) {
                                         launchSingleTop = true
                                     }
                                 },

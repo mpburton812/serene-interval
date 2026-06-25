@@ -21,6 +21,7 @@ import com.example.meditationparticles.domain.mood.MoodSource
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
@@ -184,11 +185,15 @@ class AppDataImporter(
             .let { name ->
                 runCatching { ThemeMode.valueOf(name) }.getOrDefault(current.themeMode)
             }
+        val landscapeThemeId = SanctuaryLandscapeThemeId.fromStored(
+            json.optString("landscapeThemeId", current.landscapeThemeId.name),
+        )
         val enabledScenes = json.optJSONArray("enabledScenes")?.toStringSet()
             ?: current.enabledScenes
 
         return current.copy(
             themeMode = themeMode,
+            landscapeThemeId = landscapeThemeId,
             preferredName = json.optString("preferredName", current.preferredName),
             sanctuaryName = json.optString("sanctuaryName", current.sanctuaryName),
             onboardingCompleted = json.optBoolean("onboardingCompleted", current.onboardingCompleted),
