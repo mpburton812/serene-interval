@@ -43,7 +43,7 @@ fun MainTabPager(
         state = pagerState,
         modifier = modifier.fillMaxSize(),
         userScrollEnabled = userScrollEnabled,
-        beyondViewportPageCount = (items.size - 1).coerceAtLeast(0),
+        beyondViewportPageCount = 0,
     ) { page ->
         pageContent(items[page].destination)
     }

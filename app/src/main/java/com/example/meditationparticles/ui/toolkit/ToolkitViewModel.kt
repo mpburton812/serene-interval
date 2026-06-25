@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -105,8 +106,8 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     private val livingTreeRepository = AppGraph.livingTree(application)
     private val toolkitPreferences = AppGraph.toolkit(application)
     private val settingsPreferences = AppGraph.settings(application)
-    private val oneNotePreferences = AppGraph.oneNotePreferences(application)
-    private val oneNoteSync = AppGraph.oneNoteSync(application)
+    private val oneNotePreferences by lazy { AppGraph.oneNotePreferences(application) }
+    private val oneNoteSync by lazy { AppGraph.oneNoteSync(application) }
     private val appContext = application.applicationContext
     private var heartsEntriesJob: Job? = null
     private var heartsPartnersJob: Job? = null
@@ -124,37 +125,51 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             }
         }
         viewModelScope.launch {
-            logRepository.observeEntries(ToolkitLogType.THOUGHT_DUMP).collect { entries ->
+            logRepository.observeEntries(ToolkitLogType.THOUGHT_DUMP)
+                .catch { }
+                .collect { entries ->
                 _uiState.update { it.copy(thoughtDumpEntries = entries) }
             }
         }
         viewModelScope.launch {
-            logRepository.observeEntries(ToolkitLogType.ANXIETY_LOG).collect { entries ->
+            logRepository.observeEntries(ToolkitLogType.ANXIETY_LOG)
+                .catch { }
+                .collect { entries ->
                 _uiState.update { it.copy(anxietyLogEntries = entries) }
             }
         }
         viewModelScope.launch {
-            futureSelfRepository.observeAll().collect { entries ->
+            futureSelfRepository.observeAll()
+                .catch { }
+                .collect { entries ->
                 _uiState.update { it.copy(futureSelfEntries = entries) }
             }
         }
         viewModelScope.launch {
-            refactoringRepository.observeAll().collect { entries ->
+            refactoringRepository.observeAll()
+                .catch { }
+                .collect { entries ->
                 _uiState.update { it.copy(refactoringEntries = entries) }
             }
         }
         viewModelScope.launch {
-            centerOfGravityRepository.observeAll().collect { entries ->
+            centerOfGravityRepository.observeAll()
+                .catch { }
+                .collect { entries ->
                 _uiState.update { it.copy(centerOfGravityEntries = entries) }
             }
         }
         viewModelScope.launch {
-            nvcRepository.observeAll().collect { entries ->
+            nvcRepository.observeAll()
+                .catch { }
+                .collect { entries ->
                 _uiState.update { it.copy(nvcEntries = entries) }
             }
         }
         viewModelScope.launch {
-            oneNotePreferences.snapshot.collect { prefs ->
+            oneNotePreferences.snapshot
+                .catch { }
+                .collect { prefs ->
                 _uiState.update {
                     it.copy(oneNoteConnected = !prefs.accountEmail.isNullOrBlank())
                 }
