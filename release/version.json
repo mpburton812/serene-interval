@@ -1,9 +1,8 @@
 ﻿{
-    "versionCode":  22,
-    "versionName":  "1.0.21",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.21/sway_meditation.apk",
-    "expectedSha256":  "92eb700c4f0ed8cfa7ff7b9e12fe1a950782b785c8ce1c4c0a564d859648f5dc",
-    "releaseNotes":  "- Mood graphs: step lines, no future periods, bold dotted trends, 7-day rolling plot points\n- Mood calendar: tap a day for event list and details\n- Living Flower rename with multi-ring layout (no drag)\n- versionCode 22",
-    "minVersionCode":  1
+    "versionCode": 23,
+    "versionName": "1.0.22",
+    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.22/sway_meditation.apk",
+    "expectedSha256": "b76a706749ca10465203ef8a63cc3c75552dee9af2876033e2b81c33e98d0c5c",
+    "releaseNotes": "- Affirmations: monthly review calendar; Daily Reminder moved below calendar\n- Living Flower: multi-ring layout with pipe-path collision checks\n- versionCode 23",
+    "minVersionCode": 1
 }
-
