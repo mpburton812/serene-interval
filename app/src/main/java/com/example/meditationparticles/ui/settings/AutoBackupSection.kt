@@ -13,8 +13,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -34,7 +32,6 @@ fun AutoBackupSection(
     snapshot: AutoBackupSnapshot,
     isRunningBackup: Boolean,
     onAutoBackupEnabledChange: (Boolean) -> Unit,
-    onCloudBackupEnabledChange: (Boolean) -> Unit,
     onFrequencySelected: (AutoBackupFrequency) -> Unit,
     onChooseFolder: () -> Unit,
     onBackupNow: () -> Unit,
@@ -52,7 +49,8 @@ fun AutoBackupSection(
         Text(
             text = "Uninstalling Sway deletes everything stored inside the app. " +
                 "Turn on automatic backups to a folder outside the app (for example Documents/Sway Backups) " +
-                "so your journals survive reinstall.",
+                "so your journals survive reinstall. With Android backup enabled on your device, " +
+                "journal data is also included in Google's encrypted device backup.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -139,55 +137,6 @@ fun AutoBackupSection(
                 }
             }
         }
-
-        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                RowToggle(
-                    label = "Google device backup",
-                    description = "Optionally include your journal database in Android's encrypted Google backup. " +
-                        "Helps when reinstalling on the same account; not a substitute for folder backups.",
-                    checked = snapshot.cloudBackupEnabled,
-                    onCheckedChange = onCloudBackupEnabledChange,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RowToggle(
-    label: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        androidx.compose.foundation.layout.Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedTrackColor = MaterialTheme.colorScheme.primary,
-                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            )
-        }
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
