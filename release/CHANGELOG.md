@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.0.28 - 2026-06-25
+
+### Launch crash hotfix
+
+- Fix backup prompt check closing the Room database on startup (subsequent tab loads crashed)
+- Guard backup scheduler and prompt logic with runCatching; schedule WorkManager off main thread
+
 ## 1.0.27 - 2026-06-25
 
 ### Sanctuary Phase 2 — landscape themes

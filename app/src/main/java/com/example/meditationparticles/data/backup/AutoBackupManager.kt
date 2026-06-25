@@ -60,12 +60,12 @@ class AutoBackupManager(
     }
 
     suspend fun hasProtectableUserData(): Boolean = withContext(Dispatchers.IO) {
-        val database = SereneDatabase.getInstance(context)
-        database.openHelper.readableDatabase.use { sqlite ->
+        runCatching {
+            val sqlite = SereneDatabase.getInstance(context).openHelper.readableDatabase
             sqlite.query(USER_DATA_EXISTS_SQL).use { cursor ->
                 cursor.moveToFirst() && cursor.getInt(0) == 1
             }
-        }
+        }.getOrDefault(false)
     }
 
     fun shouldShowBackupPrompt(snapshot: AutoBackupSnapshot, hasUserData: Boolean): Boolean =
