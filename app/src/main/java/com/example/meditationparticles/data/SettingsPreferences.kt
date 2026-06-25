@@ -1,6 +1,7 @@
 package com.example.meditationparticles.data
 
 import android.content.Context
+import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,7 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class SettingsPreferences(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val _settings = MutableStateFlow(load())
     val settings: StateFlow<ExperienceSettings> = _settings.asStateFlow()
 
@@ -33,6 +35,8 @@ class SettingsPreferences(context: Context) {
             else -> false
         }
 
+        val toolkitHasTools = AppGraph.toolkit(appContext).snapshot.value.enabledToolIds.isNotEmpty()
+
         return ExperienceSettings(
             themeMode = themeMode,
             preferredName = prefs.getString(KEY_PREFERRED_NAME, "") ?: "",
@@ -41,7 +45,7 @@ class SettingsPreferences(context: Context) {
             enableBreathing = prefs.getBoolean(KEY_ENABLE_BREATHING, true),
             enableTimer = prefs.getBoolean(KEY_ENABLE_TIMER, true),
             enableAffirmations = prefs.getBoolean(KEY_ENABLE_AFFIRMATIONS, true),
-            enableToolkit = prefs.getBoolean(KEY_ENABLE_TOOLKIT, true),
+            enableToolkit = prefs.getBoolean(KEY_ENABLE_TOOLKIT, true) && toolkitHasTools,
             enableVisuals = prefs.getBoolean(KEY_ENABLE_VISUALS, true),
             enableLivingTree = prefs.getBoolean(KEY_ENABLE_LIVING_TREE, true),
             enabledScenes = scenes,

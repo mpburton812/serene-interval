@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -41,7 +40,6 @@ import com.example.meditationparticles.ui.settings.QuickStartSelectionSection
 import com.example.meditationparticles.ui.settings.ThemeSection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
-import kotlinx.coroutines.flow.distinctUntilChanged
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -56,24 +54,18 @@ fun SanctuaryWalkthroughScreen(
     val currentStep by viewModel.walkthroughStep.collectAsState()
     val settingsPreview = draft.toExperienceSettings().copy(onboardingCompleted = false)
     val steps = viewModel.visibleSteps(draft)
-    val stepIndex = steps.indexOf(currentStep).coerceAtLeast(0)
+    if (steps.isEmpty()) return
+
+    val stepIndex = steps.indexOf(currentStep).coerceIn(0, steps.lastIndex)
     val pagerState = rememberPagerState(
         initialPage = stepIndex,
         pageCount = { steps.size },
     )
 
-    LaunchedEffect(pagerState, steps) {
-        snapshotFlow { pagerState.currentPage }
-            .distinctUntilChanged()
-            .collect { page ->
-                steps.getOrNull(page)?.let(viewModel::goToStep)
-            }
-    }
-
     LaunchedEffect(currentStep, steps) {
-        val target = steps.indexOf(currentStep)
-        if (target >= 0 && target != pagerState.currentPage) {
-            pagerState.animateScrollToPage(target)
+        val target = steps.indexOf(currentStep).coerceIn(0, steps.lastIndex)
+        if (target != pagerState.currentPage) {
+            pagerState.scrollToPage(target)
         }
     }
 
@@ -105,7 +97,7 @@ fun SanctuaryWalkthroughScreen(
             modifier = Modifier.weight(1f),
             userScrollEnabled = false,
         ) { page ->
-            val step = steps[page]
+            val step = steps.getOrElse(page) { steps.first() }
             WalkthroughStepContent(
                 step = step,
                 draft = draft,
