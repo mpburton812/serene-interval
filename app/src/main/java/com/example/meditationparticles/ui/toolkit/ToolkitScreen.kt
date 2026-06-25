@@ -51,6 +51,8 @@ fun ToolkitScreen(
                 ToolkitToolSelectionScreen(
                     proactiveTools = state.selectionProactiveTools,
                     reactiveTools = state.selectionReactiveTools,
+                    heartsProactiveTools = state.heartsProactiveTools,
+                    heartsReactiveTools = state.heartsReactiveTools,
                     enabledToolIds = state.enabledToolIds,
                     onToggleTool = viewModel::toggleToolEnabled,
                     onContinue = viewModel::saveToolkitConfiguration,

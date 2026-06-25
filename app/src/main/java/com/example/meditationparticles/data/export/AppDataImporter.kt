@@ -26,6 +26,7 @@ import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.domain.timer.TimerDisplayMode
 import com.example.meditationparticles.domain.timer.TimerSoundOption
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -222,11 +223,17 @@ class AppDataImporter(
         }
 
         val proactiveOrder = json.optJSONArray("proactiveOrder")?.toEnumList<ToolkitToolId>()
-            ?.let { ToolkitLayout.normalizeOrder(ToolkitCategory.Proactive, it) }
+            ?.let { ToolkitLayout.normalizeOrder(ToolkitCategory.Proactive, ToolkitLane.Core, it) }
             ?: current.proactiveOrder
         val reactiveOrder = json.optJSONArray("reactiveOrder")?.toEnumList<ToolkitToolId>()
-            ?.let { ToolkitLayout.normalizeOrder(ToolkitCategory.Reactive, it) }
+            ?.let { ToolkitLayout.normalizeOrder(ToolkitCategory.Reactive, ToolkitLane.Core, it) }
             ?: current.reactiveOrder
+        val heartsProactiveOrder = json.optJSONArray("heartsProactiveOrder")?.toEnumList<ToolkitToolId>()
+            ?.let { ToolkitLayout.normalizeOrder(ToolkitCategory.Proactive, ToolkitLane.Hearts, it) }
+            ?: current.heartsProactiveOrder
+        val heartsReactiveOrder = json.optJSONArray("heartsReactiveOrder")?.toEnumList<ToolkitToolId>()
+            ?.let { ToolkitLayout.normalizeOrder(ToolkitCategory.Reactive, ToolkitLane.Hearts, it) }
+            ?: current.heartsReactiveOrder
         val usageCounts = json.optJSONObject("usageCounts")?.toUsageCounts()
             ?: current.usageCounts
 
@@ -235,6 +242,8 @@ class AppDataImporter(
             enabledToolIds = mergedEnabled.ifEmpty { ToolkitLayout.defaultEnabledTools() },
             proactiveOrder = proactiveOrder,
             reactiveOrder = reactiveOrder,
+            heartsProactiveOrder = heartsProactiveOrder,
+            heartsReactiveOrder = heartsReactiveOrder,
             usageCounts = usageCounts,
         )
     }
@@ -249,6 +258,8 @@ class AppDataImporter(
         }
         toolkit.saveProactiveOrder(snapshot.proactiveOrder)
         toolkit.saveReactiveOrder(snapshot.reactiveOrder)
+        toolkit.saveHeartsProactiveOrder(snapshot.heartsProactiveOrder)
+        toolkit.saveHeartsReactiveOrder(snapshot.heartsReactiveOrder)
         toolkit.saveUsageCounts(snapshot.usageCounts)
         toolkit.refresh(onboardingCompleted)
     }
@@ -826,6 +837,8 @@ class AppDataImporter(
         val enabledToolIds: Set<ToolkitToolId>,
         val proactiveOrder: List<ToolkitToolId>,
         val reactiveOrder: List<ToolkitToolId>,
+        val heartsProactiveOrder: List<ToolkitToolId>,
+        val heartsReactiveOrder: List<ToolkitToolId>,
         val usageCounts: Map<ToolkitToolId, Int>,
     )
 

@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Emergency
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.ui.components.GlassCard
@@ -37,7 +40,18 @@ fun ToolkitToolSelectionContent(
     onToggleTool: (ToolkitToolId) -> Unit,
     modifier: Modifier = Modifier,
     showHeader: Boolean = true,
+    heartsProactiveTools: List<ToolkitTool> = emptyList(),
+    heartsReactiveTools: List<ToolkitTool> = emptyList(),
 ) {
+    val coreProactive = proactiveTools.filter { it.lane == ToolkitLane.Core }
+    val coreReactive = reactiveTools.filter { it.lane == ToolkitLane.Core }
+    val heartsProactive = heartsProactiveTools.ifEmpty {
+        proactiveTools.filter { it.lane == ToolkitLane.Hearts }
+    }
+    val heartsReactive = heartsReactiveTools.ifEmpty {
+        reactiveTools.filter { it.lane == ToolkitLane.Hearts }
+    }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
@@ -50,7 +64,7 @@ fun ToolkitToolSelectionContent(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Select the Proactive Care and Reactive Relief tools you want in your toolkit.",
+                    text = "Select Proactive Care, Reactive Relief, and HEARTS tools for your toolkit.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -61,7 +75,7 @@ fun ToolkitToolSelectionContent(
             title = "Proactive Care",
             icon = Icons.Default.Shield,
             titleColor = MaterialTheme.colorScheme.primary,
-            tools = proactiveTools,
+            tools = coreProactive,
             enabledToolIds = enabledToolIds,
             onToggleTool = onToggleTool,
         )
@@ -70,10 +84,32 @@ fun ToolkitToolSelectionContent(
             title = "Reactive Relief",
             icon = Icons.Default.Emergency,
             titleColor = SereneTertiary,
-            tools = reactiveTools,
+            tools = coreReactive,
             enabledToolIds = enabledToolIds,
             onToggleTool = onToggleTool,
         )
+
+        if (heartsProactive.isNotEmpty()) {
+            ToolSelectionSection(
+                title = "HEARTS · Proactive",
+                icon = Icons.Default.Favorite,
+                titleColor = MaterialTheme.colorScheme.primary,
+                tools = heartsProactive,
+                enabledToolIds = enabledToolIds,
+                onToggleTool = onToggleTool,
+            )
+        }
+
+        if (heartsReactive.isNotEmpty()) {
+            ToolSelectionSection(
+                title = "HEARTS · Reactive",
+                icon = Icons.Default.Healing,
+                titleColor = SereneTertiary,
+                tools = heartsReactive,
+                enabledToolIds = enabledToolIds,
+                onToggleTool = onToggleTool,
+            )
+        }
     }
 }
 
@@ -85,6 +121,8 @@ fun ToolkitToolSelectionScreen(
     onToggleTool: (ToolkitToolId) -> Unit,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
+    heartsProactiveTools: List<ToolkitTool> = emptyList(),
+    heartsReactiveTools: List<ToolkitTool> = emptyList(),
 ) {
     val canContinue = enabledToolIds.isNotEmpty()
 
@@ -99,6 +137,8 @@ fun ToolkitToolSelectionScreen(
             reactiveTools = reactiveTools,
             enabledToolIds = enabledToolIds,
             onToggleTool = onToggleTool,
+            heartsProactiveTools = heartsProactiveTools,
+            heartsReactiveTools = heartsReactiveTools,
         )
 
         if (!canContinue) {

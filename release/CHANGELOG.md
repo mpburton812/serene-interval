@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.0.23 - 2026-06-25
+
+### Toolkit — HEARTS lane
+
+- New HEARTS-centered toolkit lane with Proactive and Reactive sections
+- Tier 1: Delight Deposit, Attunement Map, Repair & Reconnect, Secure Self Check
+- Tier 2: Presence Timer, Appreciation Ritual, Needs Before Negotiation, Attachment Story Snapshot
+- Partner HEARTS Touchpoints: Flower dashboard for people tagged Partner
+- Journal persistence and mood tracking for HEARTS tools
+
 ## 1.0.22 - 2026-06-25
 
 ### Affirmations
