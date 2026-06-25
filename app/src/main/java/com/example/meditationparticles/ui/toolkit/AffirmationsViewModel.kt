@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -66,7 +67,7 @@ data class AffirmationsUiState(
 class AffirmationsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: AffirmationRepository = AppGraph.affirmations(application)
     private val reviewSessionRepository = AppGraph.affirmationReviewSessions(application)
-    private val oneNoteSync = AppGraph.oneNoteSync(application)
+    private val oneNoteSync by lazy { AppGraph.oneNoteSync(application) }
     private val preferences = AffirmationPreferences(application)
     private val calendarMonthOffset = MutableStateFlow(0)
     private val zoneId = ZoneId.systemDefault()
@@ -97,6 +98,14 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
                 )
             }
         }
+        .catch {
+            emit(
+                AffirmationCalendarUiState(
+                    weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
+                    monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, 0, zoneId, locale),
+                ),
+            )
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -120,7 +129,9 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
         }
 
         viewModelScope.launch {
-            repository.affirmations.collect { list ->
+            repository.affirmations
+                .catch { }
+                .collect { list ->
                 _uiState.update { state ->
                     val index = state.currentIndex.coerceIn(0, (list.size - 1).coerceAtLeast(0))
                     val reviewIndex = state.reviewIndex.coerceIn(0, (list.size - 1).coerceAtLeast(0))
