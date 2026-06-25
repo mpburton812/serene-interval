@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -57,6 +58,9 @@ import com.example.meditationparticles.ui.components.SereneBottomBar
 import com.example.meditationparticles.ui.home.FutureSelfNotificationOverlay
 import com.example.meditationparticles.ui.home.HomeScreen
 import com.example.meditationparticles.ui.onboarding.OnboardingScreen
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughMode
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughScreen
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughViewModel
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.settings.SettingsScreen
 import com.example.meditationparticles.ui.timer.TimerScreen
@@ -267,12 +271,14 @@ fun SereneNavHost(
 
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
+        currentRoute != SereneDestination.SanctuaryRemodel.route &&
         currentRoute != SereneDestination.LivingTreeSetup.route &&
         currentRoute?.startsWith("mood_graph") != true &&
         !breathingSessionActive
 
     val showAppBanner = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
+        currentRoute != SereneDestination.SanctuaryRemodel.route &&
         currentRoute != SereneDestination.LivingTreeSetup.route &&
         currentRoute?.startsWith("mood_graph") != true
 
@@ -364,12 +370,24 @@ fun SereneNavHost(
                 SettingsScreen(
                     updateViewModel = updateViewModel,
                     onBack = { navController.popBackStack() },
-                    onResetOnboarding = {
-                        navController.navigate(SereneDestination.Onboarding.route) {
-                            popUpTo(SereneDestination.Home.route) { inclusive = true }
-                            launchSingleTop = true
-                        }
+                    onRemodelSanctuary = {
+                        navController.navigate(SereneDestination.SanctuaryRemodel.route)
                     },
+                )
+            }
+            composable(SereneDestination.SanctuaryRemodel.route) {
+                val remodelViewModel: SanctuaryWalkthroughViewModel = viewModel()
+                LaunchedEffect(Unit) {
+                    remodelViewModel.reloadFromPreferences()
+                }
+                SanctuaryWalkthroughScreen(
+                    mode = SanctuaryWalkthroughMode.Remodel,
+                    viewModel = remodelViewModel,
+                    onFinished = {
+                        remodelViewModel.saveSanctuaryConfiguration(markOnboardingComplete = false)
+                        navController.popBackStack()
+                    },
+                    onBackOut = { navController.popBackStack() },
                 )
             }
             composable(SereneDestination.Breathe.route) { }
