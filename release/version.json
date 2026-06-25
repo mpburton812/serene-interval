@@ -1,8 +1,8 @@
 ﻿{
-  "versionCode": 28,
-  "versionName": "1.0.27",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.27/sway_meditation.apk",
-  "expectedSha256": "440e2aa20390cc6b8638ae0767f645d2e6d5f7b6975f303ede8bf7c5b974aef6",
-  "releaseNotes": "Phase 2 landscape themes, Visual Sanctuary restore, and data protection: automatic folder backups, optional Google device backup, and first-run backup prompt.",
+  "versionCode": 29,
+  "versionName": "1.0.28",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.28/sway_meditation.apk",
+  "expectedSha256": "538b65b2e6c041f42901fb24111edc6b34ccfc84e3f6a037e75bcb9f3261e6db",
+  "releaseNotes": "Launch crash hotfix: backup prompt no longer closes Room database on startup.",
   "minVersionCode": 1
 }
