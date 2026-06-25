@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -55,6 +56,9 @@ import com.example.meditationparticles.ui.settings.NamingSection
 import com.example.meditationparticles.ui.settings.QuickStartSelectionSection
 import com.example.meditationparticles.ui.settings.ThemeSection
 import com.example.meditationparticles.ui.theme.SereneSpacing
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughMode
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughScreen
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughViewModel
 import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 
 @Composable
@@ -64,6 +68,7 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = viewModel(),
 ) {
     val draft by viewModel.draft.collectAsState()
+    val walkthroughViewModel: SanctuaryWalkthroughViewModel = viewModel()
     val lifecycleOwner = LocalLifecycleOwner.current
     val onCompleteUpdated by rememberUpdatedState(onComplete)
     val settingsPreview = draft.toExperienceSettings().copy(onboardingCompleted = false)
@@ -97,10 +102,8 @@ fun OnboardingScreen(
 
         when (draft.step) {
             OnboardingStep.Customization -> {
-                val walkthroughViewModel: com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughViewModel =
-                    androidx.lifecycle.viewmodel.compose.viewModel()
-                com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughScreen(
-                    mode = com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughMode.FirstVisit,
+                SanctuaryWalkthroughScreen(
+                    mode = SanctuaryWalkthroughMode.FirstVisit,
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = SereneSpacing.containerMargin),

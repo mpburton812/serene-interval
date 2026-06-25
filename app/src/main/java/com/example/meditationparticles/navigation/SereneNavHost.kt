@@ -73,6 +73,7 @@ import com.example.meditationparticles.ui.toolkit.AffirmationsScreen
 import com.example.meditationparticles.ui.toolkit.ToolkitScreen
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import com.example.meditationparticles.ui.visualizations.VisualizationsScreen
+import com.example.meditationparticles.ui.visualizations.VisualizationPlayerScreen
 
 private val allBottomNavItems = listOf(
     BottomNavItem(SereneDestination.Home, "Home", Icons.Outlined.Home, Icons.Default.Home),
@@ -422,6 +423,33 @@ fun SereneNavHost(
                 LivingTreeSetupScreen(
                     onBack = { navController.popBackStack() },
                 )
+            }
+            composable(SereneDestination.Visualizations.route) {
+                VisualizationsScreen(
+                    onOpenVisualization = { vizId ->
+                        navController.navigate(SereneDestination.Visualizations.playerRoute(vizId.name)) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+            composable(
+                route = "visualizations/player/{vizId}",
+                arguments = listOf(
+                    navArgument("vizId") {
+                        type = NavType.StringType
+                    },
+                ),
+            ) { entry ->
+                val visualization = CalmingVisualizationCatalog.byRouteName(
+                    entry.arguments?.getString("vizId").orEmpty(),
+                )
+                if (visualization != null) {
+                    VisualizationPlayerScreen(
+                        visualization = visualization,
+                        onClose = { navController.popBackStack() },
+                    )
+                }
             }
             composable(
                 route = "toolkit/{tab}",
