@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.0.25 - 2026-06-25
+
+### Launch crash hotfix
+
+- Catch home timeline DB errors instead of crashing on launch
+- Guard startup Future Self database access
+- Reconcile toolkit tab visibility with enabled tools on settings load
+- Fix onboarding walkthrough ViewModel scoping and pager sync
+- Register missing Visualizations navigation routes
+
 ## 1.0.24 - 2026-06-25
 
 ### Sway sanctuary walkthrough (Phase 1)

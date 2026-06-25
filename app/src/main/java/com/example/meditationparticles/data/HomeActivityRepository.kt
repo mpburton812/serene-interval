@@ -9,7 +9,9 @@ import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
+import android.util.Log
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -74,7 +76,12 @@ class HomeActivityRepository(
                 heartsEntries = secondary.fourth.map(::heartsRow),
                 limit = limit,
             )
-        }.flowOn(Dispatchers.Default)
+        }
+            .catch { error ->
+                Log.e(TAG, "Failed to build home activity timeline", error)
+                emit(emptyList<HomeActivityItem>())
+            }
+            .flowOn(Dispatchers.Default)
     }
 
     private data class Quadruple<A, B, C, D>(
@@ -221,5 +228,9 @@ class HomeActivityRepository(
     private fun formatMinutes(durationSeconds: Int): String? {
         if (durationSeconds <= 0) return null
         return "${durationSeconds / 60} min"
+    }
+
+    companion object {
+        private const val TAG = "HomeActivityRepository"
     }
 }
