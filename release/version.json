@@ -1,8 +1,8 @@
 ﻿{
-    "versionCode": 23,
-    "versionName": "1.0.22",
-    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.22/sway_meditation.apk",
-    "expectedSha256": "b76a706749ca10465203ef8a63cc3c75552dee9af2876033e2b81c33e98d0c5c",
-    "releaseNotes": "- Affirmations: monthly review calendar; Daily Reminder moved below calendar\n- Living Flower: multi-ring layout with pipe-path collision checks\n- versionCode 23",
+    "versionCode": 24,
+    "versionName": "1.0.23",
+    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.23/sway_meditation.apk",
+    "expectedSha256": "6c94a11a9a7cbefc2ca5928ef055fbcdf53520a362dde34248f52ac9f41b8b7a",
+    "releaseNotes": "- Toolkit: new HEARTS lane with Proactive and Reactive sections\n- HEARTS practices: Delight, Attunement, Repair, Secure Self, Presence, Appreciation, Needs, Attachment Story\n- Partner HEARTS Touchpoints from Flower (Partner tag)\n- versionCode 24",
     "minVersionCode": 1
 }
