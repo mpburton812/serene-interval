@@ -283,6 +283,6 @@ class AppDataExporter(
 
     companion object {
         const val EXPORT_VERSION = 5
-        const val DEFAULT_FILENAME = "serene-interval-export.json"
+        const val DEFAULT_FILENAME = "sway-export.json"
     }
 }

@@ -88,7 +88,7 @@ fun SanctuaryNameField(
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
     ) {
         Text(
-            text = "Name your sanctuary",
+            text = "Name your Sway",
             style = MaterialTheme.typography.labelMedium,
         )
         OutlinedTextField(

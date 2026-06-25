@@ -38,6 +38,7 @@ class HomeActivityRepository(
         val cogFlow = database.centerOfGravityEntryDao().observeAll()
         val futureSelfFlow = database.futureSelfMessageDao().observeAll()
         val affirmationReviewsFlow = database.affirmationReviewSessionDao().observeAll()
+        val heartsFlow = database.heartsEntryDao().observeAll()
 
         val primaryFlow = combine(
             sessionsFlow,
@@ -55,25 +56,33 @@ class HomeActivityRepository(
             )
         }
 
-        val secondaryFlow = combine(cogFlow, futureSelfFlow, affirmationReviewsFlow) { cog, futureSelf, reviews ->
-            Triple(cog, futureSelf, reviews)
+        val secondaryFlow = combine(cogFlow, futureSelfFlow, affirmationReviewsFlow, heartsFlow) {
+                cog, futureSelf, affirmationReviews, hearts ->
+            Quadruple(cog, futureSelf, affirmationReviews, hearts)
         }
 
         return combine(primaryFlow, secondaryFlow) { primary, secondary ->
-            val (cog, futureSelf, affirmationReviews) = secondary
             HomeActivityTimelineBuilder.build(
                 sessions = primary.sessions,
                 reflections = primary.reflections.map(::reflectionRow),
                 thoughtDumps = primary.thoughtDumps.map(::thoughtDumpRow),
                 nvcEntries = primary.nvc.map(::nvcRow),
                 refactoringEntries = primary.refactoring.map(::refactoringRow),
-                centerOfGravityEntries = cog.map(::cogRow),
-                futureSelfMessages = futureSelf.map(::futureSelfRow),
-                affirmationReviews = affirmationReviews.map(::affirmationReviewRow),
+                centerOfGravityEntries = secondary.first.map(::cogRow),
+                futureSelfMessages = secondary.second.map(::futureSelfRow),
+                affirmationReviews = secondary.third.map(::affirmationReviewRow),
+                heartsEntries = secondary.fourth.map(::heartsRow),
                 limit = limit,
             )
         }.flowOn(Dispatchers.Default)
     }
+
+    private data class Quadruple<A, B, C, D>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D,
+    )
 
     fun observeActivitiesForDay(
         date: LocalDate,
@@ -177,6 +186,37 @@ class HomeActivityRepository(
         subtitle = "${entity.affirmationCount} affirmations",
         moodLevel = entity.moodLevel,
     )
+
+    private fun heartsRow(
+        entity: com.example.meditationparticles.data.local.HeartsEntryEntity,
+    ): HomeActivityTimelineBuilder.TextEntryRow {
+        val toolId = runCatching {
+            com.example.meditationparticles.domain.toolkit.ToolkitToolId.valueOf(entity.toolId)
+        }.getOrNull()
+        val title = toolId?.let { id ->
+            when (id) {
+                com.example.meditationparticles.domain.toolkit.ToolkitToolId.DelightDeposit -> "Delight Deposit"
+                com.example.meditationparticles.domain.toolkit.ToolkitToolId.AttunementMap -> "Attunement Map"
+                com.example.meditationparticles.domain.toolkit.ToolkitToolId.RepairReconnect -> "Repair & Reconnect"
+                com.example.meditationparticles.domain.toolkit.ToolkitToolId.SecureSelfCheck -> "Secure Self Check"
+                com.example.meditationparticles.domain.toolkit.ToolkitToolId.AppreciationRitual -> "Appreciation Ritual"
+                com.example.meditationparticles.domain.toolkit.ToolkitToolId.NeedsBeforeNegotiation -> "Needs Before Negotiation"
+                com.example.meditationparticles.domain.toolkit.ToolkitToolId.AttachmentStorySnapshot -> "Attachment Story"
+                else -> id.name
+            }
+        } ?: entity.toolId
+        val text = entity.stepValues().filter { it.isNotBlank() }.joinToString("\n\n")
+            .ifBlank { entity.personName }
+        val subtitle = entity.personName.takeIf { it.isNotBlank() && text != entity.personName }
+        return HomeActivityTimelineBuilder.TextEntryRow(
+            id = entity.id,
+            completedAt = entity.createdAt,
+            label = title,
+            text = text,
+            subtitle = subtitle,
+            moodLevel = entity.moodLevel,
+        )
+    }
 
     private fun formatMinutes(durationSeconds: Int): String? {
         if (durationSeconds <= 0) return null
