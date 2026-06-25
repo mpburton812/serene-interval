@@ -84,10 +84,12 @@ class MainActivity : ComponentActivity() {
     private fun deliverOverdueFutureSelfMessages() {
         lifecycleScope.launch {
             if (!FutureSelfMessageReceiver.canPostNotifications(applicationContext)) return@launch
-            val overdue = AppGraph.futureSelfMessages(applicationContext)
-                .getOverdueUndelivered(System.currentTimeMillis())
-            overdue.forEach { message ->
-                FutureSelfMessageReceiver.deliverMessage(applicationContext, message.id)
+            runCatching {
+                val overdue = AppGraph.futureSelfMessages(applicationContext)
+                    .getOverdueUndelivered(System.currentTimeMillis())
+                overdue.forEach { message ->
+                    FutureSelfMessageReceiver.deliverMessage(applicationContext, message.id)
+                }
             }
         }
     }
