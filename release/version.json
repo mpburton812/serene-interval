@@ -1,7 +1,7 @@
 {
-  "versionCode": 25,
-  "versionName": "1.0.24",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.24/sway_meditation.apk",
-  "expectedSha256": "b409712900fbdadc09b8201ad9c6c7fcaae9766128b31a1d06e9496ddc7d8489",
-  "releaseNotes": "Sway sanctuary walkthrough (Phase 1): first-visit customization, remodel from Settings, non-destructive toolkit changes, HEARTS history preserved when tools are off, and Sway branding."
+  "versionCode": 26,
+  "versionName": "1.0.25",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.25/sway_meditation.apk",
+  "expectedSha256": "0b68c9b30e24db1e00d3c10df90c64929fda177daeb653c69cde493b8bf90370",
+  "releaseNotes": "Launch crash hotfix: safe home timeline loading, guarded startup DB access, toolkit tab reconciliation, onboarding walkthrough stability, and Visualizations nav routes."
 }
