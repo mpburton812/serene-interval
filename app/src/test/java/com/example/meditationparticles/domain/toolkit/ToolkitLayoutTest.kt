@@ -16,6 +16,7 @@ class ToolkitLayoutTest {
 
         val tools = ToolkitLayout.orderedTools(
             category = ToolkitCategory.Proactive,
+            lane = ToolkitLane.Core,
             enabledIds = enabled,
             savedOrder = order,
         )
@@ -25,7 +26,7 @@ class ToolkitLayoutTest {
 
     @Test
     fun orderedTools_sortsByUsageCountDescending() {
-        val savedOrder = ToolkitLayout.defaultOrder(ToolkitCategory.Reactive)
+        val savedOrder = ToolkitLayout.defaultOrder(ToolkitCategory.Reactive, ToolkitLane.Core)
         val enabled = setOf(
             ToolkitToolId.Grounding54321,
             ToolkitToolId.AnxietyLog,
@@ -39,6 +40,7 @@ class ToolkitLayoutTest {
 
         val tools = ToolkitLayout.orderedTools(
             category = ToolkitCategory.Reactive,
+            lane = ToolkitLane.Core,
             enabledIds = enabled,
             savedOrder = savedOrder,
             usageCounts = usageCounts,
@@ -70,6 +72,7 @@ class ToolkitLayoutTest {
         val sorted = ToolkitLayout.sortByUsage(
             toolIds = toolIds,
             category = ToolkitCategory.Reactive,
+            lane = ToolkitLane.Core,
             savedOrder = savedOrder,
             usageCounts = emptyMap(),
         )
@@ -95,6 +98,7 @@ class ToolkitLayoutTest {
         val sorted = ToolkitLayout.sortByUsage(
             toolIds = toolIds,
             category = ToolkitCategory.Reactive,
+            lane = ToolkitLane.Core,
             savedOrder = savedOrder,
             usageCounts = usageCounts,
         )
@@ -126,12 +130,26 @@ class ToolkitLayoutTest {
     fun normalizeOrder_appendsMissingDefaults() {
         val normalized = ToolkitLayout.normalizeOrder(
             ToolkitCategory.Reactive,
+            ToolkitLane.Core,
             listOf(ToolkitToolId.AnxietyLog, ToolkitToolId.Grounding54321),
         )
 
         assertEquals(ToolkitToolId.AnxietyLog, normalized.first())
         assertTrue(ToolkitToolId.MicroPause in normalized)
-        assertEquals(ToolkitLayout.defaultOrder(ToolkitCategory.Reactive).size, normalized.size)
+        assertEquals(ToolkitLayout.defaultOrder(ToolkitCategory.Reactive, ToolkitLane.Core).size, normalized.size)
+    }
+
+    @Test
+    fun heartsNormalizeOrder_includesHeartsToolsOnly() {
+        val normalized = ToolkitLayout.normalizeOrder(
+            ToolkitCategory.Proactive,
+            ToolkitLane.Hearts,
+            listOf(ToolkitToolId.SecureSelfCheck),
+        )
+
+        assertTrue(ToolkitToolId.DelightDeposit in normalized)
+        assertTrue(ToolkitToolId.HeartsFlowerPartners in normalized)
+        assertTrue(ToolkitToolId.ThoughtDump !in normalized)
     }
 
     @Test

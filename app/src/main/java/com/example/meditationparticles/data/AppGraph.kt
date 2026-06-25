@@ -40,6 +40,9 @@ object AppGraph {
     private var nvcRepository: NvcRepository? = null
 
     @Volatile
+    private var heartsRepository: HeartsRepository? = null
+
+    @Volatile
     private var tabBackgroundRotation: TabBackgroundRotation? = null
 
     @Volatile
@@ -156,6 +159,14 @@ object AppGraph {
                 dao = SereneDatabase.getInstance(context.applicationContext).nvcEntryDao(),
                 moodTracker = moodTracker(context),
             ).also { nvcRepository = it }
+        }
+
+    fun heartsEntries(context: Context): HeartsRepository =
+        heartsRepository ?: synchronized(this) {
+            heartsRepository ?: HeartsRepository(
+                dao = SereneDatabase.getInstance(context.applicationContext).heartsEntryDao(),
+                moodTracker = moodTracker(context),
+            ).also { heartsRepository = it }
         }
 
     fun tabBackgroundRotation(context: Context): TabBackgroundRotation =

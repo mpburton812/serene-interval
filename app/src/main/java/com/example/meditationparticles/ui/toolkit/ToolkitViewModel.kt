@@ -6,11 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
+import com.example.meditationparticles.data.local.HeartsEntryEntity
 import com.example.meditationparticles.data.local.NvcEntryEntity
 import com.example.meditationparticles.data.local.RefactoringEntryEntity
 import com.example.meditationparticles.data.local.ThoughtDumpEntity
+import com.example.meditationparticles.domain.toolkit.HeartsToolConfig
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
 import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
 import com.example.meditationparticles.domain.toolkit.ToolkitTool
@@ -18,7 +21,10 @@ import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.domain.onenote.OneNoteEntryType
 import com.example.meditationparticles.reminder.FutureSelfMessageScheduler
+import com.example.meditationparticles.domain.livingtree.LivingTreeDefaults
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,10 +36,14 @@ enum class RandomToolState { Idle, Finding, Selected }
 data class ToolkitUiState(
     val toolkitConfigured: Boolean = true,
     val enabledToolIds: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
-    val proactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
-    val reactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
-    val selectionProactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
-    val selectionReactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
+    val proactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Core),
+    val reactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Core),
+    val heartsProactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Hearts),
+    val heartsReactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Hearts),
+    val selectionProactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Core) +
+        ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Hearts),
+    val selectionReactiveTools: List<ToolkitTool> = ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Core) +
+        ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Hearts),
     val selectedTool: ToolkitTool? = null,
     val stepIndex: Int = 0,
     val thoughtDumpText: String = "",
@@ -67,6 +77,13 @@ data class ToolkitUiState(
     val nvcRequest: String = "",
     val nvcEntries: List<NvcEntryEntity> = emptyList(),
     val openedNvcEntry: NvcEntryEntity? = null,
+    val heartsStepIndex: Int = 0,
+    val heartsSteps: List<String> = List(5) { "" },
+    val heartsPersonId: Long? = null,
+    val heartsPersonName: String = "",
+    val heartsEntries: List<HeartsEntryEntity> = emptyList(),
+    val openedHeartsEntry: HeartsEntryEntity? = null,
+    val heartsPartnerSummaries: List<HeartsPartnerSummary> = emptyList(),
     val randomToolState: RandomToolState = RandomToolState.Idle,
     val randomSelectedTool: ToolkitTool? = null,
     val oneNoteConnected: Boolean = false,
@@ -84,11 +101,15 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     private val refactoringRepository = AppGraph.refactoringEntries(application)
     private val centerOfGravityRepository = AppGraph.centerOfGravityEntries(application)
     private val nvcRepository = AppGraph.nvcEntries(application)
+    private val heartsRepository = AppGraph.heartsEntries(application)
+    private val livingTreeRepository = AppGraph.livingTree(application)
     private val toolkitPreferences = AppGraph.toolkit(application)
     private val settingsPreferences = AppGraph.settings(application)
     private val oneNotePreferences = AppGraph.oneNotePreferences(application)
     private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val appContext = application.applicationContext
+    private var heartsEntriesJob: Job? = null
+    private var heartsPartnersJob: Job? = null
 
     private val _uiState = MutableStateFlow(ToolkitUiState())
     val uiState: StateFlow<ToolkitUiState> = _uiState.asStateFlow()
@@ -167,6 +188,18 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
         toolkitPreferences.saveReactiveOrder(reordered)
     }
 
+    fun reorderHeartsProactiveTool(fromIndex: Int, toIndex: Int) {
+        val currentOrder = _uiState.value.heartsProactiveTools.map { it.id }
+        val reordered = ToolkitLayout.reorder(currentOrder, fromIndex, toIndex)
+        toolkitPreferences.saveHeartsProactiveOrder(reordered)
+    }
+
+    fun reorderHeartsReactiveTool(fromIndex: Int, toIndex: Int) {
+        val currentOrder = _uiState.value.heartsReactiveTools.map { it.id }
+        val reordered = ToolkitLayout.reorder(currentOrder, fromIndex, toIndex)
+        toolkitPreferences.saveHeartsReactiveOrder(reordered)
+    }
+
     private fun applyToolkitSnapshot(snapshot: com.example.meditationparticles.data.ToolkitPrefsSnapshot) {
         _uiState.update { state ->
             state.copy(
@@ -174,24 +207,44 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 enabledToolIds = snapshot.enabledToolIds,
                 proactiveTools = ToolkitLayout.orderedTools(
                     category = ToolkitCategory.Proactive,
+                    lane = ToolkitLane.Core,
                     enabledIds = snapshot.enabledToolIds,
                     savedOrder = snapshot.proactiveOrder,
                     usageCounts = snapshot.usageCounts,
                 ),
                 reactiveTools = ToolkitLayout.orderedTools(
                     category = ToolkitCategory.Reactive,
+                    lane = ToolkitLane.Core,
                     enabledIds = snapshot.enabledToolIds,
                     savedOrder = snapshot.reactiveOrder,
                     usageCounts = snapshot.usageCounts,
                 ),
-                selectionProactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive),
-                selectionReactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive),
+                heartsProactiveTools = ToolkitLayout.orderedTools(
+                    category = ToolkitCategory.Proactive,
+                    lane = ToolkitLane.Hearts,
+                    enabledIds = snapshot.enabledToolIds,
+                    savedOrder = snapshot.heartsProactiveOrder,
+                    usageCounts = snapshot.usageCounts,
+                ),
+                heartsReactiveTools = ToolkitLayout.orderedTools(
+                    category = ToolkitCategory.Reactive,
+                    lane = ToolkitLane.Hearts,
+                    enabledIds = snapshot.enabledToolIds,
+                    savedOrder = snapshot.heartsReactiveOrder,
+                    usageCounts = snapshot.usageCounts,
+                ),
+                selectionProactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Core) +
+                    ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Hearts),
+                selectionReactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Core) +
+                    ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Hearts),
             )
         }
     }
 
     fun openTool(tool: ToolkitTool) {
         toolkitPreferences.incrementUsageCount(tool.id)
+        heartsEntriesJob?.cancel()
+        heartsPartnersJob?.cancel()
         _uiState.update {
             it.copy(
                 selectedTool = tool,
@@ -222,7 +275,44 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 nvcNeed = "",
                 nvcRequest = "",
                 openedNvcEntry = null,
+                heartsStepIndex = 0,
+                heartsSteps = List(5) { "" },
+                heartsPersonId = null,
+                heartsPersonName = "",
+                heartsEntries = emptyList(),
+                openedHeartsEntry = null,
             )
+        }
+        if (HeartsToolConfig.isJournalTool(tool.id)) {
+            heartsEntriesJob = viewModelScope.launch {
+                heartsRepository.observeByTool(tool.id).collect { entries ->
+                    _uiState.update { state -> state.copy(heartsEntries = entries) }
+                }
+            }
+        }
+        if (tool.id == ToolkitToolId.HeartsFlowerPartners) {
+            heartsPartnersJob = viewModelScope.launch {
+                combine(
+                    livingTreeRepository.snapshot,
+                    heartsRepository.observeAll(),
+                ) { tree, entries ->
+                    buildPartnerSummaries(tree.people, tree.tagById, entries)
+                }.collect { partners ->
+                    _uiState.update { state -> state.copy(heartsPartnerSummaries = partners) }
+                }
+            }
+        }
+    }
+
+    fun openHeartsToolForPartner(toolId: ToolkitToolId, partner: HeartsPartnerSummary) {
+        ToolkitCatalog.byId(toolId)?.let { tool ->
+            openTool(tool)
+            _uiState.update {
+                it.copy(
+                    heartsPersonId = partner.personId,
+                    heartsPersonName = partner.personName,
+                )
+            }
         }
     }
 
@@ -259,6 +349,8 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun closeTool() {
+        heartsEntriesJob?.cancel()
+        heartsPartnersJob?.cancel()
         _uiState.update {
             it.copy(
                 selectedTool = null,
@@ -288,6 +380,13 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 nvcNeed = "",
                 nvcRequest = "",
                 openedNvcEntry = null,
+                heartsStepIndex = 0,
+                heartsSteps = List(5) { "" },
+                heartsPersonId = null,
+                heartsPersonName = "",
+                heartsEntries = emptyList(),
+                openedHeartsEntry = null,
+                heartsPartnerSummaries = emptyList(),
             )
         }
     }
@@ -769,7 +868,126 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
             tool?.id == ToolkitToolId.FutureSelfMessage ||
             tool?.id == ToolkitToolId.Refactoring ||
             tool?.id == ToolkitToolId.NonViolentCommunication ||
-            tool?.id == ToolkitToolId.RelocateCenterOfGravity
+            tool?.id == ToolkitToolId.RelocateCenterOfGravity ||
+            (tool != null && HeartsToolConfig.isJournalTool(tool.id))
+
+    fun updateHeartsPersonName(name: String) {
+        _uiState.update { it.copy(heartsPersonName = name) }
+    }
+
+    fun updateHeartsStep(index: Int, value: String) {
+        _uiState.update { state ->
+            val next = state.heartsSteps.toMutableList()
+            while (next.size < 5) next.add("")
+            next[index] = value
+            state.copy(heartsSteps = next)
+        }
+    }
+
+    fun nextHeartsStep() {
+        val tool = _uiState.value.selectedTool ?: return
+        val max = HeartsToolConfig.stepCount(tool.id) - 1
+        if (_uiState.value.heartsStepIndex < max) {
+            _uiState.update { it.copy(heartsStepIndex = it.heartsStepIndex + 1) }
+        }
+    }
+
+    fun previousHeartsStep() {
+        if (_uiState.value.heartsStepIndex > 0) {
+            _uiState.update { it.copy(heartsStepIndex = it.heartsStepIndex - 1) }
+        }
+    }
+
+    fun goToHeartsStep(index: Int) {
+        val tool = _uiState.value.selectedTool ?: return
+        val max = HeartsToolConfig.stepCount(tool.id) - 1
+        _uiState.update { it.copy(heartsStepIndex = index.coerceIn(0, max)) }
+    }
+
+    fun saveHeartsEntry(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            val state = _uiState.value
+            val tool = state.selectedTool ?: return@launch
+            if (!HeartsToolConfig.isJournalTool(tool.id)) return@launch
+            heartsRepository.save(
+                toolId = tool.id,
+                personId = state.heartsPersonId,
+                personName = state.heartsPersonName,
+                steps = state.heartsSteps,
+                moodLevel = state.draftMoodLevel,
+            )
+            _uiState.update {
+                it.copy(
+                    heartsStepIndex = 0,
+                    heartsSteps = List(5) { "" },
+                    heartsPersonName = if (tool.id == ToolkitToolId.HeartsFlowerPartners) {
+                        it.heartsPersonName
+                    } else {
+                        ""
+                    },
+                    draftMoodLevel = null,
+                )
+            }
+            onComplete()
+        }
+    }
+
+    fun clearHeartsDraft() {
+        _uiState.update {
+            it.copy(
+                heartsStepIndex = 0,
+                heartsSteps = List(5) { "" },
+                heartsPersonName = "",
+            )
+        }
+    }
+
+    fun openHeartsEntry(entry: HeartsEntryEntity) {
+        _uiState.update { it.copy(openedHeartsEntry = entry) }
+    }
+
+    fun closeHeartsEntry() {
+        _uiState.update { it.copy(openedHeartsEntry = null) }
+    }
+
+    fun deleteHeartsEntry(entry: HeartsEntryEntity) {
+        viewModelScope.launch {
+            heartsRepository.deleteEntry(entry.id)
+            if (_uiState.value.openedHeartsEntry?.id == entry.id) {
+                _uiState.update { it.copy(openedHeartsEntry = null) }
+            }
+        }
+    }
+
+    private fun buildPartnerSummaries(
+        people: List<com.example.meditationparticles.data.local.LivingTreePersonWithTags>,
+        tagById: Map<Long, com.example.meditationparticles.data.local.LivingTreeTagEntity>,
+        entries: List<HeartsEntryEntity>,
+    ): List<HeartsPartnerSummary> {
+        val partnerTag = tagById.values.find { tag ->
+            tag.name.equals(LivingTreeDefaults.defaultTags.first { it.name == "Partner" }.name, ignoreCase = true)
+        } ?: tagById.values.find { it.name.equals("Partner", ignoreCase = true) }
+            ?: return emptyList()
+        return people
+            .filter { person -> person.tags.any { it.id == partnerTag.id } }
+            .map { personWithTags ->
+                val person = personWithTags.person
+                val latest = entries.filter { it.personId == person.id }.maxByOrNull { it.createdAt }
+                val toolId = latest?.toolId?.let { name ->
+                    runCatching { ToolkitToolId.valueOf(name) }.getOrNull()
+                }
+                HeartsPartnerSummary(
+                    personId = person.id,
+                    personName = person.name,
+                    tagColorArgb = partnerTag.colorArgb,
+                    lastToolTitle = toolId?.let { heartsRepository.toolTitle(it) },
+                    lastHeartsLetter = toolId?.let { heartsRepository.heartsLetter(it) },
+                    lastSummary = latest?.let { heartsRepository.entrySummary(it) },
+                    lastTouchpointAt = latest?.createdAt,
+                )
+            }
+            .sortedBy { it.personName.lowercase() }
+    }
 
     fun syncEntryToOneNote(entryType: OneNoteEntryType, localEntryId: Long) {
         viewModelScope.launch {
