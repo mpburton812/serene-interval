@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.0.33 - 2026-06-26
+
+### Launch crash hotfix (regression from v1.0.32)
+
+- Revert removing Visualizations from bottom nav (v1.0.32 broke upgrades with saved tab state)
+- Hold tab pager until post-upgrade navigation reset completes
+- Keep settings exit fix: explicit Home navigation and pager sync guard after remodel
+
 ## 1.0.32 - 2026-06-26
 
 ### Settings exit crash hotfix (upgrade from v1.0.23)
