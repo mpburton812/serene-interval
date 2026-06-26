@@ -1,8 +1,8 @@
 ﻿{
-  "versionCode": 30,
-  "versionName": "1.0.29",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.29/sway_meditation.apk",
-  "expectedSha256": "d9758fadae93d266408a0cbfafe0fabc2966919880596290bfa1210d87ae38f5",
-  "releaseNotes": "Launch crash hotfix: removed custom backup agent and startup backup work from v1.0.27. Journal DB now included in standard Android device backup.",
+  "versionCode": 31,
+  "versionName": "1.0.30",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.30/sway_meditation.apk",
+  "expectedSha256": "c901a6155c5bf15536e1ca3a6617cf5ccbd1891b428d8e8baa7c1584cfccf5db",
+  "releaseNotes": "Launch crash hotfix for upgrades from v1.0.23: fixes Visual Sanctuary double-render on startup and resets navigation to Home after update.",
   "minVersionCode": 1
 }
