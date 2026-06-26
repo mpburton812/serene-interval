@@ -24,6 +24,7 @@ object AppLaunchMigration {
         val upgraded = previousVersionCode in 1 until currentVersionCode
         if (upgraded) {
             migrateTabBackgroundRotation(appContext)
+            sanitizeAutoBackupPreferences(appContext)
         }
 
         if (previousVersionCode != currentVersionCode) {
@@ -55,5 +56,16 @@ object AppLaunchMigration {
             nightIndex = rotationPrefs.getInt("night_index", -1),
         ).forEach { (key, value) -> editor.putInt(key, value) }
         editor.apply()
+    }
+
+    private fun sanitizeAutoBackupPreferences(context: Context) {
+        val backupPrefs = context.getSharedPreferences("auto_backup_preferences", Context.MODE_PRIVATE)
+        val enabled = backupPrefs.getBoolean("auto_backup_enabled", false)
+        val uri = backupPrefs.getString("destination_tree_uri", null)
+        if (enabled && uri.isNullOrBlank()) {
+            backupPrefs.edit()
+                .putBoolean("auto_backup_enabled", false)
+                .apply()
+        }
     }
 }

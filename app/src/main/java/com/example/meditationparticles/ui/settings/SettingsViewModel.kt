@@ -94,12 +94,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 quickStartPreferences.refresh(settings.value)
             }
         }
+    }
+
+    fun ensureOneNoteTargetsLoaded() {
+        if (_oneNoteUiState.value.isLoadingTargets || _oneNoteUiState.value.notebooks.isNotEmpty()) return
+        val prefs = oneNotePreferences.load()
+        if (prefs.accountEmail.isNullOrBlank()) return
         viewModelScope.launch {
-            oneNotePrefs.collect { prefs ->
-                if (!prefs.accountEmail.isNullOrBlank() && _oneNoteUiState.value.notebooks.isEmpty()) {
-                    refreshOneNoteTargets(showLoading = true)
-                }
-            }
+            refreshOneNoteTargets(showLoading = true)
         }
     }
 
