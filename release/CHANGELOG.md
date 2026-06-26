@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.0.30 - 2026-06-25
+
+### Launch crash hotfix (upgrade from v1.0.23)
+
+- Fix Visualizations tab rendering twice on launch when navigation state was restored after an in-place update (NavHost + tab pager both composed `VisualizationsScreen`)
+- Reset navigation to Home after APK upgrade so stale routes cannot crash startup
+- Remap legacy tab-background rotation prefs when upgrading from pre-landscape releases
+- Reset tab pager when bottom-nav items change; guard pager page indexing
+
 ## 1.0.29 - 2026-06-25
 
 ### Launch crash hotfix (v1.0.27–1.0.28 follow-up)
