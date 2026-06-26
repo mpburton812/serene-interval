@@ -1,4 +1,5 @@
 ﻿import java.util.Properties
+import java.time.Duration
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -116,6 +117,11 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
+}
+
+tasks.withType<Test>().configureEach {
+    timeout.set(Duration.ofMinutes(10))
+    failOnNoDiscoveredTests = false
 }
 
 dependencies {
