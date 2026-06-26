@@ -6,12 +6,11 @@ import com.example.meditationparticles.domain.home.HomeActivityTimelineBuilder
 import com.example.meditationparticles.domain.sessions.MeditationSession
 import com.example.meditationparticles.domain.sessions.SessionType
 import com.example.meditationparticles.domain.toolkit.ToolkitLogType
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
-import android.util.Log
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -59,8 +58,13 @@ class HomeActivityRepository(
         }
 
         val secondaryFlow = combine(cogFlow, futureSelfFlow, affirmationReviewsFlow, heartsFlow) {
-                cog, futureSelf, affirmationReviews, hearts ->
-            Quadruple(cog, futureSelf, affirmationReviews, hearts)
+                cog, futureSelf, reviews, hearts ->
+            TimelineSecondarySnapshot(
+                centerOfGravity = cog,
+                futureSelf = futureSelf,
+                affirmationReviews = reviews,
+                heartsEntries = hearts,
+            )
         }
 
         return combine(primaryFlow, secondaryFlow) { primary, secondary ->
@@ -70,26 +74,14 @@ class HomeActivityRepository(
                 thoughtDumps = primary.thoughtDumps.map(::thoughtDumpRow),
                 nvcEntries = primary.nvc.map(::nvcRow),
                 refactoringEntries = primary.refactoring.map(::refactoringRow),
-                centerOfGravityEntries = secondary.first.map(::cogRow),
-                futureSelfMessages = secondary.second.map(::futureSelfRow),
-                affirmationReviews = secondary.third.map(::affirmationReviewRow),
-                heartsEntries = secondary.fourth.map(::heartsRow),
+                centerOfGravityEntries = secondary.centerOfGravity.map(::cogRow),
+                futureSelfMessages = secondary.futureSelf.map(::futureSelfRow),
+                affirmationReviews = secondary.affirmationReviews.map(::affirmationReviewRow),
+                heartsEntries = secondary.heartsEntries.map(::heartsRow),
                 limit = limit,
             )
-        }
-            .catch { error ->
-                Log.e(TAG, "Failed to build home activity timeline", error)
-                emit(emptyList<HomeActivityItem>())
-            }
-            .flowOn(Dispatchers.Default)
+        }.flowOn(Dispatchers.Default)
     }
-
-    private data class Quadruple<A, B, C, D>(
-        val first: A,
-        val second: B,
-        val third: C,
-        val fourth: D,
-    )
 
     fun observeActivitiesForDay(
         date: LocalDate,
@@ -111,6 +103,13 @@ class HomeActivityRepository(
         val thoughtDumps: List<com.example.meditationparticles.data.local.ThoughtDumpEntity>,
         val nvc: List<com.example.meditationparticles.data.local.NvcEntryEntity>,
         val refactoring: List<com.example.meditationparticles.data.local.RefactoringEntryEntity>,
+    )
+
+    private data class TimelineSecondarySnapshot(
+        val centerOfGravity: List<com.example.meditationparticles.data.local.CenterOfGravityEntryEntity>,
+        val futureSelf: List<com.example.meditationparticles.data.local.FutureSelfMessageEntity>,
+        val affirmationReviews: List<com.example.meditationparticles.data.local.AffirmationReviewSessionEntity>,
+        val heartsEntries: List<com.example.meditationparticles.data.local.HeartsEntryEntity>,
     )
 
     private fun reflectionRow(
@@ -183,6 +182,33 @@ class HomeActivityRepository(
             moodLevel = entity.moodLevel,
         )
 
+    private fun heartsRow(entity: com.example.meditationparticles.data.local.HeartsEntryEntity) =
+        HomeActivityTimelineBuilder.TextEntryRow(
+            id = entity.id,
+            completedAt = entity.createdAt,
+            label = heartsToolTitle(entity.toolId),
+            text = buildHeartsTimelineText(entity),
+            subtitle = entity.personName.takeIf { it.isNotBlank() },
+            moodLevel = entity.moodLevel,
+        )
+
+    private fun buildHeartsTimelineText(entity: com.example.meditationparticles.data.local.HeartsEntryEntity): String =
+        entity.stepValues().filter { it.isNotBlank() }.joinToString("\n\n")
+
+    private fun heartsToolTitle(toolId: String): String {
+        val id = runCatching { ToolkitToolId.valueOf(toolId) }.getOrNull()
+        return when (id) {
+            ToolkitToolId.DelightDeposit -> "Delight Deposit"
+            ToolkitToolId.AttunementMap -> "Attunement Map"
+            ToolkitToolId.RepairReconnect -> "Repair & Reconnect"
+            ToolkitToolId.SecureSelfCheck -> "Secure Self Check"
+            ToolkitToolId.AppreciationRitual -> "Appreciation Ritual"
+            ToolkitToolId.NeedsBeforeNegotiation -> "Needs Before Negotiation"
+            ToolkitToolId.AttachmentStorySnapshot -> "Attachment Story"
+            else -> "HEARTS"
+        }
+    }
+
     private fun affirmationReviewRow(
         entity: com.example.meditationparticles.data.local.AffirmationReviewSessionEntity,
     ) = HomeActivityTimelineBuilder.TextEntryRow(
@@ -194,43 +220,8 @@ class HomeActivityRepository(
         moodLevel = entity.moodLevel,
     )
 
-    private fun heartsRow(
-        entity: com.example.meditationparticles.data.local.HeartsEntryEntity,
-    ): HomeActivityTimelineBuilder.TextEntryRow {
-        val toolId = runCatching {
-            com.example.meditationparticles.domain.toolkit.ToolkitToolId.valueOf(entity.toolId)
-        }.getOrNull()
-        val title = toolId?.let { id ->
-            when (id) {
-                com.example.meditationparticles.domain.toolkit.ToolkitToolId.DelightDeposit -> "Delight Deposit"
-                com.example.meditationparticles.domain.toolkit.ToolkitToolId.AttunementMap -> "Attunement Map"
-                com.example.meditationparticles.domain.toolkit.ToolkitToolId.RepairReconnect -> "Repair & Reconnect"
-                com.example.meditationparticles.domain.toolkit.ToolkitToolId.SecureSelfCheck -> "Secure Self Check"
-                com.example.meditationparticles.domain.toolkit.ToolkitToolId.AppreciationRitual -> "Appreciation Ritual"
-                com.example.meditationparticles.domain.toolkit.ToolkitToolId.NeedsBeforeNegotiation -> "Needs Before Negotiation"
-                com.example.meditationparticles.domain.toolkit.ToolkitToolId.AttachmentStorySnapshot -> "Attachment Story"
-                else -> id.name
-            }
-        } ?: entity.toolId
-        val text = entity.stepValues().filter { it.isNotBlank() }.joinToString("\n\n")
-            .ifBlank { entity.personName }
-        val subtitle = entity.personName.takeIf { it.isNotBlank() && text != entity.personName }
-        return HomeActivityTimelineBuilder.TextEntryRow(
-            id = entity.id,
-            completedAt = entity.createdAt,
-            label = title,
-            text = text,
-            subtitle = subtitle,
-            moodLevel = entity.moodLevel,
-        )
-    }
-
     private fun formatMinutes(durationSeconds: Int): String? {
         if (durationSeconds <= 0) return null
         return "${durationSeconds / 60} min"
-    }
-
-    companion object {
-        private const val TAG = "HomeActivityRepository"
     }
 }

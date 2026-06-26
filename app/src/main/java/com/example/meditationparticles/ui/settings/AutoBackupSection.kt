@@ -1,28 +1,20 @@
 package com.example.meditationparticles.ui.settings
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.meditationparticles.data.backup.AutoBackupSnapshot
@@ -41,32 +33,22 @@ fun AutoBackupSection(
     isRunningBackup: Boolean,
     onAutoBackupEnabledChange: (Boolean) -> Unit,
     onFrequencySelected: (AutoBackupFrequency) -> Unit,
-    onBackupFolderSelected: (Uri) -> Unit,
+    onChooseFolder: () -> Unit,
     onBackupNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val backupFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri: Uri? ->
-        if (uri != null) {
-            onBackupFolderSelected(uri)
-        }
-    }
-
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
     ) {
         Text(
-            text = "Protect your data",
+            text = "Automatic backup",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            text = "Uninstalling Sway deletes everything stored inside the app. " +
-                "Turn on automatic backups to a folder outside the app (for example Documents/Sway Backups) " +
-                "so your journals survive reinstall. With Android backup enabled on your device, " +
-                "journal data is also included in Google's encrypted device backup.",
+            text = "Save JSON backups to a folder outside the app (for example Documents/Sway Backups). " +
+                "Sway keeps the latest 14 backup files and runs on a daily or weekly schedule.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -76,15 +58,15 @@ fun AutoBackupSection(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                EmbeddedSettingsToggleRow(
-                    label = "Automatic backup",
-                    icon = Icons.Default.FolderOpen,
+                SettingsToggleRow(
+                    label = "Enable automatic backup",
+                    icon = Icons.Default.Backup,
                     checked = snapshot.autoBackupEnabled,
                     onCheckedChange = onAutoBackupEnabledChange,
                 )
                 Text(
                     text = if (snapshot.isConfigured) {
-                        "Folder selected. Sway keeps the latest 14 JSON backups."
+                        "Folder selected. Backups run in the background when battery is not low."
                     } else {
                         "Choose a folder before enabling automatic backup."
                     },
@@ -92,7 +74,7 @@ fun AutoBackupSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedButton(
-                    onClick = { backupFolderLauncher.launch(null) },
+                    onClick = onChooseFolder,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(999.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -153,43 +135,6 @@ fun AutoBackupSection(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun EmbeddedSettingsToggleRow(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-        )
     }
 }
 

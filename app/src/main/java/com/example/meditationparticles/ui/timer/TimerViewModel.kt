@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -42,7 +41,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     private val engine = TimerEngine()
     private val sessionRepository = AppGraph.sessions(application)
     private val reflectionRepository = AppGraph.meditationReflections(application)
-    private val oneNoteSync by lazy { AppGraph.oneNoteSync(application) }
+    private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val calendarMonthOffset = MutableStateFlow(0)
     private val zoneId = ZoneId.systemDefault()
     private val locale = Locale.getDefault()
@@ -55,7 +54,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     val reflections: StateFlow<List<MeditationReflectionEntity>> =
         reflectionRepository.observeAll()
-            .catch { emit(emptyList()) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -80,14 +78,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
-        .catch {
-            emit(
-                MeditationCalendarUiState(
-                    weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
-                    monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, 0, zoneId, locale),
-                ),
-            )
-        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -97,7 +87,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             ),
         )
 
-    fun isOneNoteConnected(): Boolean = oneNoteSync.isConnected()
+    val oneNoteConnected: Boolean = oneNoteSync.isConnected()
 
     init {
         viewModelScope.launch {

@@ -37,9 +37,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.export.AppDataExporter
-import com.example.meditationparticles.ui.settings.AutoBackupSection
-import com.example.meditationparticles.ui.settings.LandscapeThemeSection
-import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import java.io.IOException
@@ -51,7 +48,7 @@ import androidx.activity.compose.LocalActivity
 fun SettingsScreen(
     updateViewModel: UpdateViewModel,
     onBack: () -> Unit,
-    onRemodelSanctuary: () -> Unit,
+    onResetOnboarding: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel(),
 ) {
@@ -65,6 +62,14 @@ fun SettingsScreen(
     val updateState by updateViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val activity = LocalActivity.current as? ComponentActivity
+
+    val backupFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.onBackupFolderSelected(uri)
+        }
+    }
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -156,7 +161,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
         ) {
             Text(
-                text = "Shape a Sway that feels uniquely yours.",
+                text = "Shape a space that feels uniquely yours.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -176,11 +181,6 @@ fun SettingsScreen(
                 onThemeModeSelected = viewModel::setThemeMode,
             )
 
-            LandscapeThemeSection(
-                settings = settings,
-                onLandscapeThemeSelected = viewModel::setLandscapeTheme,
-            )
-
             ExperienceSection(
                 settings = settings,
                 onBreathingChanged = viewModel::setEnableBreathing,
@@ -188,15 +188,7 @@ fun SettingsScreen(
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onLivingTreeChanged = viewModel::setEnableLivingTree,
-                onVisualsChanged = viewModel::setEnableVisuals,
             )
-
-            if (settings.enableVisuals) {
-                VisualSanctuarySection(
-                    enabledScenes = settings.enabledScenes,
-                    onToggleScene = viewModel::toggleScene,
-                )
-            }
 
             QuickStartSelectionSection(
                 settings = settings,
@@ -205,12 +197,28 @@ fun SettingsScreen(
                 onToggle = viewModel::toggleQuickStart,
             )
 
+            Column(
+                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
+            ) {
+                Text(
+                    text = "Your data",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Uninstalling Sway deletes in-app data unless you back up to a folder outside the app. " +
+                        "Living Flower includes personal names — treat backups as sensitive.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             AutoBackupSection(
                 snapshot = autoBackupSnapshot,
                 isRunningBackup = settingsUiState.isRunningAutoBackup,
                 onAutoBackupEnabledChange = viewModel::setAutoBackupEnabled,
                 onFrequencySelected = viewModel::setAutoBackupFrequency,
-                onBackupFolderSelected = viewModel::onBackupFolderSelected,
+                onChooseFolder = { backupFolderLauncher.launch(null) },
                 onBackupNow = viewModel::runAutoBackupNow,
             )
             settingsUiState.autoBackupError?.let { message ->
@@ -231,8 +239,7 @@ fun SettingsScreen(
                 )
                 Text(
                     text = "Download a JSON backup of your settings and journal entries, or restore " +
-                        "from a previous export. Living Flower includes personal names — treat backups " +
-                        "as sensitive. Audio recordings are referenced by path only and are " +
+                        "from a previous export. Audio recordings are referenced by path only and are " +
                         "not included in the backup file.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -338,7 +345,6 @@ fun SettingsScreen(
                 onEntryTypeSyncChange = viewModel::setOneNoteEntryTypeSyncEnabled,
                 onSelectNotebook = viewModel::selectOneNoteNotebook,
                 onSelectSection = viewModel::selectOneNoteSection,
-                onEnsureTargetsLoaded = viewModel::ensureOneNoteTargetsLoaded,
             )
 
             Column(
@@ -397,18 +403,20 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
                 Text(
-                    text = "Remodel your Sway",
+                    text = "Rebuild Your Sanctuary",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Walk through setup again to change your spaces and tools. " +
-                        "Your journals, mood history, and entries are never deleted.",
+                    text = "Walk through setup again to revisit your name, tools, and scenes.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedButton(
-                    onClick = onRemodelSanctuary,
+                    onClick = {
+                        viewModel.resetOnboarding()
+                        onResetOnboarding()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(999.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -416,7 +424,7 @@ fun SettingsScreen(
                     ),
                 ) {
                     Text(
-                        text = "Remodel",
+                        text = "Rebuild!",
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )

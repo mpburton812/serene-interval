@@ -24,7 +24,6 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -49,7 +47,6 @@ import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationCatalog
 import com.example.meditationparticles.data.AppGraph
-import com.example.meditationparticles.data.AppLaunchMigration
 import com.example.meditationparticles.navigation.SereneDestination.ToolkitTab
 import com.example.meditationparticles.ui.breathing.BreathingScreen
 import com.example.meditationparticles.ui.components.BottomNavItem
@@ -60,9 +57,6 @@ import com.example.meditationparticles.ui.components.SereneBottomBar
 import com.example.meditationparticles.ui.home.FutureSelfNotificationOverlay
 import com.example.meditationparticles.ui.home.HomeScreen
 import com.example.meditationparticles.ui.onboarding.OnboardingScreen
-import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughMode
-import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughScreen
-import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughViewModel
 import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.settings.SettingsScreen
 import com.example.meditationparticles.ui.timer.TimerScreen
@@ -75,7 +69,6 @@ import com.example.meditationparticles.ui.toolkit.AffirmationsScreen
 import com.example.meditationparticles.ui.toolkit.ToolkitScreen
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import com.example.meditationparticles.ui.visualizations.VisualizationsScreen
-import com.example.meditationparticles.ui.visualizations.VisualizationPlayerScreen
 
 private val allBottomNavItems = listOf(
     BottomNavItem(SereneDestination.Home, "Home", Icons.Outlined.Home, Icons.Default.Home),
@@ -94,12 +87,6 @@ private val allBottomNavItems = listOf(
         Icons.Outlined.AccountTree,
         Icons.Default.AccountTree,
     ),
-    BottomNavItem(
-        SereneDestination.Visualizations,
-        "Visuals",
-        Icons.Outlined.Landscape,
-        Icons.Default.Landscape,
-    ),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -109,7 +96,6 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Affirmations.route,
     SereneDestination.Toolkit.route,
     SereneDestination.LivingTree.route,
-    SereneDestination.Visualizations.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -125,10 +111,6 @@ fun SereneNavHost(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val context = LocalContext.current
-    val launchMigration = remember { AppLaunchMigration.run(context) }
-    var tabNavigationReady by remember(launchMigration.resetNavigationToHome) {
-        mutableStateOf(!launchMigration.resetNavigationToHome)
-    }
     val tabBackgroundRotation = remember { AppGraph.tabBackgroundRotation(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
     var resumeCount by remember { mutableIntStateOf(0) }
@@ -152,15 +134,15 @@ fun SereneNavHost(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(currentRoute, settings.landscapeThemeId, settings.themeMode, isSystemDark) {
+    LaunchedEffect(currentRoute, settings.themeMode, isSystemDark) {
         if (isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance(settings.landscapeThemeId, settings.themeMode, isSystemDark)
+            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
         }
     }
 
-    LaunchedEffect(resumeCount, settings.landscapeThemeId, settings.themeMode, isSystemDark) {
+    LaunchedEffect(resumeCount, settings.themeMode, isSystemDark) {
         if (resumeCount > 1 && isTabBackgroundRoute(currentRoute)) {
-            tabBackgroundRotation.advance(settings.landscapeThemeId, settings.themeMode, isSystemDark)
+            tabBackgroundRotation.advance(settings.themeMode, isSystemDark)
         }
     }
 
@@ -196,7 +178,6 @@ fun SereneNavHost(
         settings.enableAffirmations,
         settings.enableToolkit,
         settings.enableLivingTree,
-        settings.enableVisuals,
     ) {
         allBottomNavItems.filter { item ->
             when (item.destination) {
@@ -206,38 +187,15 @@ fun SereneNavHost(
                 SereneDestination.Affirmations -> settings.enableAffirmations
                 SereneDestination.Toolkit -> settings.enableToolkit
                 SereneDestination.LivingTree -> settings.enableLivingTree
-                SereneDestination.Visualizations -> settings.enableVisuals
                 else -> false
             }
         }
     }
 
-    val visualizationsInBottomNav = bottomNavItems.any { it.destination == SereneDestination.Visualizations }
-    val pagerItemKey = bottomNavItems.joinToString(separator = "|") { it.destination.route }
-
-    val tabPagerState = key(pagerItemKey) {
-        rememberPagerState(
-            initialPage = (tabIndexForRoute(currentRoute, bottomNavItems) ?: 0)
-                .coerceIn(0, bottomNavItems.lastIndex.coerceAtLeast(0)),
-            pageCount = { bottomNavItems.size.coerceAtLeast(1) },
-        )
-    }
-
-    LaunchedEffect(launchMigration.resetNavigationToHome, settings.onboardingCompleted) {
-        if (!launchMigration.resetNavigationToHome || !settings.onboardingCompleted) {
-            tabNavigationReady = true
-            return@LaunchedEffect
-        }
-        tabNavigationReady = false
-        navController.navigate(SereneDestination.Home.route) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                inclusive = true
-            }
-            launchSingleTop = true
-            restoreState = false
-        }
-        tabNavigationReady = true
-    }
+    val tabPagerState = rememberPagerState(
+        initialPage = tabIndexForRoute(currentRoute, bottomNavItems) ?: 0,
+        pageCount = { bottomNavItems.size.coerceAtLeast(1) },
+    )
 
     val navigateToTab: (SereneDestination) -> Unit = { destination ->
         if (destination == SereneDestination.Toolkit) {
@@ -285,25 +243,15 @@ fun SereneNavHost(
         }
     }
 
-    var lastTabRoute by remember { mutableStateOf<String?>(null) }
-
     LaunchedEffect(currentRoute, bottomNavItems) {
-        if (!tabNavigationReady || !isTabRoute(currentRoute, bottomNavItems)) return@LaunchedEffect
         val index = tabIndexForRoute(currentRoute, bottomNavItems) ?: return@LaunchedEffect
         if (index != tabPagerState.currentPage && !tabPagerState.isScrollInProgress) {
             tabPagerState.animateScrollToPage(index)
         }
     }
 
-    LaunchedEffect(tabPagerState.settledPage, bottomNavItems, currentRoute) {
-        if (!tabNavigationReady || !isTabRoute(currentRoute, bottomNavItems)) {
-            lastTabRoute = null
-            return@LaunchedEffect
-        }
-        if (tabPagerState.isScrollInProgress) return@LaunchedEffect
-        val routeJustChanged = lastTabRoute != currentRoute
-        lastTabRoute = currentRoute
-        if (routeJustChanged) return@LaunchedEffect
+    LaunchedEffect(tabPagerState.settledPage, bottomNavItems) {
+        if (!isTabRoute(currentRoute, bottomNavItems)) return@LaunchedEffect
         val destination = bottomNavItems.getOrNull(tabPagerState.settledPage)?.destination
             ?: return@LaunchedEffect
         if (destination.route != currentRoute) {
@@ -317,20 +265,14 @@ fun SereneNavHost(
         }
     }
 
-    LaunchedEffect(pagerItemKey) {
-        lastTabRoute = null
-    }
-
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
-        currentRoute != SereneDestination.SanctuaryRemodel.route &&
         currentRoute != SereneDestination.LivingTreeSetup.route &&
         currentRoute?.startsWith("mood_graph") != true &&
         !breathingSessionActive
 
     val showAppBanner = currentRoute != SereneDestination.Settings.route &&
         currentRoute != SereneDestination.Onboarding.route &&
-        currentRoute != SereneDestination.SanctuaryRemodel.route &&
         currentRoute != SereneDestination.LivingTreeSetup.route &&
         currentRoute?.startsWith("mood_graph") != true
 
@@ -421,34 +363,13 @@ fun SereneNavHost(
             composable(SereneDestination.Settings.route) {
                 SettingsScreen(
                     updateViewModel = updateViewModel,
-                    onBack = {
-                        lastTabRoute = null
-                        navController.navigate(SereneDestination.Home.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
+                    onBack = { navController.popBackStack() },
+                    onResetOnboarding = {
+                        navController.navigate(SereneDestination.Onboarding.route) {
+                            popUpTo(SereneDestination.Home.route) { inclusive = true }
                             launchSingleTop = true
-                            restoreState = true
                         }
                     },
-                    onRemodelSanctuary = {
-                        navController.navigate(SereneDestination.SanctuaryRemodel.route)
-                    },
-                )
-            }
-            composable(SereneDestination.SanctuaryRemodel.route) {
-                val remodelViewModel: SanctuaryWalkthroughViewModel = viewModel()
-                LaunchedEffect(Unit) {
-                    remodelViewModel.reloadFromPreferences()
-                }
-                SanctuaryWalkthroughScreen(
-                    mode = SanctuaryWalkthroughMode.Remodel,
-                    viewModel = remodelViewModel,
-                    onFinished = {
-                        remodelViewModel.saveSanctuaryConfiguration(markOnboardingComplete = false)
-                        navController.popBackStack()
-                    },
-                    onBackOut = { navController.popBackStack() },
                 )
             }
             composable(SereneDestination.Breathe.route) { }
@@ -484,35 +405,6 @@ fun SereneNavHost(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(SereneDestination.Visualizations.route) {
-                if (!visualizationsInBottomNav) {
-                    VisualizationsScreen(
-                        onOpenVisualization = { vizId ->
-                            navController.navigate(SereneDestination.Visualizations.playerRoute(vizId.name)) {
-                                launchSingleTop = true
-                            }
-                        },
-                    )
-                }
-            }
-            composable(
-                route = "visualizations/player/{vizId}",
-                arguments = listOf(
-                    navArgument("vizId") {
-                        type = NavType.StringType
-                    },
-                ),
-            ) { entry ->
-                val visualization = CalmingVisualizationCatalog.byRouteName(
-                    entry.arguments?.getString("vizId").orEmpty(),
-                )
-                if (visualization != null) {
-                    VisualizationPlayerScreen(
-                        visualization = visualization,
-                        onClose = { navController.popBackStack() },
-                    )
-                }
-            }
             composable(
                 route = "toolkit/{tab}",
                 arguments = listOf(
@@ -535,7 +427,7 @@ fun SereneNavHost(
                 }
             }
         }
-            if (tabNavigationReady && isTabRoute(currentRoute, bottomNavItems) && bottomNavItems.isNotEmpty()) {
+            if (isTabRoute(currentRoute, bottomNavItems) && bottomNavItems.isNotEmpty()) {
                 MainTabPager(
                     items = bottomNavItems,
                     pagerState = tabPagerState,
@@ -608,17 +500,6 @@ fun SereneNavHost(
                             LivingTreeScreen(
                                 onOpenSetup = {
                                     navController.navigate(SereneDestination.LivingTreeSetup.route) {
-                                        launchSingleTop = true
-                                    }
-                                },
-                            )
-                        }
-                        SereneDestination.Visualizations -> {
-                            VisualizationsScreen(
-                                onOpenVisualization = { vizId ->
-                                    navController.navigate(
-                                        SereneDestination.Visualizations.playerRoute(vizId.name),
-                                    ) {
                                         launchSingleTop = true
                                     }
                                 },

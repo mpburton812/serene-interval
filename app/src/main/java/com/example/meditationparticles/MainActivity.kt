@@ -14,9 +14,7 @@ import com.example.meditationparticles.navigation.clearToolkitNavigationExtras
 import com.example.meditationparticles.navigation.toPendingToolkitNavigation
 import com.example.meditationparticles.reminder.FutureSelfMessageReceiver
 import com.example.meditationparticles.ui.update.UpdateViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val pendingNavigationState = mutableStateOf<PendingToolkitNavigation?>(null)
@@ -66,42 +64,30 @@ class MainActivity : ComponentActivity() {
 
     private fun runMoodScaleOneNoteBackfillIfNeeded() {
         lifecycleScope.launch {
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    val oneNotePrefs = AppGraph.oneNotePreferences(applicationContext)
-                    if (oneNotePrefs.load().moodScaleBackfillDone) return@withContext
-                    val oneNoteSync = AppGraph.oneNoteSync(applicationContext)
-                    oneNoteSync.backfillSyncedMoodEntries()
-                    oneNotePrefs.setMoodScaleBackfillDone(true)
-                }
-            }
+            val oneNotePrefs = AppGraph.oneNotePreferences(applicationContext)
+            if (oneNotePrefs.load().moodScaleBackfillDone) return@launch
+            val oneNoteSync = AppGraph.oneNoteSync(applicationContext)
+            runCatching { oneNoteSync.backfillSyncedMoodEntries() }
+            oneNotePrefs.setMoodScaleBackfillDone(true)
         }
     }
 
     private fun runMoodTrackerBackfillIfNeeded() {
         lifecycleScope.launch {
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    val moodTrackerPrefs = AppGraph.moodTrackerPreferences(applicationContext)
-                    if (moodTrackerPrefs.isBackfillDone()) return@withContext
-                    AppGraph.moodTracker(applicationContext).backfillFromLegacyIfNeeded()
-                    moodTrackerPrefs.setBackfillDone(true)
-                }
-            }
+            val moodTrackerPrefs = AppGraph.moodTrackerPreferences(applicationContext)
+            if (moodTrackerPrefs.isBackfillDone()) return@launch
+            runCatching { AppGraph.moodTracker(applicationContext).backfillFromLegacyIfNeeded() }
+            moodTrackerPrefs.setBackfillDone(true)
         }
     }
 
     private fun deliverOverdueFutureSelfMessages() {
         lifecycleScope.launch {
             if (!FutureSelfMessageReceiver.canPostNotifications(applicationContext)) return@launch
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    val overdue = AppGraph.futureSelfMessages(applicationContext)
-                        .getOverdueUndelivered(System.currentTimeMillis())
-                    overdue.forEach { message ->
-                        FutureSelfMessageReceiver.deliverMessage(applicationContext, message.id)
-                    }
-                }
+            val overdue = AppGraph.futureSelfMessages(applicationContext)
+                .getOverdueUndelivered(System.currentTimeMillis())
+            overdue.forEach { message ->
+                FutureSelfMessageReceiver.deliverMessage(applicationContext, message.id)
             }
         }
     }

@@ -20,8 +20,8 @@ workManager = "2.11.1"
 datastore = "1.1.7"
 tink = "1.18.0"
 json = "20251224"
-documentfile = "1.1.0"
 glance = "1.1.1"
+documentfile = "1.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

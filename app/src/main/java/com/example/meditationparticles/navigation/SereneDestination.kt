@@ -15,7 +15,6 @@ sealed class SereneDestination(val route: String) {
     data object LivingTreeSetup : SereneDestination("living_tree/setup")
     data object Settings : SereneDestination("settings")
     data object Onboarding : SereneDestination("onboarding")
-    data object SanctuaryRemodel : SereneDestination("sanctuary_remodel")
 
     data object MoodGraph : SereneDestination("mood_graph/{period}") {
         fun route(period: MoodGraphPeriod): String = "mood_graph/${period.name}"

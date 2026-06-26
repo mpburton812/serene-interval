@@ -11,6 +11,9 @@ interface HeartsEntryDao {
     @Query("SELECT * FROM hearts_entries ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<HeartsEntryEntity>>
 
+    @Query("SELECT * FROM hearts_entries ORDER BY createdAt DESC")
+    suspend fun getAll(): List<HeartsEntryEntity>
+
     @Query("SELECT * FROM hearts_entries WHERE toolId = :toolId ORDER BY createdAt DESC")
     fun observeByTool(toolId: String): Flow<List<HeartsEntryEntity>>
 

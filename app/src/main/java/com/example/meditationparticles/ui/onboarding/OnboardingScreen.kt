@@ -29,7 +29,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -52,15 +51,10 @@ import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
 import com.example.meditationparticles.ui.settings.ExperienceSection
-import com.example.meditationparticles.ui.settings.LandscapeThemeSection
 import com.example.meditationparticles.ui.settings.NamingSection
 import com.example.meditationparticles.ui.settings.QuickStartSelectionSection
 import com.example.meditationparticles.ui.settings.ThemeSection
-import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
-import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughMode
-import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughScreen
-import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughViewModel
 import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 
 @Composable
@@ -70,7 +64,6 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = viewModel(),
 ) {
     val draft by viewModel.draft.collectAsState()
-    val walkthroughViewModel: SanctuaryWalkthroughViewModel = viewModel()
     val lifecycleOwner = LocalLifecycleOwner.current
     val onCompleteUpdated by rememberUpdatedState(onComplete)
     val settingsPreview = draft.toExperienceSettings().copy(onboardingCompleted = false)
@@ -94,55 +87,37 @@ fun OnboardingScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(SereneSpacing.containerMargin),
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
     ) {
-        if (draft.step != OnboardingStep.Customization) {
-            Spacer(modifier = Modifier.height(SereneSpacing.stackMd))
-            OnboardingHeader(step = draft.step)
-        }
+        Spacer(modifier = Modifier.height(SereneSpacing.stackMd))
+
+        OnboardingHeader(step = draft.step)
 
         when (draft.step) {
             OnboardingStep.Customization -> {
-                SanctuaryWalkthroughScreen(
-                    mode = SanctuaryWalkthroughMode.FirstVisit,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = SereneSpacing.containerMargin),
-                    viewModel = walkthroughViewModel,
-                    onFinished = {
-                        viewModel.applyWalkthroughDraft(walkthroughViewModel.draft.value)
-                        if (viewModel.continueFromWalkthrough()) {
-                            onComplete()
-                        }
+                OnboardingCustomizationStep(
+                    draft = draft,
+                    settingsPreview = settingsPreview,
+                    viewModel = viewModel,
+                    onContinue = {
+                        if (viewModel.continueFromCustomization()) onComplete()
                     },
-                    onBackOut = {},
                 )
             }
             OnboardingStep.ExactAlarms -> {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = SereneSpacing.containerMargin),
-                ) {
-                    OnboardingExactAlarmsStep(
+                OnboardingExactAlarmsStep(
                     permissionState = draft.permissionState,
                     onOpenSettings = viewModel::openExactAlarmSettings,
                     onContinue = {
                         if (viewModel.continueFromExactAlarms()) onComplete()
                     },
                 )
-                }
             }
             OnboardingStep.Notifications -> {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = SereneSpacing.containerMargin),
-                ) {
-                    OnboardingNotificationsStep(
+                OnboardingNotificationsStep(
                     permissionState = draft.permissionState,
                     onRequestPermission = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -155,17 +130,10 @@ fun OnboardingScreen(
                         if (viewModel.continueFromNotifications()) onComplete()
                     },
                 )
-                }
             }
             OnboardingStep.OneNoteConnect -> {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = SereneSpacing.containerMargin),
-                ) {
-                    val activity = LocalActivity.current as? ComponentActivity
-                    OnboardingOneNoteConnectStep(
+                val activity = LocalActivity.current as? ComponentActivity
+                OnboardingOneNoteConnectStep(
                     onConnect = {
                         activity?.let { host ->
                             viewModel.connectOneNote(host) { connected ->
@@ -180,7 +148,6 @@ fun OnboardingScreen(
                         if (viewModel.continueFromOneNoteConnect()) onComplete()
                     },
                 )
-                }
             }
         }
     }
@@ -190,7 +157,8 @@ fun OnboardingScreen(
 private fun OnboardingHeader(step: OnboardingStep) {
     val appName = stringResource(R.string.app_name)
     val (title, subtitle) = when (step) {
-        OnboardingStep.Customization -> "" to ""
+        OnboardingStep.Customization -> "Let's Build Your Sanctuary" to
+            "Let's shape a space that feels uniquely yours."
         OnboardingStep.ExactAlarms -> "Alarms & Reminders" to
             "Scheduled features need permission to deliver on time."
         OnboardingStep.Notifications -> "Notifications" to
@@ -244,10 +212,6 @@ private fun OnboardingCustomizationStep(
                 settings = settingsPreview,
                 onThemeModeSelected = viewModel::setThemeMode,
             )
-            LandscapeThemeSection(
-                settings = settingsPreview,
-                onLandscapeThemeSelected = viewModel::setLandscapeTheme,
-            )
         }
 
         OnboardingSectionCard {
@@ -258,14 +222,7 @@ private fun OnboardingCustomizationStep(
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onLivingTreeChanged = viewModel::setEnableLivingTree,
-                onVisualsChanged = viewModel::setEnableVisuals,
             )
-            if (settingsPreview.enableVisuals) {
-                VisualSanctuarySection(
-                    enabledScenes = draft.enabledScenes,
-                    onToggleScene = viewModel::toggleScene,
-                )
-            }
         }
 
         OnboardingSectionCard {
@@ -454,7 +411,7 @@ private fun OnboardingOneNoteConnectStep(
 ) {
     if (!BuildConfig.ONENOTE_SYNC_AVAILABLE) {
         OnboardingPrimaryButton(
-            text = "Enter your Sway",
+            text = "Enter Your Sanctuary",
             enabled = true,
             onClick = onSkip,
         )
@@ -474,7 +431,7 @@ private fun OnboardingOneNoteConnectStep(
             )
             Text(
                 text = "When connected, new toolkit journal entries sync to a OneNote section " +
-                    "named \"Sway\". Audio stays in the app only.",
+                    "named \"Serene Interval\". Audio stays in the app only.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -488,7 +445,7 @@ private fun OnboardingOneNoteConnectStep(
     }
 
     OnboardingPrimaryButton(
-        text = "Enter your Sway",
+        text = "Enter Your Sanctuary",
         enabled = true,
         onClick = onSkip,
     )

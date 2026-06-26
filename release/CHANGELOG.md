@@ -2,101 +2,20 @@
 
 ## Unreleased
 
-## 1.0.33 - 2026-06-26
+### Home timeline
 
-### Launch crash hotfix (regression from v1.0.32)
-
-- Revert removing Visualizations from bottom nav (v1.0.32 broke upgrades with saved tab state)
-- Hold tab pager until post-upgrade navigation reset completes
-- Keep settings exit fix: explicit Home navigation and pager sync guard after remodel
-
-## 1.0.32 - 2026-06-26
-
-### Settings exit crash hotfix (upgrade from v1.0.23)
-
-- Remove Visualizations from bottom nav (access via Quick Start only) to stop pager/navigation sync fights after remodel
-- Navigate explicitly to Home when leaving Settings instead of bare popBackStack
-- Use instant pager scroll when syncing tab route; skip pager→nav feedback on route change
-- Allow toggling breathing off in guided remodel when at least one other tool remains
-
-## 1.0.31 - 2026-06-26
-
-### Settings crash hotfix (upgrade from v1.0.23)
-
-- Stop loading seven landscape preview drawables in Settings (use lightweight gradient chips instead)
-- Defer OneNote notebook/section fetch until the Integrations section is shown
-- Move backup-folder picker launcher into the backup section; flatten nested cards in auto-backup UI
-
-## 1.0.30 - 2026-06-25
-
-### Launch crash hotfix (upgrade from v1.0.23)
-
-- Fix Visualizations tab rendering twice on launch when navigation state was restored after an in-place update (NavHost + tab pager both composed `VisualizationsScreen`)
-- Reset navigation to Home after APK upgrade so stale routes cannot crash startup
-- Remap legacy tab-background rotation prefs when upgrading from pre-landscape releases
-- Reset tab pager when bottom-nav items change; guard pager page indexing
-
-## 1.0.29 - 2026-06-25
-
-### Launch crash hotfix (v1.0.27–1.0.28 follow-up)
-
-- Remove custom backup agent that could destabilize startup/restore after update
-- Remove startup backup prompt and main-thread backup scheduling
-- Include journal database in standard Android device backup (when system backup is on)
-- Defer WorkManager backup scheduling until 10s after app is running
-
-## 1.0.28 - 2026-06-25
-
-### Launch crash hotfix
-
-- Fix backup prompt check closing the Room database on startup (subsequent tab loads crashed)
-- Guard backup scheduler and prompt logic with runCatching; schedule WorkManager off main thread
-
-## 1.0.27 - 2026-06-25
-
-### Sanctuary Phase 2 — landscape themes
-
-- Seven tab backdrop landscapes (beach, cabin, desert, snowscape, deep woods, moon, space) with day/night variants
-- Space day uses a golden-sun gradient; time-responsive appearance shifts landscapes automatically
-- Restored Visual Sanctuary scene picker and bottom-nav Visualizations tab toggle
-- Landscape theme picker in Settings, walkthrough, and onboarding
+- HEARTS toolkit journal entries (Delight Deposit, Attunement Map, Repair & Reconnect, etc.) now appear in Recent activity on the home screen
 
 ### Data protection
 
-- Automatic JSON backups to a user-chosen folder (daily or weekly) via WorkManager; retains the latest 14 files
-- Optional Google device backup for the journal database when enabled in Settings
-- First-run prompt to set up backups after journal data is created
-- Clear Settings copy that uninstalling Sway deletes in-app data unless backups are enabled
+- Local automatic JSON backup to a user-chosen folder (daily or weekly) via WorkManager; retains the latest 14 files
+- HEARTS journal entries included in export/import JSON backups
 
-## 1.0.26 - 2026-06-25
+## Production rollback — 2026-06-26
 
-### Launch crash hotfix (Pixel / Android 15+)
+Reverted `main` / production manifest to **v1.0.23** (versionCode 24). Releases v1.0.24–v1.0.33 (Sanctuary walkthrough, landscapes, backup, and subsequent crash hotfixes) are withdrawn from production due to persistent upgrade and launch regressions.
 
-- Remove main-thread blocking from OneNote preferences initialization
-- Load only the visible bottom-nav tab on launch instead of all tabs at once
-- Move startup database work off the main thread
-- Lazy-init OneNote sync in tab ViewModels; guard Room flows with catch
-- Align MainActivity theme with edge-to-edge setup
-
-## 1.0.25 - 2026-06-25
-
-### Launch crash hotfix
-
-- Catch home timeline DB errors instead of crashing on launch
-- Guard startup Future Self database access
-- Reconcile toolkit tab visibility with enabled tools on settings load
-- Fix onboarding walkthrough ViewModel scoping and pager sync
-- Register missing Visualizations navigation routes
-
-## 1.0.24 - 2026-06-25
-
-### Sway sanctuary walkthrough (Phase 1)
-
-- Paged onboarding: Welcome, Name, Appearance, Spaces, Quick Start, Toolkit, Review
-- Settings → Remodel your Sway (non-destructive; journals and history preserved)
-- Zero toolkit tools hides the Toolkit tab; re-enabling any tool restores it
-- HEARTS entries appear on home activity timeline when tools are disabled
-- User-facing branding renamed to Sway
+Users on v1.0.24 or newer will not receive an in-app downgrade; reinstall the v1.0.23 APK from GitHub releases if needed.
 
 ## 1.0.23 - 2026-06-25
 

@@ -38,7 +38,7 @@ jobs:
           java-version: 17
 
       - name: Run unit tests and lint
-        run: ./gradlew testDebugUnitTest lintDebug --no-daemon
+        run: bash scripts/run-tests.sh --unit --lint
 
   verify-release-manifest:
     needs: changes
