@@ -1,8 +1,8 @@
 ﻿{
-  "versionCode": 31,
-  "versionName": "1.0.30",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.30/sway_meditation.apk",
-  "expectedSha256": "c901a6155c5bf15536e1ca3a6617cf5ccbd1891b428d8e8baa7c1584cfccf5db",
-  "releaseNotes": "Launch crash hotfix for upgrades from v1.0.23: fixes Visual Sanctuary double-render on startup and resets navigation to Home after update.",
+  "versionCode": 32,
+  "versionName": "1.0.31",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.31/sway_meditation.apk",
+  "expectedSha256": "82ee80d09d66d151efe206f97ef3dbff6ab58268fa080aad0c128ef88184d836",
+  "releaseNotes": "Settings crash hotfix for upgrades from v1.0.23: safer landscape picker, deferred OneNote loading, and auto-backup UI hardening.",
   "minVersionCode": 1
 }
