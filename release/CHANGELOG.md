@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.0.31 - 2026-06-26
+
+### Settings crash hotfix (upgrade from v1.0.23)
+
+- Stop loading seven landscape preview drawables in Settings (use lightweight gradient chips instead)
+- Defer OneNote notebook/section fetch until the Integrations section is shown
+- Move backup-folder picker launcher into the backup section; flatten nested cards in auto-backup UI
+
 ## 1.0.30 - 2026-06-25
 
 ### Launch crash hotfix (upgrade from v1.0.23)
