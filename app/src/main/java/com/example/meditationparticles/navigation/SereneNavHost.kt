@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +49,7 @@ import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationCatalog
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.data.AppLaunchMigration
 import com.example.meditationparticles.navigation.SereneDestination.ToolkitTab
 import com.example.meditationparticles.ui.breathing.BreathingScreen
 import com.example.meditationparticles.ui.components.BottomNavItem
@@ -123,6 +125,7 @@ fun SereneNavHost(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val context = LocalContext.current
+    val launchMigration = remember { AppLaunchMigration.run(context) }
     val tabBackgroundRotation = remember { AppGraph.tabBackgroundRotation(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
     var resumeCount by remember { mutableIntStateOf(0) }
@@ -206,11 +209,26 @@ fun SereneNavHost(
         }
     }
 
-    val tabPagerState = rememberPagerState(
-        initialPage = (tabIndexForRoute(currentRoute, bottomNavItems) ?: 0)
-            .coerceIn(0, bottomNavItems.lastIndex.coerceAtLeast(0)),
-        pageCount = { bottomNavItems.size.coerceAtLeast(1) },
-    )
+    val visualizationsInBottomNav = bottomNavItems.any { it.destination == SereneDestination.Visualizations }
+    val pagerItemKey = bottomNavItems.joinToString(separator = "|") { it.destination.route }
+
+    val tabPagerState = key(pagerItemKey) {
+        rememberPagerState(
+            initialPage = (tabIndexForRoute(currentRoute, bottomNavItems) ?: 0)
+                .coerceIn(0, bottomNavItems.lastIndex.coerceAtLeast(0)),
+            pageCount = { bottomNavItems.size.coerceAtLeast(1) },
+        )
+    }
+
+    LaunchedEffect(launchMigration.resetNavigationToHome, settings.onboardingCompleted) {
+        if (!launchMigration.resetNavigationToHome || !settings.onboardingCompleted) return@LaunchedEffect
+        navController.navigate(SereneDestination.Home.route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                inclusive = true
+            }
+            launchSingleTop = true
+        }
+    }
 
     val navigateToTab: (SereneDestination) -> Unit = { destination ->
         if (destination == SereneDestination.Toolkit) {
@@ -435,13 +453,15 @@ fun SereneNavHost(
                 )
             }
             composable(SereneDestination.Visualizations.route) {
-                VisualizationsScreen(
-                    onOpenVisualization = { vizId ->
-                        navController.navigate(SereneDestination.Visualizations.playerRoute(vizId.name)) {
-                            launchSingleTop = true
-                        }
-                    },
-                )
+                if (!visualizationsInBottomNav) {
+                    VisualizationsScreen(
+                        onOpenVisualization = { vizId ->
+                            navController.navigate(SereneDestination.Visualizations.playerRoute(vizId.name)) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
             }
             composable(
                 route = "visualizations/player/{vizId}",
