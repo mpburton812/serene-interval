@@ -53,4 +53,9 @@ object InstrumentedTestFixtures {
         clearExperienceSettings(context)
         seedOnboardingComplete(context)
     }
+
+    fun prepareFreshOnboarding(context: Context) {
+        clearLaunchMigration(context)
+        clearExperienceSettings(context)
+    }
 }
