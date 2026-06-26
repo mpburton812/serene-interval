@@ -120,6 +120,36 @@ class HomeActivityTimelineBuilderTest {
         assertTrue(items.first().completedAt > items.last().completedAt)
     }
 
+    @Test
+    fun build_includesHeartsEntries() {
+        val items = HomeActivityTimelineBuilder.build(
+            sessions = emptyList(),
+            reflections = emptyList(),
+            thoughtDumps = emptyList(),
+            nvcEntries = emptyList(),
+            refactoringEntries = emptyList(),
+            centerOfGravityEntries = emptyList(),
+            futureSelfMessages = emptyList(),
+            affirmationReviews = emptyList(),
+            heartsEntries = listOf(
+                HomeActivityTimelineBuilder.TextEntryRow(
+                    id = 12,
+                    completedAt = 9000L,
+                    label = "Delight Deposit",
+                    text = "Shared a small joy today",
+                    subtitle = "Alex",
+                    moodLevel = 3,
+                ),
+            ),
+        )
+
+        assertEquals(1, items.size)
+        assertEquals("Delight Deposit", items.first().title)
+        assertEquals("Shared a small joy today", items.first().textEntry)
+        assertEquals("Alex", items.first().subtitle)
+        assertEquals(3, items.first().moodLevel)
+    }
+
     private fun session(id: Long, completedAt: Long, title: String) = MeditationSession(
         id = id,
         type = SessionType.TIMER,

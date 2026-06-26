@@ -35,6 +35,13 @@ fun SereneApp(
         }
     }
 
+    LaunchedEffect(Unit) {
+        val backupPrefs = AppGraph.autoBackupPreferences(context).load()
+        if (backupPrefs.autoBackupEnabled && backupPrefs.isConfigured) {
+            AppGraph.autoBackupScheduler(context).apply(backupPrefs)
+        }
+    }
+
     SereneIntervalTheme(themeMode = settings.themeMode) {
         CompositionLocalProvider(LocalExperienceSettings provides settings) {
             Surface(

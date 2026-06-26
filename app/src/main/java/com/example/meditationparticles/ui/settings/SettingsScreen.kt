@@ -56,11 +56,20 @@ fun SettingsScreen(
     val quickStartTargets by viewModel.quickStartTargets.collectAsState()
     val enabledToolkitTools by viewModel.enabledToolkitTools.collectAsState()
     val settingsUiState by viewModel.uiState.collectAsState()
+    val autoBackupSnapshot by viewModel.autoBackupSnapshot.collectAsState()
     val oneNotePrefs by viewModel.oneNotePrefs.collectAsState()
     val oneNoteUiState by viewModel.oneNoteUiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val activity = LocalActivity.current as? ComponentActivity
+
+    val backupFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.onBackupFolderSelected(uri)
+        }
+    }
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -197,9 +206,40 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
+                    text = "Uninstalling Sway deletes in-app data unless you back up to a folder outside the app. " +
+                        "Living Flower includes personal names — treat backups as sensitive.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            AutoBackupSection(
+                snapshot = autoBackupSnapshot,
+                isRunningBackup = settingsUiState.isRunningAutoBackup,
+                onAutoBackupEnabledChange = viewModel::setAutoBackupEnabled,
+                onFrequencySelected = viewModel::setAutoBackupFrequency,
+                onChooseFolder = { backupFolderLauncher.launch(null) },
+                onBackupNow = viewModel::runAutoBackupNow,
+            )
+            settingsUiState.autoBackupError?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
+            ) {
+                Text(
+                    text = "Manual export",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
                     text = "Download a JSON backup of your settings and journal entries, or restore " +
-                        "from a previous export. Living Flower includes personal names — treat backups " +
-                        "as sensitive. Audio recordings are referenced by path only and are " +
+                        "from a previous export. Audio recordings are referenced by path only and are " +
                         "not included in the backup file.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

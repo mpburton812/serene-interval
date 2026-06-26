@@ -6,6 +6,7 @@ import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
+import com.example.meditationparticles.data.local.HeartsEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.LivingTreePersonEntity
 import com.example.meditationparticles.data.local.LivingTreePersonTagCrossRef
@@ -381,6 +382,13 @@ class AppDataImporter(
             meditationReflections = importMeditationReflections(
                 array = entries.optJSONArray("meditationReflections"),
                 dao = db.meditationReflectionDao(),
+                skips = skips,
+            ),
+        )
+        updated = updated.copy(
+            heartsEntries = importHeartsEntries(
+                array = entries.optJSONArray("heartsEntries"),
+                dao = db.heartsEntryDao(),
                 skips = skips,
             ),
         )
@@ -770,6 +778,65 @@ class AppDataImporter(
                     feeling = feeling,
                     need = need,
                     request = request,
+                    moodLevel = item.optionalMoodLevel(),
+                    createdAt = createdAt,
+                ),
+            )
+            imported++
+        }
+        return imported
+    }
+
+    private suspend fun importHeartsEntries(
+        array: JSONArray?,
+        dao: com.example.meditationparticles.data.local.HeartsEntryDao,
+        skips: MutableList<ImportSkip>,
+    ): Int {
+        if (array == null || array.length() == 0) return 0
+        val existing = dao.getAll()
+        var imported = 0
+
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val toolId = item.optString("toolId", "").trim()
+            if (toolId.isEmpty()) {
+                skips += ImportSkip("HEARTS entry", "missing tool")
+                continue
+            }
+            val steps = listOf(
+                item.optString("step1", ""),
+                item.optString("step2", ""),
+                item.optString("step3", ""),
+                item.optString("step4", ""),
+                item.optString("step5", ""),
+            ).map { it.trim() }
+            val personName = item.optString("personName", "").trim()
+            if (steps.all { it.isEmpty() } && personName.isEmpty()) {
+                skips += ImportSkip("HEARTS entry", "missing content")
+                continue
+            }
+            val createdAt = item.optLong("createdAt", System.currentTimeMillis())
+            if (existing.any {
+                    it.toolId == toolId &&
+                        it.createdAt == createdAt &&
+                        it.stepValues() == steps &&
+                        it.personName == personName
+                }
+            ) {
+                skips += ImportSkip("HEARTS entry", "duplicate")
+                continue
+            }
+
+            dao.insert(
+                HeartsEntryEntity(
+                    toolId = toolId,
+                    personId = item.optLong("personId").takeIf { item.has("personId") },
+                    personName = personName,
+                    step1 = steps[0],
+                    step2 = steps[1],
+                    step3 = steps[2],
+                    step4 = steps[3],
+                    step5 = steps[4],
                     moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
                 ),

@@ -1,6 +1,9 @@
 package com.example.meditationparticles.data
 
 import android.content.Context
+import com.example.meditationparticles.data.backup.AutoBackupManager
+import com.example.meditationparticles.data.backup.AutoBackupPreferences
+import com.example.meditationparticles.data.backup.AutoBackupScheduler
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.onenote.OneNoteAuthManager
 import com.example.meditationparticles.data.onenote.OneNoteGraphClient
@@ -65,6 +68,37 @@ object AppGraph {
 
     @Volatile
     private var homeActivityRepository: HomeActivityRepository? = null
+
+    @Volatile
+    private var autoBackupPreferences: AutoBackupPreferences? = null
+
+    @Volatile
+    private var autoBackupManager: AutoBackupManager? = null
+
+    @Volatile
+    private var autoBackupScheduler: AutoBackupScheduler? = null
+
+    fun autoBackupPreferences(context: Context): AutoBackupPreferences =
+        autoBackupPreferences ?: synchronized(this) {
+            autoBackupPreferences ?: AutoBackupPreferences(
+                context.applicationContext,
+            ).also { autoBackupPreferences = it }
+        }
+
+    fun autoBackup(context: Context): AutoBackupManager =
+        autoBackupManager ?: synchronized(this) {
+            autoBackupManager ?: AutoBackupManager(
+                context.applicationContext,
+                autoBackupPreferences(context),
+            ).also { autoBackupManager = it }
+        }
+
+    fun autoBackupScheduler(context: Context): AutoBackupScheduler =
+        autoBackupScheduler ?: synchronized(this) {
+            autoBackupScheduler ?: AutoBackupScheduler(
+                context.applicationContext,
+            ).also { autoBackupScheduler = it }
+        }
 
     fun homeActivity(context: Context): HomeActivityRepository =
         homeActivityRepository ?: synchronized(this) {

@@ -19,6 +19,7 @@ data class ImportCounts(
     val centerOfGravityEntries: Int = 0,
     val nvcEntries: Int = 0,
     val meditationReflections: Int = 0,
+    val heartsEntries: Int = 0,
     val moodEntries: Int = 0,
     val livingTreeTags: Int = 0,
     val livingTreePeople: Int = 0,
@@ -26,7 +27,7 @@ data class ImportCounts(
     val totalEntries: Int
         get() = affirmations + thoughtDumps + anxietyLogs + futureSelfMessages +
             refactoringEntries + centerOfGravityEntries + nvcEntries + meditationReflections +
-            moodEntries + livingTreePeople
+            heartsEntries + moodEntries + livingTreePeople
 }
 
 data class ImportResult(
@@ -77,6 +78,12 @@ data class ImportResult(
                 add(
                     "${counts.meditationReflections} meditation reflection" +
                         counts.meditationReflections.pluralSuffix(),
+                )
+            }
+            if (counts.heartsEntries > 0) {
+                add(
+                    "${counts.heartsEntries} HEARTS entr" +
+                        if (counts.heartsEntries == 1) "y" else "ies",
                 )
             }
             if (counts.moodEntries > 0) {
