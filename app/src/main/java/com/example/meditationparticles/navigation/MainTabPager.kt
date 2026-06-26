@@ -45,6 +45,7 @@ fun MainTabPager(
         userScrollEnabled = userScrollEnabled,
         beyondViewportPageCount = 0,
     ) { page ->
-        pageContent(items[page].destination)
+        val destination = items.getOrNull(page)?.destination ?: return@HorizontalPager
+        pageContent(destination)
     }
 }
