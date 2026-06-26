@@ -1,6 +1,5 @@
 package com.example.meditationparticles.ui.settings
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,12 +41,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.example.meditationparticles.domain.settings.BackgroundPeriod
 import com.example.meditationparticles.domain.settings.ExperienceSettings
-import com.example.meditationparticles.domain.settings.LandscapeThemeCatalog
 import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.settings.backgroundPeriodForTheme
@@ -247,6 +246,15 @@ fun LandscapeThemeSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        if (settings.landscapeThemeId == SanctuaryLandscapeThemeId.Classic) {
+            Text(
+                text = "You're using the classic tab backgrounds from before landscape themes. " +
+                    "Pick a landscape below to switch.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -254,7 +262,7 @@ fun LandscapeThemeSection(
             SanctuaryLandscapeThemeId.pickerOptions.forEach { theme ->
                 LandscapeThemeChip(
                     theme = theme,
-                    previewDrawable = LandscapeThemeCatalog.previewDrawable(theme, period),
+                    previewBrush = landscapePreviewBrush(theme, period),
                     selected = settings.landscapeThemeId == theme,
                     onClick = { onLandscapeThemeSelected(theme) },
                 )
@@ -263,10 +271,55 @@ fun LandscapeThemeSection(
     }
 }
 
+private fun landscapePreviewBrush(
+    theme: SanctuaryLandscapeThemeId,
+    period: BackgroundPeriod,
+): Brush {
+    val colors = when (theme) {
+        SanctuaryLandscapeThemeId.Beach -> if (period == BackgroundPeriod.Daylight) {
+            listOf(Color(0xFF8FD3F4), Color(0xFF2E6E8A))
+        } else {
+            listOf(Color(0xFF1A3A52), Color(0xFF0D1F2D))
+        }
+        SanctuaryLandscapeThemeId.Cabin -> if (period == BackgroundPeriod.Daylight) {
+            listOf(Color(0xFF6B8E5A), Color(0xFF3D5C34))
+        } else {
+            listOf(Color(0xFF2C3E28), Color(0xFF141C12))
+        }
+        SanctuaryLandscapeThemeId.Desert -> if (period == BackgroundPeriod.Daylight) {
+            listOf(Color(0xFFE8B86D), Color(0xFFC67B3C))
+        } else {
+            listOf(Color(0xFF4A3020), Color(0xFF1F140E))
+        }
+        SanctuaryLandscapeThemeId.Snowscape -> if (period == BackgroundPeriod.Daylight) {
+            listOf(Color(0xFFE8F4FC), Color(0xFFB8D4E8))
+        } else {
+            listOf(Color(0xFF2A3A48), Color(0xFF121A22))
+        }
+        SanctuaryLandscapeThemeId.DeepWoods -> if (period == BackgroundPeriod.Daylight) {
+            listOf(Color(0xFF3D6B4F), Color(0xFF1E3A2A))
+        } else {
+            listOf(Color(0xFF142218), Color(0xFF080E0A))
+        }
+        SanctuaryLandscapeThemeId.Moon -> if (period == BackgroundPeriod.Daylight) {
+            listOf(Color(0xFF4A5568), Color(0xFF2D3748))
+        } else {
+            listOf(Color(0xFF1A202C), Color(0xFF0D1017))
+        }
+        SanctuaryLandscapeThemeId.Space -> if (period == BackgroundPeriod.Daylight) {
+            listOf(Color(0xFF1A1A2E), Color(0xFFE8B84A))
+        } else {
+            listOf(Color(0xFF0A0A14), Color(0xFF1A1A3E))
+        }
+        SanctuaryLandscapeThemeId.Classic -> listOf(Color(0xFF6B8E9F), Color(0xFF3D5563))
+    }
+    return Brush.linearGradient(colors)
+}
+
 @Composable
 fun LandscapeThemeChip(
     theme: SanctuaryLandscapeThemeId,
-    previewDrawable: Int,
+    previewBrush: Brush,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -289,14 +342,9 @@ fun LandscapeThemeChip(
         Box(
             modifier = Modifier
                 .size(width = 88.dp, height = 52.dp)
-                .clip(RoundedCornerShape(8.dp)),
+                .clip(RoundedCornerShape(8.dp))
+                .background(previewBrush),
         ) {
-            Image(
-                painter = painterResource(previewDrawable),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth(),
-            )
             if (selected) {
                 Icon(
                     Icons.Default.CheckCircle,
