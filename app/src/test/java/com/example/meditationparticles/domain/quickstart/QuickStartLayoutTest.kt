@@ -32,14 +32,15 @@ class QuickStartLayoutTest {
     @Test
     fun toggleSelection_capsAtFour() {
         val initial = QuickStartLayout.defaultSelection(allEnabled, allToolkitTools)
+        val extraBreathing = QuickStartTarget.Breathing(BreathingPattern.Resonant.id)
         val withFifth = QuickStartLayout.toggleSelection(
             initial,
-            QuickStartTarget.Visuals,
+            extraBreathing,
             allEnabled,
             allToolkitTools,
         )
         assertEquals(4, withFifth.size)
-        assertFalse(QuickStartTarget.Visuals in withFifth)
+        assertFalse(extraBreathing in withFifth)
     }
 
     @Test

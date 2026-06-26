@@ -48,7 +48,7 @@ import androidx.activity.compose.LocalActivity
 fun SettingsScreen(
     updateViewModel: UpdateViewModel,
     onBack: () -> Unit,
-    onResetOnboarding: () -> Unit,
+    onRemodelSanctuary: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel(),
 ) {
@@ -403,20 +403,18 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
                 Text(
-                    text = "Rebuild Your Sanctuary",
+                    text = "Remodel your Sway",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Walk through setup again to revisit your name, tools, and scenes.",
+                    text = "Walk through setup again to change your spaces and tools. " +
+                        "Your journals, mood history, and entries are never deleted.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedButton(
-                    onClick = {
-                        viewModel.resetOnboarding()
-                        onResetOnboarding()
-                    },
+                    onClick = onRemodelSanctuary,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(999.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -424,7 +422,7 @@ fun SettingsScreen(
                     ),
                 ) {
                     Text(
-                        text = "Rebuild!",
+                        text = "Remodel",
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )

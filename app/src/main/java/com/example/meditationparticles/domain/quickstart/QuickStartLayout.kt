@@ -21,7 +21,6 @@ object QuickStartLayout {
         val core = buildList {
             if (settings.enableTimer) add(QuickStartTarget.Timer)
             if (settings.enableAffirmations) add(QuickStartTarget.Affirmations)
-            if (settings.enableVisuals) add(QuickStartTarget.Visuals)
         }
         val toolkit = if (settings.enableToolkit) {
             ToolkitCatalog.all
@@ -42,7 +41,7 @@ object QuickStartLayout {
             BreathingPattern.All.any { it.id == target.patternId }
         QuickStartTarget.Timer -> settings.enableTimer
         QuickStartTarget.Affirmations -> settings.enableAffirmations
-        QuickStartTarget.Visuals -> settings.enableVisuals
+        QuickStartTarget.Visuals -> false
         is QuickStartTarget.Toolkit -> settings.enableToolkit && target.toolId in enabledToolkitTools
     }
 

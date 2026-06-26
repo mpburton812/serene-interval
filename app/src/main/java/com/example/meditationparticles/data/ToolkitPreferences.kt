@@ -61,18 +61,21 @@ class ToolkitPreferences(context: Context) {
         _snapshot.value = load(onboardingCompleted)
     }
 
-    fun saveConfiguration(enabledToolIds: Set<ToolkitToolId>) {
-        val normalizedEnabled = enabledToolIds.ifEmpty { ToolkitLayout.defaultEnabledTools() }
+    fun saveEnabledTools(enabledToolIds: Set<ToolkitToolId>) {
         prefs.edit()
             .putBoolean(KEY_CONFIGURED, true)
-            .putStringSet(KEY_ENABLED_TOOLS, normalizedEnabled.map { it.name }.toSet())
+            .putStringSet(KEY_ENABLED_TOOLS, enabledToolIds.map { it.name }.toSet())
             .apply()
         _snapshot.update {
             it.copy(
                 configured = true,
-                enabledToolIds = normalizedEnabled,
+                enabledToolIds = enabledToolIds,
             )
         }
+    }
+
+    fun saveConfiguration(enabledToolIds: Set<ToolkitToolId>) {
+        saveEnabledTools(enabledToolIds)
     }
 
     fun setEnabledTools(enabledToolIds: Set<ToolkitToolId>) {
