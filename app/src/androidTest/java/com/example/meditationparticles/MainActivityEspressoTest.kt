@@ -1,39 +1,44 @@
 package com.example.meditationparticles
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.example.meditationparticles.testing.InstrumentedTestFixtures
+import org.junit.After
 import org.junit.Before
-import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Full-app instrumented tests using Espresso's AndroidJUnit runner plus Compose UI Test
- * (createAndroidComposeRule). Compose tests integrate with Espresso idling automatically.
+ * Full-app instrumented tests. Prefs are seeded in [setUp] before [MainActivity] is launched
+ * so onboarding is skipped and the home screen is shown.
  */
 @RunWith(AndroidJUnit4::class)
 class MainActivityEspressoTest {
 
     @get:Rule
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
+    val composeTestRule = createEmptyComposeRule()
+
+    private var scenario: ActivityScenario<MainActivity>? = null
 
     @Before
     fun setUp() {
-        // ActivityScenarioRule starts the activity before @Before, so re-apply prefs each test.
-        InstrumentedTestFixtures.prepareMainActivityTest(targetContext())
-        composeTestRule.activityRule.scenario.recreate()
+        InstrumentedTestFixtures.prepareMainActivityTest()
+        scenario = ActivityScenario.launch(MainActivity::class.java)
         composeTestRule.waitForIdle()
-        dismissUpdateDialogIfShown()
-        waitForHomeScreen()
+        InstrumentedTestFixtures.dismissUpdateDialogIfShown(composeTestRule)
+        InstrumentedTestFixtures.waitForHomeScreen(composeTestRule)
+    }
+
+    @After
+    fun tearDown() {
+        scenario?.close()
+        scenario = null
     }
 
     @Test
@@ -59,33 +64,5 @@ class MainActivityEspressoTest {
         composeTestRule.onNodeWithContentDescription("Breathe").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("BREATHING PATTERN").assertIsDisplayed()
-    }
-
-    private fun dismissUpdateDialogIfShown() {
-        val laterNodes = composeTestRule.onAllNodesWithText("Later").fetchSemanticsNodes()
-        if (laterNodes.isNotEmpty()) {
-            composeTestRule.onNodeWithText("Later").performClick()
-            composeTestRule.waitForIdle()
-        }
-    }
-
-    private fun waitForHomeScreen() {
-        composeTestRule.waitUntil(timeoutMillis = 30_000) {
-            composeTestRule.onAllNodesWithContentDescription("Settings")
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-    }
-
-    companion object {
-        @JvmStatic
-        @BeforeClass
-        fun seedCompletedOnboardingBeforeActivity() {
-            // Runs before ActivityScenarioRule launches MainActivity for this class.
-            InstrumentedTestFixtures.prepareMainActivityTest(targetContext())
-        }
-
-        private fun targetContext() =
-            InstrumentationRegistry.getInstrumentation().targetContext
     }
 }
