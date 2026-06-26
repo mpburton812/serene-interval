@@ -18,6 +18,7 @@ class OnboardingEspressoTest {
 
     @Before
     fun clearOnboardingState() {
+        InstrumentedTestFixtures.clearLaunchMigration(composeTestRule.activity.applicationContext)
         InstrumentedTestFixtures.clearExperienceSettings(composeTestRule.activity.applicationContext)
         composeTestRule.activityRule.scenario.recreate()
         composeTestRule.waitForIdle()

@@ -2,6 +2,8 @@ package com.example.meditationparticles
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,12 +25,12 @@ class MainActivityEspressoTest {
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     @Before
-    fun seedCompletedOnboarding() {
-        val context = composeTestRule.activity.applicationContext
-        InstrumentedTestFixtures.clearExperienceSettings(context)
-        InstrumentedTestFixtures.seedOnboardingComplete(context)
+    fun setUp() {
+        InstrumentedTestFixtures.prepareMainActivityTest(composeTestRule.activity.applicationContext)
         composeTestRule.activityRule.scenario.recreate()
         composeTestRule.waitForIdle()
+        dismissUpdateDialogIfShown()
+        waitForHomeScreen()
     }
 
     @Test
@@ -54,5 +56,21 @@ class MainActivityEspressoTest {
         composeTestRule.onNodeWithContentDescription("Breathe").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("BREATHING PATTERN").assertIsDisplayed()
+    }
+
+    private fun dismissUpdateDialogIfShown() {
+        val laterNodes = composeTestRule.onAllNodesWithText("Later").fetchSemanticsNodes()
+        if (laterNodes.isNotEmpty()) {
+            composeTestRule.onNodeWithText("Later").performClick()
+            composeTestRule.waitForIdle()
+        }
+    }
+
+    private fun waitForHomeScreen() {
+        composeTestRule.waitUntil(timeoutMillis = 15_000) {
+            composeTestRule.onAllNodesWithContentDescription("Settings")
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
     }
 }

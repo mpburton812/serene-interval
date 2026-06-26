@@ -1,11 +1,16 @@
 package com.example.meditationparticles.ui.breathing
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.meditationparticles.domain.breathing.BreathingPattern
+import com.example.meditationparticles.domain.settings.ExperienceSettings
+import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
+import com.example.meditationparticles.domain.settings.ThemeMode
+import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.SereneIntervalTheme
 import org.junit.Rule
 import org.junit.Test
@@ -20,8 +25,15 @@ class BreathingScreenComposeTest {
     @Test
     fun showsPatternChipsAndStartButton() {
         composeRule.setContent {
-            SereneIntervalTheme {
-                BreathingScreen()
+            SereneIntervalTheme(themeMode = ThemeMode.Light) {
+                CompositionLocalProvider(
+                    LocalExperienceSettings provides ExperienceSettings(
+                        themeMode = ThemeMode.Light,
+                        landscapeThemeId = SanctuaryLandscapeThemeId.Classic,
+                    ),
+                ) {
+                    BreathingScreen()
+                }
             }
         }
 
@@ -36,8 +48,15 @@ class BreathingScreenComposeTest {
     @Test
     fun showsPatternPurposeWhenIdle() {
         composeRule.setContent {
-            SereneIntervalTheme {
-                BreathingScreen()
+            SereneIntervalTheme(themeMode = ThemeMode.Light) {
+                CompositionLocalProvider(
+                    LocalExperienceSettings provides ExperienceSettings(
+                        themeMode = ThemeMode.Light,
+                        landscapeThemeId = SanctuaryLandscapeThemeId.Classic,
+                    ),
+                ) {
+                    BreathingScreen()
+                }
             }
         }
 
