@@ -1,8 +1,6 @@
 package com.example.meditationparticles.ui.theme
 
 import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -46,7 +44,7 @@ fun SereneIntervalTheme(
 
     if (!view.isInEditMode) {
         SideEffect {
-            val window = view.context.findActivity()?.window ?: return@SideEffect
+            val window = (view.context as Activity).window
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
                 useDarkStatusBarIcons
         }
@@ -63,10 +61,4 @@ fun SereneIntervalTheme(
 @Composable
 fun MeditationParticlesTheme(content: @Composable () -> Unit) {
     SereneIntervalTheme(content = content)
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

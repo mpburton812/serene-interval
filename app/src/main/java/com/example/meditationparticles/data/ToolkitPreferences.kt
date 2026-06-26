@@ -61,21 +61,18 @@ class ToolkitPreferences(context: Context) {
         _snapshot.value = load(onboardingCompleted)
     }
 
-    fun saveEnabledTools(enabledToolIds: Set<ToolkitToolId>) {
+    fun saveConfiguration(enabledToolIds: Set<ToolkitToolId>) {
+        val normalizedEnabled = enabledToolIds.ifEmpty { ToolkitLayout.defaultEnabledTools() }
         prefs.edit()
             .putBoolean(KEY_CONFIGURED, true)
-            .putStringSet(KEY_ENABLED_TOOLS, enabledToolIds.map { it.name }.toSet())
+            .putStringSet(KEY_ENABLED_TOOLS, normalizedEnabled.map { it.name }.toSet())
             .apply()
         _snapshot.update {
             it.copy(
                 configured = true,
-                enabledToolIds = enabledToolIds,
+                enabledToolIds = normalizedEnabled,
             )
         }
-    }
-
-    fun saveConfiguration(enabledToolIds: Set<ToolkitToolId>) {
-        saveEnabledTools(enabledToolIds)
     }
 
     fun setEnabledTools(enabledToolIds: Set<ToolkitToolId>) {
@@ -159,10 +156,9 @@ class ToolkitPreferences(context: Context) {
     private fun readEnabledToolIds(): Set<ToolkitToolId> {
         val stored = prefs.getStringSet(KEY_ENABLED_TOOLS, null)
             ?: return ToolkitLayout.defaultEnabledTools()
-        if (stored.isEmpty()) return emptySet()
         return stored.mapNotNull { name ->
             runCatching { ToolkitToolId.valueOf(name) }.getOrNull()
-        }.toSet().ifEmpty { emptySet() }
+        }.toSet().ifEmpty { ToolkitLayout.defaultEnabledTools() }
     }
 
     private fun readOrder(key: String, category: ToolkitCategory, lane: ToolkitLane): List<ToolkitToolId> {

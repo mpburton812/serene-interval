@@ -13,7 +13,6 @@ object HomeActivityTimelineBuilder {
         centerOfGravityEntries: List<TextEntryRow>,
         futureSelfMessages: List<TextEntryRow>,
         affirmationReviews: List<TextEntryRow>,
-        heartsEntries: List<TextEntryRow> = emptyList(),
         limit: Int = DEFAULT_LIMIT,
     ): List<HomeActivityItem> {
         val items = buildList {
@@ -48,9 +47,6 @@ object HomeActivityTimelineBuilder {
             }
             affirmationReviews.forEach { row ->
                 add(row.toItem(prefix = "affirmation_review", title = "Affirmations review"))
-            }
-            heartsEntries.forEach { row ->
-                add(row.toItem(prefix = "hearts", title = row.label))
             }
         }
         return items

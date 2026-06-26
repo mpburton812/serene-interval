@@ -77,7 +77,6 @@ class AppDataExporter(
     ): JSONObject = JSONObject().apply {
         put("experienceSettings", JSONObject().apply {
             put("themeMode", settings.themeMode.name)
-            put("landscapeThemeId", settings.landscapeThemeId.name)
             put("preferredName", settings.preferredName)
             put("sanctuaryName", settings.sanctuaryName)
             put("onboardingCompleted", settings.onboardingCompleted)
@@ -284,6 +283,6 @@ class AppDataExporter(
 
     companion object {
         const val EXPORT_VERSION = 5
-        const val DEFAULT_FILENAME = "sway-export.json"
+        const val DEFAULT_FILENAME = "serene-interval-export.json"
     }
 }

@@ -18,9 +18,6 @@ import com.example.meditationparticles.ui.settings.LocalExperienceSettings
 import com.example.meditationparticles.ui.theme.SereneIntervalTheme
 import com.example.meditationparticles.ui.update.UpdatePromptHost
 import com.example.meditationparticles.ui.update.UpdateViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 
 @Composable
 fun SereneApp(
@@ -35,16 +32,6 @@ fun SereneApp(
     LaunchedEffect(Unit) {
         if (BuildConfig.UPDATE_CHECK_ENABLED) {
             updateViewModel.checkForUpdate(userInitiated = false)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        delay(10_000)
-        withContext(Dispatchers.IO) {
-            runCatching {
-                AppGraph.autoBackupScheduler(context.applicationContext)
-                    .apply(AppGraph.autoBackupPreferences(context.applicationContext).load())
-            }
         }
     }
 
