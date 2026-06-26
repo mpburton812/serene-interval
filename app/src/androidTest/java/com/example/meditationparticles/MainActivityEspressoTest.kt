@@ -1,11 +1,9 @@
 package com.example.meditationparticles
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
@@ -46,8 +44,8 @@ class MainActivityEspressoTest {
     @Test
     fun launchesHomeWithBottomNavigation() {
         composeTestRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Home").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Breathe").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("bottom_nav_home").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("bottom_nav_breathe").assertIsDisplayed()
         composeTestRule.onNodeWithText("Welcome to Test Sanctuary.", substring = true)
             .assertIsDisplayed()
     }
@@ -59,21 +57,13 @@ class MainActivityEspressoTest {
         composeTestRule.onNodeWithContentDescription("Back").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Back").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription("Home").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("bottom_nav_home").assertIsDisplayed()
     }
 
     @Test
     fun canNavigateToBreatheTab() {
-        clickBottomNavTab("Breathe")
-        composeTestRule.waitUntil(timeoutMillis = 10_000) {
-            composeTestRule.onAllNodesWithText("BREATHING PATTERN")
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
+        composeTestRule.onNodeWithTag("bottom_nav_breathe").performClick()
+        InstrumentedTestFixtures.waitForText(composeTestRule, "BREATHING PATTERN")
         composeTestRule.onNodeWithText("BREATHING PATTERN").assertIsDisplayed()
-    }
-
-    private fun clickBottomNavTab(label: String) {
-        composeTestRule.onNode(hasText(label) and hasClickAction()).performClick()
     }
 }

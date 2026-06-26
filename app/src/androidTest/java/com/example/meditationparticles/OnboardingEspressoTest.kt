@@ -35,6 +35,7 @@ class OnboardingEspressoTest {
 
     @Test
     fun freshInstallShowsOnboardingWalkthrough() {
+        InstrumentedTestFixtures.waitForText(composeTestRule, "Build your Sway")
         composeTestRule.onNodeWithText("Build your Sway").assertIsDisplayed()
         composeTestRule.onNodeWithText("Next").assertIsDisplayed()
     }

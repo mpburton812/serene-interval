@@ -85,6 +85,14 @@ object InstrumentedTestFixtures {
         }
     }
 
+    fun waitForText(composeRule: ComposeTestRule, text: String, timeoutMillis: Long = 15_000) {
+        composeRule.waitUntil(timeoutMillis) {
+            composeRule.onAllNodesWithText(text)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+    }
+
     private fun clearExperienceSettingsOnDisk(context: Context) {
         context.applicationContext
             .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
