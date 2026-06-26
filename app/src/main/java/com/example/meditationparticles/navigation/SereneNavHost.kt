@@ -12,12 +12,14 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Air
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Landscape
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -92,6 +94,12 @@ private val allBottomNavItems = listOf(
         Icons.Outlined.AccountTree,
         Icons.Default.AccountTree,
     ),
+    BottomNavItem(
+        SereneDestination.Visualizations,
+        "Visuals",
+        Icons.Outlined.Landscape,
+        Icons.Default.Landscape,
+    ),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -101,6 +109,7 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Affirmations.route,
     SereneDestination.Toolkit.route,
     SereneDestination.LivingTree.route,
+    SereneDestination.Visualizations.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -117,6 +126,9 @@ fun SereneNavHost(
     val currentRoute = backStackEntry?.destination?.route
     val context = LocalContext.current
     val launchMigration = remember { AppLaunchMigration.run(context) }
+    var tabNavigationReady by remember(launchMigration.resetNavigationToHome) {
+        mutableStateOf(!launchMigration.resetNavigationToHome)
+    }
     val tabBackgroundRotation = remember { AppGraph.tabBackgroundRotation(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
     var resumeCount by remember { mutableIntStateOf(0) }
@@ -200,6 +212,7 @@ fun SereneNavHost(
         }
     }
 
+    val visualizationsInBottomNav = bottomNavItems.any { it.destination == SereneDestination.Visualizations }
     val pagerItemKey = bottomNavItems.joinToString(separator = "|") { it.destination.route }
 
     val tabPagerState = key(pagerItemKey) {
@@ -211,13 +224,19 @@ fun SereneNavHost(
     }
 
     LaunchedEffect(launchMigration.resetNavigationToHome, settings.onboardingCompleted) {
-        if (!launchMigration.resetNavigationToHome || !settings.onboardingCompleted) return@LaunchedEffect
+        if (!launchMigration.resetNavigationToHome || !settings.onboardingCompleted) {
+            tabNavigationReady = true
+            return@LaunchedEffect
+        }
+        tabNavigationReady = false
         navController.navigate(SereneDestination.Home.route) {
             popUpTo(navController.graph.findStartDestination().id) {
                 inclusive = true
             }
             launchSingleTop = true
+            restoreState = false
         }
+        tabNavigationReady = true
     }
 
     val navigateToTab: (SereneDestination) -> Unit = { destination ->
@@ -257,11 +276,7 @@ fun SereneNavHost(
             }
             QuickStartTarget.Timer -> navigateToTab(SereneDestination.Timer)
             QuickStartTarget.Affirmations -> navigateToTab(SereneDestination.Affirmations)
-            QuickStartTarget.Visuals -> {
-                navController.navigate(SereneDestination.Visualizations.route) {
-                    launchSingleTop = true
-                }
-            }
+            QuickStartTarget.Visuals -> navigateToTab(SereneDestination.Visualizations)
             is QuickStartTarget.Toolkit -> {
                 quickStartToolkitToolId = target.toolId
                 quickStartReturnToHome = true
@@ -273,16 +288,15 @@ fun SereneNavHost(
     var lastTabRoute by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(currentRoute, bottomNavItems) {
-        if (!isTabRoute(currentRoute, bottomNavItems)) return@LaunchedEffect
-        val index = tabIndexForRoute(currentRoute, bottomNavItems) ?: 0
-        val clamped = index.coerceIn(0, bottomNavItems.lastIndex.coerceAtLeast(0))
-        if (tabPagerState.settledPage != clamped && !tabPagerState.isScrollInProgress) {
-            tabPagerState.scrollToPage(clamped)
+        if (!tabNavigationReady || !isTabRoute(currentRoute, bottomNavItems)) return@LaunchedEffect
+        val index = tabIndexForRoute(currentRoute, bottomNavItems) ?: return@LaunchedEffect
+        if (index != tabPagerState.currentPage && !tabPagerState.isScrollInProgress) {
+            tabPagerState.animateScrollToPage(index)
         }
     }
 
     LaunchedEffect(tabPagerState.settledPage, bottomNavItems, currentRoute) {
-        if (!isTabRoute(currentRoute, bottomNavItems)) {
+        if (!tabNavigationReady || !isTabRoute(currentRoute, bottomNavItems)) {
             lastTabRoute = null
             return@LaunchedEffect
         }
@@ -301,6 +315,10 @@ fun SereneNavHost(
         if (tabPagerState.currentPage >= bottomNavItems.size && bottomNavItems.isNotEmpty()) {
             tabPagerState.scrollToPage(0)
         }
+    }
+
+    LaunchedEffect(pagerItemKey) {
+        lastTabRoute = null
     }
 
     val showBottomBar = currentRoute != SereneDestination.Settings.route &&
@@ -404,6 +422,7 @@ fun SereneNavHost(
                 SettingsScreen(
                     updateViewModel = updateViewModel,
                     onBack = {
+                        lastTabRoute = null
                         navController.navigate(SereneDestination.Home.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
@@ -466,13 +485,15 @@ fun SereneNavHost(
                 )
             }
             composable(SereneDestination.Visualizations.route) {
-                VisualizationsScreen(
-                    onOpenVisualization = { vizId ->
-                        navController.navigate(SereneDestination.Visualizations.playerRoute(vizId.name)) {
-                            launchSingleTop = true
-                        }
-                    },
-                )
+                if (!visualizationsInBottomNav) {
+                    VisualizationsScreen(
+                        onOpenVisualization = { vizId ->
+                            navController.navigate(SereneDestination.Visualizations.playerRoute(vizId.name)) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
             }
             composable(
                 route = "visualizations/player/{vizId}",
@@ -514,7 +535,7 @@ fun SereneNavHost(
                 }
             }
         }
-            if (isTabRoute(currentRoute, bottomNavItems) && bottomNavItems.isNotEmpty()) {
+            if (tabNavigationReady && isTabRoute(currentRoute, bottomNavItems) && bottomNavItems.isNotEmpty()) {
                 MainTabPager(
                     items = bottomNavItems,
                     pagerState = tabPagerState,
@@ -587,6 +608,17 @@ fun SereneNavHost(
                             LivingTreeScreen(
                                 onOpenSetup = {
                                     navController.navigate(SereneDestination.LivingTreeSetup.route) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
+                        SereneDestination.Visualizations -> {
+                            VisualizationsScreen(
+                                onOpenVisualization = { vizId ->
+                                    navController.navigate(
+                                        SereneDestination.Visualizations.playerRoute(vizId.name),
+                                    ) {
                                         launchSingleTop = true
                                     }
                                 },
