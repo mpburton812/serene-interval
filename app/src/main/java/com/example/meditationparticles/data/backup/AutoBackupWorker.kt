@@ -10,12 +10,11 @@ class AutoBackupWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
-        val manager = AppGraph.autoBackup(applicationContext)
         val snapshot = AppGraph.autoBackupPreferences(applicationContext).load()
         if (!snapshot.autoBackupEnabled || snapshot.destinationTreeUri.isNullOrBlank()) {
             return Result.success()
         }
-        val result = manager.runBackup(force = false)
+        val result = AppGraph.autoBackup(applicationContext).runBackup(force = false)
         return if (result.success) Result.success() else Result.retry()
     }
 }

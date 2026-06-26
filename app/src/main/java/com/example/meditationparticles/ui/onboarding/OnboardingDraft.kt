@@ -3,7 +3,6 @@ package com.example.meditationparticles.ui.onboarding
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.settings.ExperienceSettings
-import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -13,7 +12,6 @@ data class OnboardingDraft(
     val preferredName: String = "",
     val sanctuaryName: String = "",
     val themeMode: ThemeMode = ThemeMode.Light,
-    val landscapeThemeId: SanctuaryLandscapeThemeId = SanctuaryLandscapeThemeId.Beach,
     val enableBreathing: Boolean = true,
     val enableTimer: Boolean = true,
     val enableAffirmations: Boolean = true,
@@ -30,31 +28,28 @@ data class OnboardingDraft(
         get() {
             val settings = previewExperienceSettings()
             val hasExperienceTool = enableBreathing || enableTimer || enableAffirmations ||
-                enableToolkit || enableLivingTree || enableVisuals
+                enableToolkit || enableVisuals
+            val toolkitReady = !enableToolkit || enabledToolkitTools.isNotEmpty()
             val quickStartReady = QuickStartLayout.hasValidSelection(
                 quickStartTargets,
                 settings,
                 enabledToolkitTools,
             )
-            return hasExperienceTool && quickStartReady
+            return hasExperienceTool && toolkitReady && quickStartReady
         }
-
-    val toolkitTabVisible: Boolean
-        get() = enableToolkit && enabledToolkitTools.isNotEmpty()
 
     fun toExperienceSettings(
         meditationRemindersAvailable: Boolean = true,
         futureSelfSchedulingAvailable: Boolean = true,
     ): ExperienceSettings = ExperienceSettings(
         themeMode = themeMode,
-        landscapeThemeId = landscapeThemeId,
         preferredName = preferredName.trim(),
         sanctuaryName = sanctuaryName.trim(),
         onboardingCompleted = true,
         enableBreathing = enableBreathing,
         enableTimer = enableTimer,
         enableAffirmations = enableAffirmations,
-        enableToolkit = toolkitTabVisible,
+        enableToolkit = enableToolkit,
         enableLivingTree = enableLivingTree,
         enableVisuals = enableVisuals,
         enabledScenes = enabledScenes,
@@ -66,35 +61,24 @@ data class OnboardingDraft(
         fun from(
             settings: ExperienceSettings,
             quickStartTargets: List<QuickStartTarget> = QuickStartLayout.defaultSelection(settings),
-            enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
-        ): OnboardingDraft {
-            val toolkitOn = settings.enableToolkit && enabledToolkitTools.isNotEmpty()
-            return OnboardingDraft(
-                preferredName = settings.preferredName,
-                sanctuaryName = settings.sanctuaryName,
-                themeMode = if (
-                    !settings.onboardingCompleted && settings.themeMode == ThemeMode.TimeResponsive
-                ) {
-                    ThemeMode.Light
-                } else {
-                    settings.themeMode
-                },
-                landscapeThemeId = settings.landscapeThemeId,
-                enableBreathing = settings.enableBreathing,
-                enableTimer = settings.enableTimer,
-                enableAffirmations = settings.enableAffirmations,
-                enableToolkit = toolkitOn,
-                enableLivingTree = settings.enableLivingTree,
-                enableVisuals = settings.enableVisuals,
-                enabledScenes = settings.enabledScenes,
-                enabledToolkitTools = enabledToolkitTools,
-                quickStartTargets = QuickStartLayout.normalizeSelection(
-                    quickStartTargets,
-                    settings.copy(enableToolkit = toolkitOn),
-                    enabledToolkitTools,
-                ),
-            )
-        }
+        ): OnboardingDraft = OnboardingDraft(
+            preferredName = settings.preferredName,
+            sanctuaryName = settings.sanctuaryName,
+            themeMode = if (
+                !settings.onboardingCompleted && settings.themeMode == ThemeMode.TimeResponsive
+            ) {
+                ThemeMode.Light
+            } else {
+                settings.themeMode
+            },
+            enableBreathing = settings.enableBreathing,
+            enableTimer = settings.enableTimer,
+            enableAffirmations = settings.enableAffirmations,
+            enableToolkit = settings.enableToolkit,
+            enableVisuals = settings.enableVisuals,
+            enabledScenes = settings.enabledScenes,
+            quickStartTargets = QuickStartLayout.normalizeSelection(quickStartTargets, settings),
+        )
     }
 }
 
@@ -127,15 +111,11 @@ private fun OnboardingDraft.previewExperienceSettings(): ExperienceSettings =
 fun OnboardingDraft.toggleToolkitTool(id: ToolkitToolId): OnboardingDraft {
     val next = enabledToolkitTools.toMutableSet()
     if (id in next) {
-        next.remove(id)
+        if (next.size > 1) next.remove(id)
     } else {
         next.add(id)
     }
-    val toolkitOn = next.isNotEmpty()
-    return copy(
-        enabledToolkitTools = next,
-        enableToolkit = toolkitOn,
-    ).pruneQuickStart()
+    return copy(enabledToolkitTools = next).pruneQuickStart()
 }
 
 fun OnboardingDraft.toggleScene(id: CalmingVisualizationId): OnboardingDraft {
@@ -160,11 +140,9 @@ fun OnboardingDraft.withToolEnabled(
         enableBreathing = enableBreathing,
         enableTimer = enableTimer,
         enableAffirmations = enableAffirmations,
-        enableToolkit = enableToolkit && enabledToolkitTools.isNotEmpty(),
+        enableToolkit = enableToolkit,
         enableLivingTree = enableLivingTree,
         enableVisuals = enableVisuals,
     )
-    val hasAnyTool = next.enableBreathing || next.enableTimer || next.enableAffirmations ||
-        next.enableToolkit || next.enableLivingTree || next.enableVisuals
-    return if (hasAnyTool) next.pruneQuickStart() else this
+    return (if (next.canComplete) next else this).pruneQuickStart()
 }

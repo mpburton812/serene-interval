@@ -1,6 +1,9 @@
 package com.example.meditationparticles.data
 
 import android.content.Context
+import com.example.meditationparticles.data.backup.AutoBackupManager
+import com.example.meditationparticles.data.backup.AutoBackupPreferences
+import com.example.meditationparticles.data.backup.AutoBackupScheduler
 import com.example.meditationparticles.data.local.SereneDatabase
 import com.example.meditationparticles.data.onenote.OneNoteAuthManager
 import com.example.meditationparticles.data.onenote.OneNoteGraphClient
@@ -67,32 +70,32 @@ object AppGraph {
     private var homeActivityRepository: HomeActivityRepository? = null
 
     @Volatile
-    private var autoBackupPreferences: com.example.meditationparticles.data.backup.AutoBackupPreferences? = null
+    private var autoBackupPreferences: AutoBackupPreferences? = null
 
     @Volatile
-    private var autoBackupManager: com.example.meditationparticles.data.backup.AutoBackupManager? = null
+    private var autoBackupManager: AutoBackupManager? = null
 
     @Volatile
-    private var autoBackupScheduler: com.example.meditationparticles.data.backup.AutoBackupScheduler? = null
+    private var autoBackupScheduler: AutoBackupScheduler? = null
 
-    fun autoBackupPreferences(context: Context): com.example.meditationparticles.data.backup.AutoBackupPreferences =
+    fun autoBackupPreferences(context: Context): AutoBackupPreferences =
         autoBackupPreferences ?: synchronized(this) {
-            autoBackupPreferences ?: com.example.meditationparticles.data.backup.AutoBackupPreferences(
+            autoBackupPreferences ?: AutoBackupPreferences(
                 context.applicationContext,
             ).also { autoBackupPreferences = it }
         }
 
-    fun autoBackup(context: Context): com.example.meditationparticles.data.backup.AutoBackupManager =
+    fun autoBackup(context: Context): AutoBackupManager =
         autoBackupManager ?: synchronized(this) {
-            autoBackupManager ?: com.example.meditationparticles.data.backup.AutoBackupManager(
+            autoBackupManager ?: AutoBackupManager(
                 context.applicationContext,
                 autoBackupPreferences(context),
             ).also { autoBackupManager = it }
         }
 
-    fun autoBackupScheduler(context: Context): com.example.meditationparticles.data.backup.AutoBackupScheduler =
+    fun autoBackupScheduler(context: Context): AutoBackupScheduler =
         autoBackupScheduler ?: synchronized(this) {
-            autoBackupScheduler ?: com.example.meditationparticles.data.backup.AutoBackupScheduler(
+            autoBackupScheduler ?: AutoBackupScheduler(
                 context.applicationContext,
             ).also { autoBackupScheduler = it }
         }

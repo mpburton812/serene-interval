@@ -40,8 +40,7 @@ class AutoBackupManager(
         runCatching {
             val json = exporter.buildExportJson()
             val fileName = buildBackupFileName()
-            val existing = root.findFile(fileName)
-            existing?.delete()
+            root.findFile(fileName)?.delete()
             val created = root.createFile("application/json", fileName)
                 ?: error("Could not create backup file.")
             context.contentResolver.openOutputStream(created.uri)?.use { output ->

@@ -1,9 +1,7 @@
 package com.example.meditationparticles.data
 
 import android.content.Context
-import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.domain.settings.ExperienceSettings
-import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,8 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class SettingsPreferences(context: Context) {
-    private val appContext = context.applicationContext
-    private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val _settings = MutableStateFlow(load())
     val settings: StateFlow<ExperienceSettings> = _settings.asStateFlow()
 
@@ -36,24 +33,15 @@ class SettingsPreferences(context: Context) {
             else -> false
         }
 
-        val toolkitHasTools = AppGraph.toolkit(appContext).snapshot.value.enabledToolIds.isNotEmpty()
-
-        val landscapeThemeId = if (prefs.contains(KEY_LANDSCAPE_THEME_ID)) {
-            SanctuaryLandscapeThemeId.fromStored(prefs.getString(KEY_LANDSCAPE_THEME_ID, null))
-        } else {
-            SanctuaryLandscapeThemeId.Classic
-        }
-
         return ExperienceSettings(
             themeMode = themeMode,
-            landscapeThemeId = landscapeThemeId,
             preferredName = prefs.getString(KEY_PREFERRED_NAME, "") ?: "",
             sanctuaryName = prefs.getString(KEY_SANCTUARY_NAME, "") ?: "",
             onboardingCompleted = onboardingCompleted,
             enableBreathing = prefs.getBoolean(KEY_ENABLE_BREATHING, true),
             enableTimer = prefs.getBoolean(KEY_ENABLE_TIMER, true),
             enableAffirmations = prefs.getBoolean(KEY_ENABLE_AFFIRMATIONS, true),
-            enableToolkit = prefs.getBoolean(KEY_ENABLE_TOOLKIT, true) && toolkitHasTools,
+            enableToolkit = prefs.getBoolean(KEY_ENABLE_TOOLKIT, true),
             enableVisuals = prefs.getBoolean(KEY_ENABLE_VISUALS, true),
             enableLivingTree = prefs.getBoolean(KEY_ENABLE_LIVING_TREE, true),
             enabledScenes = scenes,
@@ -65,7 +53,6 @@ class SettingsPreferences(context: Context) {
     fun save(settings: ExperienceSettings) {
         prefs.edit()
             .putString(KEY_THEME_MODE, settings.themeMode.name)
-            .putString(KEY_LANDSCAPE_THEME_ID, settings.landscapeThemeId.name)
             .putString(KEY_PREFERRED_NAME, settings.preferredName.trim())
             .putString(KEY_SANCTUARY_NAME, settings.sanctuaryName.trim())
             .putBoolean(KEY_ONBOARDING_COMPLETED, settings.onboardingCompleted)
@@ -89,7 +76,6 @@ class SettingsPreferences(context: Context) {
     companion object {
         private const val PREFS_NAME = "experience_settings"
         private const val KEY_THEME_MODE = "theme_mode"
-        private const val KEY_LANDSCAPE_THEME_ID = "landscape_theme_id"
         private const val KEY_PREFERRED_NAME = "preferred_name"
         private const val KEY_SANCTUARY_NAME = "sanctuary_name"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"

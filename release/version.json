@@ -1,8 +1,8 @@
 ﻿{
-  "versionCode": 33,
-  "versionName": "1.0.32",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.32/sway_meditation.apk",
-  "expectedSha256": "ef292f07ab64ab6ed13be3fc4551ee4e39d6d43f007090cda57ff8c64c652412",
-  "releaseNotes": "Settings exit crash hotfix for upgrades from v1.0.23: stable tab navigation after remodel, breathing toggle in guided setup, Visualizations via Quick Start only.",
+  "versionCode": 25,
+  "versionName": "1.0.24",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.24/sway_meditation.apk",
+  "expectedSha256": "6c94a11a9a7cbefc2ca5928ef055fbcdf53520a362dde34248f52ac9f41b8b7a",
+  "releaseNotes": "HEARTS toolkit entries now appear on the home Recent activity timeline. Local automatic JSON backup to a user-chosen folder (daily or weekly) with the latest 14 files retained.",
   "minVersionCode": 1
 }

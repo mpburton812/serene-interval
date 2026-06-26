@@ -4,7 +4,6 @@ import com.example.meditationparticles.domain.visualizations.CalmingVisualizatio
 
 data class ExperienceSettings(
     val themeMode: ThemeMode = ThemeMode.TimeResponsive,
-    val landscapeThemeId: SanctuaryLandscapeThemeId = SanctuaryLandscapeThemeId.Beach,
     val preferredName: String = "",
     val sanctuaryName: String = "",
     val onboardingCompleted: Boolean = false,
@@ -25,7 +24,7 @@ data class ExperienceSettings(
 
     val displayName: String get() = preferredName.trim().ifBlank { "there" }
 
-    val sanctuaryTitle: String get() = sanctuaryName.trim().ifBlank { "Your Sway" }
+    val sanctuaryTitle: String get() = sanctuaryName.trim().ifBlank { "Your Sanctuary" }
 
     fun withToolToggle(transform: (ExperienceSettings) -> ExperienceSettings): ExperienceSettings {
         val next = transform(this)

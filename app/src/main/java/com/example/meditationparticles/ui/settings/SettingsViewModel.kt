@@ -11,11 +11,11 @@ import com.example.meditationparticles.data.onenote.OneNoteNotebook
 import com.example.meditationparticles.data.onenote.OneNotePrefsSnapshot
 import com.example.meditationparticles.data.onenote.OneNoteSection
 import com.example.meditationparticles.domain.onenote.OneNoteEntryType
+import com.example.meditationparticles.data.backup.AutoBackupSnapshot
+import com.example.meditationparticles.domain.backup.AutoBackupFrequency
 import com.example.meditationparticles.data.export.AppDataExporter
 import com.example.meditationparticles.data.export.AppDataImporter
 import com.example.meditationparticles.data.export.ImportParseException
-import com.example.meditationparticles.data.backup.AutoBackupSnapshot
-import com.example.meditationparticles.domain.backup.AutoBackupFrequency
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.map
 import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
-import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -94,14 +93,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 quickStartPreferences.refresh(settings.value)
             }
         }
-    }
-
-    fun ensureOneNoteTargetsLoaded() {
-        if (_oneNoteUiState.value.isLoadingTargets || _oneNoteUiState.value.notebooks.isNotEmpty()) return
-        val prefs = oneNotePreferences.load()
-        if (prefs.accountEmail.isNullOrBlank()) return
         viewModelScope.launch {
-            refreshOneNoteTargets(showLoading = true)
+            oneNotePrefs.collect { prefs ->
+                if (!prefs.accountEmail.isNullOrBlank() && _oneNoteUiState.value.notebooks.isEmpty()) {
+                    refreshOneNoteTargets(showLoading = true)
+                }
+            }
         }
     }
 
@@ -123,10 +120,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setThemeMode(mode: ThemeMode) {
         preferences.update { it.copy(themeMode = mode) }
-    }
-
-    fun setLandscapeTheme(id: SanctuaryLandscapeThemeId) {
-        preferences.update { it.copy(landscapeThemeId = id) }
     }
 
     fun setEnableBreathing(enabled: Boolean) {
