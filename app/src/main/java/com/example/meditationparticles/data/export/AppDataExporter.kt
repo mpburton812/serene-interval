@@ -7,6 +7,7 @@ import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
+import com.example.meditationparticles.data.local.HeartsEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
 import com.example.meditationparticles.data.local.LivingTreePersonEntity
 import com.example.meditationparticles.data.local.LivingTreePersonTagCrossRef
@@ -45,6 +46,7 @@ class AppDataExporter(
         val nvcEntries = db.nvcEntryDao().getAll()
         val meditationReflections = db.meditationReflectionDao().getAll()
         val moodEntries = db.moodEntryDao().getAll()
+        val heartsEntries = db.heartsEntryDao().getAll()
         val livingTree = AppGraph.livingTree(context)
 
         JSONObject().apply {
@@ -63,6 +65,7 @@ class AppDataExporter(
                 nvcEntries = nvcEntries,
                 meditationReflections = meditationReflections,
                 moodEntries = moodEntries,
+                heartsEntries = heartsEntries,
             ))
             put("livingTree", buildLivingTreeSection(livingTree))
         }.toString(2)
@@ -132,6 +135,7 @@ class AppDataExporter(
         nvcEntries: List<NvcEntryEntity>,
         meditationReflections: List<MeditationReflectionEntity>,
         moodEntries: List<MoodEntryEntity>,
+        heartsEntries: List<HeartsEntryEntity>,
     ): JSONObject = JSONObject().apply {
         put("affirmations", JSONArray().apply {
             affirmations.forEach { put(it.toJson()) }
@@ -163,6 +167,9 @@ class AppDataExporter(
         })
         put("moodEntries", JSONArray().apply {
             moodEntries.forEach { put(it.toJson()) }
+        })
+        put("heartsEntries", JSONArray().apply {
+            heartsEntries.forEach { put(it.toJson()) }
         })
     }
 
@@ -223,6 +230,20 @@ class AppDataExporter(
         put("feeling", feeling)
         put("need", need)
         put("request", request)
+        moodLevel?.let { put("moodLevel", it) }
+        put("createdAt", createdAt)
+    }
+
+    private fun HeartsEntryEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("toolId", toolId)
+        personId?.let { put("personId", it) }
+        put("personName", personName)
+        put("step1", step1)
+        put("step2", step2)
+        put("step3", step3)
+        put("step4", step4)
+        put("step5", step5)
         moodLevel?.let { put("moodLevel", it) }
         put("createdAt", createdAt)
     }

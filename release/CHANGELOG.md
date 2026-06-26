@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Home timeline
+
+- HEARTS toolkit journal entries (Delight Deposit, Attunement Map, Repair & Reconnect, etc.) now appear in Recent activity on the home screen
+
+### Data protection
+
+- Local automatic JSON backup to a user-chosen folder (daily or weekly) via WorkManager; retains the latest 14 files
+- HEARTS journal entries included in export/import JSON backups
+
 ## Production rollback — 2026-06-26
 
 Reverted `main` / production manifest to **v1.0.23** (versionCode 24). Releases v1.0.24–v1.0.33 (Sanctuary walkthrough, landscapes, backup, and subsequent crash hotfixes) are withdrawn from production due to persistent upgrade and launch regressions.
