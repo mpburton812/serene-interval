@@ -202,7 +202,7 @@ class OneNoteGraphClient(
 
     companion object {
         private const val GRAPH_BASE = "https://graph.microsoft.com/v1.0"
-        const val SECTION_NAME = "Sway"
+        const val SECTION_NAME = "Serene Interval"
 
         private val defaultClient = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)

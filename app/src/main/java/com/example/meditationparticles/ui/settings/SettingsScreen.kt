@@ -37,9 +37,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.data.export.AppDataExporter
-import com.example.meditationparticles.ui.settings.AutoBackupSection
-import com.example.meditationparticles.ui.settings.LandscapeThemeSection
-import com.example.meditationparticles.ui.settings.VisualSanctuarySection
 import com.example.meditationparticles.ui.theme.SereneSpacing
 import com.example.meditationparticles.ui.update.UpdateViewModel
 import java.io.IOException
@@ -51,7 +48,7 @@ import androidx.activity.compose.LocalActivity
 fun SettingsScreen(
     updateViewModel: UpdateViewModel,
     onBack: () -> Unit,
-    onRemodelSanctuary: () -> Unit,
+    onResetOnboarding: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel(),
 ) {
@@ -59,7 +56,6 @@ fun SettingsScreen(
     val quickStartTargets by viewModel.quickStartTargets.collectAsState()
     val enabledToolkitTools by viewModel.enabledToolkitTools.collectAsState()
     val settingsUiState by viewModel.uiState.collectAsState()
-    val autoBackupSnapshot by viewModel.autoBackupSnapshot.collectAsState()
     val oneNotePrefs by viewModel.oneNotePrefs.collectAsState()
     val oneNoteUiState by viewModel.oneNoteUiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
@@ -156,7 +152,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
         ) {
             Text(
-                text = "Shape a Sway that feels uniquely yours.",
+                text = "Shape a space that feels uniquely yours.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -176,11 +172,6 @@ fun SettingsScreen(
                 onThemeModeSelected = viewModel::setThemeMode,
             )
 
-            LandscapeThemeSection(
-                settings = settings,
-                onLandscapeThemeSelected = viewModel::setLandscapeTheme,
-            )
-
             ExperienceSection(
                 settings = settings,
                 onBreathingChanged = viewModel::setEnableBreathing,
@@ -188,15 +179,7 @@ fun SettingsScreen(
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onLivingTreeChanged = viewModel::setEnableLivingTree,
-                onVisualsChanged = viewModel::setEnableVisuals,
             )
-
-            if (settings.enableVisuals) {
-                VisualSanctuarySection(
-                    enabledScenes = settings.enabledScenes,
-                    onToggleScene = viewModel::toggleScene,
-                )
-            }
 
             QuickStartSelectionSection(
                 settings = settings,
@@ -205,27 +188,11 @@ fun SettingsScreen(
                 onToggle = viewModel::toggleQuickStart,
             )
 
-            AutoBackupSection(
-                snapshot = autoBackupSnapshot,
-                isRunningBackup = settingsUiState.isRunningAutoBackup,
-                onAutoBackupEnabledChange = viewModel::setAutoBackupEnabled,
-                onFrequencySelected = viewModel::setAutoBackupFrequency,
-                onBackupFolderSelected = viewModel::onBackupFolderSelected,
-                onBackupNow = viewModel::runAutoBackupNow,
-            )
-            settingsUiState.autoBackupError?.let { message ->
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
             Column(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
                 Text(
-                    text = "Manual export",
+                    text = "Your data",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -338,7 +305,6 @@ fun SettingsScreen(
                 onEntryTypeSyncChange = viewModel::setOneNoteEntryTypeSyncEnabled,
                 onSelectNotebook = viewModel::selectOneNoteNotebook,
                 onSelectSection = viewModel::selectOneNoteSection,
-                onEnsureTargetsLoaded = viewModel::ensureOneNoteTargetsLoaded,
             )
 
             Column(
@@ -397,18 +363,20 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
             ) {
                 Text(
-                    text = "Remodel your Sway",
+                    text = "Rebuild Your Sanctuary",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Walk through setup again to change your spaces and tools. " +
-                        "Your journals, mood history, and entries are never deleted.",
+                    text = "Walk through setup again to revisit your name, tools, and scenes.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedButton(
-                    onClick = onRemodelSanctuary,
+                    onClick = {
+                        viewModel.resetOnboarding()
+                        onResetOnboarding()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(999.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -416,7 +384,7 @@ fun SettingsScreen(
                     ),
                 ) {
                     Text(
-                        text = "Remodel",
+                        text = "Rebuild!",
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )

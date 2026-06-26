@@ -3,8 +3,6 @@ package com.example.meditationparticles.data
 import android.content.Context
 import com.example.meditationparticles.R
 import com.example.meditationparticles.domain.settings.BackgroundPeriod
-import com.example.meditationparticles.domain.settings.LandscapeThemeCatalog
-import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.settings.backgroundPeriodForTheme
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,31 +12,38 @@ import java.util.Calendar
 
 class TabBackgroundRotation(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val dayDrawables = listOf(
+        R.drawable.day_1,
+        R.drawable.day_2,
+        R.drawable.day_3,
+        R.drawable.day_4,
+        R.drawable.day_5,
+        R.drawable.day_6,
+    )
+    private val nightDrawables = listOf(
+        R.drawable.night_1,
+        R.drawable.night_2,
+        R.drawable.night_3,
+        R.drawable.night_4,
+        R.drawable.night_5,
+    )
 
     private val _currentDrawable = MutableStateFlow(readCurrentDrawable())
     val currentDrawable: StateFlow<Int> = _currentDrawable.asStateFlow()
 
-    fun sync(
-        landscapeThemeId: SanctuaryLandscapeThemeId,
-        themeMode: ThemeMode,
-        isSystemDark: Boolean = false,
-    ) {
-        _currentDrawable.value = readCurrentDrawable(landscapeThemeId, themeMode, isSystemDark)
+    fun sync(themeMode: ThemeMode, isSystemDark: Boolean = false) {
+        _currentDrawable.value = readCurrentDrawable(themeMode, isSystemDark)
     }
 
-    fun advance(
-        landscapeThemeId: SanctuaryLandscapeThemeId,
-        themeMode: ThemeMode,
-        isSystemDark: Boolean = false,
-    ) {
+    fun advance(themeMode: ThemeMode, isSystemDark: Boolean = false) {
         val period = resolvePeriod(themeMode, isSystemDark)
-        val drawables = drawablesFor(landscapeThemeId, period)
+        val drawables = drawablesFor(period)
         if (drawables.isEmpty()) {
             _currentDrawable.value = fallbackDrawable
             return
         }
 
-        val indexKey = indexKeyFor(landscapeThemeId, period)
+        val indexKey = indexKeyFor(period)
         val currentIndex = prefs.getInt(indexKey, 0).coerceIn(0, drawables.lastIndex)
         _currentDrawable.value = drawables[currentIndex]
 
@@ -46,21 +51,19 @@ class TabBackgroundRotation(context: Context) {
         prefs.edit()
             .putInt(indexKey, nextIndex)
             .putString(KEY_LAST_PERIOD_KIND, period.name)
-            .putString(KEY_LAST_LANDSCAPE_THEME, landscapeThemeId.name)
             .putString(KEY_LAST_PERIOD_DATE, todayDateString())
             .apply()
     }
 
     private fun readCurrentDrawable(
-        landscapeThemeId: SanctuaryLandscapeThemeId = SanctuaryLandscapeThemeId.Classic,
         themeMode: ThemeMode = ThemeMode.TimeResponsive,
         isSystemDark: Boolean = false,
     ): Int {
         val period = resolvePeriod(themeMode, isSystemDark)
-        val drawables = drawablesFor(landscapeThemeId, period)
+        val drawables = drawablesFor(period)
         if (drawables.isEmpty()) return fallbackDrawable
 
-        val indexKey = indexKeyFor(landscapeThemeId, period)
+        val indexKey = indexKeyFor(period)
         val index = prefs.getInt(indexKey, 0).coerceIn(0, drawables.lastIndex)
         return drawables[index]
     }
@@ -70,15 +73,15 @@ class TabBackgroundRotation(context: Context) {
         return backgroundPeriodForTheme(themeMode, hour, isSystemDark)
     }
 
-    private fun drawablesFor(
-        landscapeThemeId: SanctuaryLandscapeThemeId,
-        period: BackgroundPeriod,
-    ): List<Int> = LandscapeThemeCatalog.drawablesFor(landscapeThemeId, period)
+    private fun drawablesFor(period: BackgroundPeriod): List<Int> = when (period) {
+        BackgroundPeriod.Daylight -> dayDrawables
+        BackgroundPeriod.Nighttime -> nightDrawables
+    }
 
-    private fun indexKeyFor(
-        landscapeThemeId: SanctuaryLandscapeThemeId,
-        period: BackgroundPeriod,
-    ): String = "index_${landscapeThemeId.name}_${period.name}"
+    private fun indexKeyFor(period: BackgroundPeriod): String = when (period) {
+        BackgroundPeriod.Daylight -> KEY_DAY_INDEX
+        BackgroundPeriod.Nighttime -> KEY_NIGHT_INDEX
+    }
 
     private fun todayDateString(): String {
         val calendar = Calendar.getInstance()
@@ -91,8 +94,9 @@ class TabBackgroundRotation(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "tab_background_rotation"
+        private const val KEY_DAY_INDEX = "day_index"
+        private const val KEY_NIGHT_INDEX = "night_index"
         private const val KEY_LAST_PERIOD_KIND = "last_period_kind"
-        private const val KEY_LAST_LANDSCAPE_THEME = "last_landscape_theme"
         private const val KEY_LAST_PERIOD_DATE = "last_period_date"
         val fallbackDrawable: Int = R.drawable.home_background
     }

@@ -64,8 +64,8 @@ android {
         applicationId = "com.example.meditationparticles"
         minSdk = 26
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.0.33"
+        versionCode = 24
+        versionName = "1.0.23"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("Boolean", "UPDATE_CHECK_ENABLED", "true")
@@ -137,7 +137,6 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.tink.android)
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.documentfile)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
     implementation(libs.androidx.room.runtime)

@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
-import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationId
@@ -21,20 +20,14 @@ import kotlinx.coroutines.launch
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppGraph.settings(application)
     private val quickStartPreferences = AppGraph.quickStart(application)
-    private val oneNotePreferences by lazy { AppGraph.oneNotePreferences(application) }
-    private val oneNoteAuth by lazy { AppGraph.oneNoteAuth(application) }
-    private val oneNoteSync by lazy { AppGraph.oneNoteSync(application) }
+    private val oneNotePreferences = AppGraph.oneNotePreferences(application)
+    private val oneNoteAuth = AppGraph.oneNoteAuth(application)
+    private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val appContext = application.applicationContext
-
-    private val toolkitPreferences = AppGraph.toolkit(application)
 
     private val _draft = MutableStateFlow(run {
         val settings = preferences.load()
-        OnboardingDraft.from(
-            settings = settings,
-            quickStartTargets = quickStartPreferences.load(settings),
-            enabledToolkitTools = toolkitPreferences.snapshot.value.enabledToolIds,
-        )
+        OnboardingDraft.from(settings, quickStartPreferences.load(settings))
     })
     val draft: StateFlow<OnboardingDraft> = _draft.asStateFlow()
 
@@ -48,10 +41,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
     fun setThemeMode(mode: ThemeMode) {
         _draft.update { it.copy(themeMode = mode) }
-    }
-
-    fun setLandscapeTheme(id: SanctuaryLandscapeThemeId) {
-        _draft.update { it.copy(landscapeThemeId = id) }
     }
 
     fun setEnableBreathing(enabled: Boolean) {
@@ -90,11 +79,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _draft.update { it.toggleScene(id) }
     }
 
-    fun applyWalkthroughDraft(draft: OnboardingDraft) {
-        _draft.value = draft
-    }
-
-    fun continueFromWalkthrough(): Boolean {
+    fun continueFromCustomization(): Boolean {
         val current = _draft.value
         if (!current.canComplete) return false
         if (needsExactAlarmStep()) {
@@ -280,7 +265,9 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             savedSettings,
             current.enabledToolkitTools,
         )
-        AppGraph.toolkit(getApplication()).saveEnabledTools(current.enabledToolkitTools)
+        if (current.enableToolkit) {
+            AppGraph.toolkit(getApplication()).saveConfiguration(current.enabledToolkitTools)
+        }
     }
 
     private fun needsExactAlarmStep(): Boolean {
