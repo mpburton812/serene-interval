@@ -164,5 +164,7 @@ fun OnboardingDraft.withToolEnabled(
         enableLivingTree = enableLivingTree,
         enableVisuals = enableVisuals,
     )
-    return (if (next.canComplete || !next.enableToolkit) next else this).pruneQuickStart()
+    val hasAnyTool = next.enableBreathing || next.enableTimer || next.enableAffirmations ||
+        next.enableToolkit || next.enableLivingTree || next.enableVisuals
+    return if (hasAnyTool) next.pruneQuickStart() else this
 }
