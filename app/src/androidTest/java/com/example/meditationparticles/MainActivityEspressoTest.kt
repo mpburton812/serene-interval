@@ -1,7 +1,10 @@
 package com.example.meditationparticles
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -61,8 +64,16 @@ class MainActivityEspressoTest {
 
     @Test
     fun canNavigateToBreatheTab() {
-        composeTestRule.onNodeWithContentDescription("Breathe").performClick()
-        composeTestRule.waitForIdle()
+        clickBottomNavTab("Breathe")
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodesWithText("BREATHING PATTERN")
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
         composeTestRule.onNodeWithText("BREATHING PATTERN").assertIsDisplayed()
+    }
+
+    private fun clickBottomNavTab(label: String) {
+        composeTestRule.onNode(hasText(label) and hasClickAction()).performClick()
     }
 }
