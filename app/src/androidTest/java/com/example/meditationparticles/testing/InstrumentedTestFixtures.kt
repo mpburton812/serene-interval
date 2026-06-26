@@ -2,7 +2,7 @@ package com.example.meditationparticles.testing
 
 import android.content.Context
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -76,12 +76,20 @@ object InstrumentedTestFixtures {
     fun waitForHomeScreen(composeRule: ComposeTestRule, timeoutMillis: Long = 30_000) {
         composeRule.waitUntil(timeoutMillis) {
             dismissUpdateDialogIfShown(composeRule)
-            composeRule.onAllNodesWithContentDescription("Settings")
+            composeRule.onAllNodesWithTag("home_settings")
                 .fetchSemanticsNodes()
                 .isNotEmpty() &&
                 composeRule.onAllNodesWithText("Build your Sway")
                     .fetchSemanticsNodes()
                     .isEmpty()
+        }
+    }
+
+    fun waitForSettingsScreen(composeRule: ComposeTestRule, timeoutMillis: Long = 10_000) {
+        composeRule.waitUntil(timeoutMillis) {
+            composeRule.onAllNodesWithTag("settings_back")
+                .fetchSemanticsNodes()
+                .isNotEmpty()
         }
     }
 

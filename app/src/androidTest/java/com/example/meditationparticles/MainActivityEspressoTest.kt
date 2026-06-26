@@ -2,7 +2,6 @@ package com.example.meditationparticles
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -43,7 +42,7 @@ class MainActivityEspressoTest {
 
     @Test
     fun launchesHomeWithBottomNavigation() {
-        composeTestRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("home_settings").assertIsDisplayed()
         composeTestRule.onNodeWithTag("bottom_nav_home").assertIsDisplayed()
         composeTestRule.onNodeWithTag("bottom_nav_breathe").assertIsDisplayed()
         composeTestRule.onNodeWithText("Welcome to Test Sanctuary.", substring = true)
@@ -52,10 +51,9 @@ class MainActivityEspressoTest {
 
     @Test
     fun canOpenSettingsAndReturnHome() {
-        composeTestRule.onNodeWithContentDescription("Settings").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription("Back").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Back").performClick()
+        composeTestRule.onNodeWithTag("home_settings").performClick()
+        InstrumentedTestFixtures.waitForSettingsScreen(composeTestRule)
+        composeTestRule.onNodeWithTag("settings_back").performClick()
         InstrumentedTestFixtures.waitForHomeScreen(composeTestRule)
         composeTestRule.onNodeWithText("Welcome to Test Sanctuary.", substring = true)
             .assertIsDisplayed()
