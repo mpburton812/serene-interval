@@ -12,14 +12,12 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Air
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Landscape
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -94,12 +92,6 @@ private val allBottomNavItems = listOf(
         Icons.Outlined.AccountTree,
         Icons.Default.AccountTree,
     ),
-    BottomNavItem(
-        SereneDestination.Visualizations,
-        "Visuals",
-        Icons.Outlined.Landscape,
-        Icons.Default.Landscape,
-    ),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -109,7 +101,6 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Affirmations.route,
     SereneDestination.Toolkit.route,
     SereneDestination.LivingTree.route,
-    SereneDestination.Visualizations.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -209,7 +200,6 @@ fun SereneNavHost(
         }
     }
 
-    val visualizationsInBottomNav = bottomNavItems.any { it.destination == SereneDestination.Visualizations }
     val pagerItemKey = bottomNavItems.joinToString(separator = "|") { it.destination.route }
 
     val tabPagerState = key(pagerItemKey) {
@@ -267,7 +257,11 @@ fun SereneNavHost(
             }
             QuickStartTarget.Timer -> navigateToTab(SereneDestination.Timer)
             QuickStartTarget.Affirmations -> navigateToTab(SereneDestination.Affirmations)
-            QuickStartTarget.Visuals -> navigateToTab(SereneDestination.Visualizations)
+            QuickStartTarget.Visuals -> {
+                navController.navigate(SereneDestination.Visualizations.route) {
+                    launchSingleTop = true
+                }
+            }
             is QuickStartTarget.Toolkit -> {
                 quickStartToolkitToolId = target.toolId
                 quickStartReturnToHome = true
@@ -276,15 +270,26 @@ fun SereneNavHost(
         }
     }
 
+    var lastTabRoute by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(currentRoute, bottomNavItems) {
-        val index = tabIndexForRoute(currentRoute, bottomNavItems) ?: return@LaunchedEffect
-        if (index != tabPagerState.currentPage && !tabPagerState.isScrollInProgress) {
-            tabPagerState.animateScrollToPage(index)
+        if (!isTabRoute(currentRoute, bottomNavItems)) return@LaunchedEffect
+        val index = tabIndexForRoute(currentRoute, bottomNavItems) ?: 0
+        val clamped = index.coerceIn(0, bottomNavItems.lastIndex.coerceAtLeast(0))
+        if (tabPagerState.settledPage != clamped && !tabPagerState.isScrollInProgress) {
+            tabPagerState.scrollToPage(clamped)
         }
     }
 
-    LaunchedEffect(tabPagerState.settledPage, bottomNavItems) {
-        if (!isTabRoute(currentRoute, bottomNavItems)) return@LaunchedEffect
+    LaunchedEffect(tabPagerState.settledPage, bottomNavItems, currentRoute) {
+        if (!isTabRoute(currentRoute, bottomNavItems)) {
+            lastTabRoute = null
+            return@LaunchedEffect
+        }
+        if (tabPagerState.isScrollInProgress) return@LaunchedEffect
+        val routeJustChanged = lastTabRoute != currentRoute
+        lastTabRoute = currentRoute
+        if (routeJustChanged) return@LaunchedEffect
         val destination = bottomNavItems.getOrNull(tabPagerState.settledPage)?.destination
             ?: return@LaunchedEffect
         if (destination.route != currentRoute) {
@@ -398,7 +403,15 @@ fun SereneNavHost(
             composable(SereneDestination.Settings.route) {
                 SettingsScreen(
                     updateViewModel = updateViewModel,
-                    onBack = { navController.popBackStack() },
+                    onBack = {
+                        navController.navigate(SereneDestination.Home.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onRemodelSanctuary = {
                         navController.navigate(SereneDestination.SanctuaryRemodel.route)
                     },
@@ -453,15 +466,13 @@ fun SereneNavHost(
                 )
             }
             composable(SereneDestination.Visualizations.route) {
-                if (!visualizationsInBottomNav) {
-                    VisualizationsScreen(
-                        onOpenVisualization = { vizId ->
-                            navController.navigate(SereneDestination.Visualizations.playerRoute(vizId.name)) {
-                                launchSingleTop = true
-                            }
-                        },
-                    )
-                }
+                VisualizationsScreen(
+                    onOpenVisualization = { vizId ->
+                        navController.navigate(SereneDestination.Visualizations.playerRoute(vizId.name)) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
             composable(
                 route = "visualizations/player/{vizId}",
@@ -576,17 +587,6 @@ fun SereneNavHost(
                             LivingTreeScreen(
                                 onOpenSetup = {
                                     navController.navigate(SereneDestination.LivingTreeSetup.route) {
-                                        launchSingleTop = true
-                                    }
-                                },
-                            )
-                        }
-                        SereneDestination.Visualizations -> {
-                            VisualizationsScreen(
-                                onOpenVisualization = { vizId ->
-                                    navController.navigate(
-                                        SereneDestination.Visualizations.playerRoute(vizId.name),
-                                    ) {
                                         launchSingleTop = true
                                     }
                                 },
