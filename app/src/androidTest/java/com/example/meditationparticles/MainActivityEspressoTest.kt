@@ -56,8 +56,9 @@ class MainActivityEspressoTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithContentDescription("Back").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Back").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("bottom_nav_home").assertIsDisplayed()
+        InstrumentedTestFixtures.waitForHomeScreen(composeTestRule)
+        composeTestRule.onNodeWithText("Welcome to Test Sanctuary.", substring = true)
+            .assertIsDisplayed()
     }
 
     @Test
