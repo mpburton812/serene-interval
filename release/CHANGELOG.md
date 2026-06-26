@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.0.32 - 2026-06-26
+
+### Settings exit crash hotfix (upgrade from v1.0.23)
+
+- Remove Visualizations from bottom nav (access via Quick Start only) to stop pager/navigation sync fights after remodel
+- Navigate explicitly to Home when leaving Settings instead of bare popBackStack
+- Use instant pager scroll when syncing tab route; skip pager→nav feedback on route change
+- Allow toggling breathing off in guided remodel when at least one other tool remains
+
 ## 1.0.31 - 2026-06-26
 
 ### Settings crash hotfix (upgrade from v1.0.23)
