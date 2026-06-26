@@ -88,14 +88,6 @@ fun SettingsScreen(
         }
     }
 
-    val backupFolderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri: Uri? ->
-        if (uri != null) {
-            viewModel.onBackupFolderSelected(uri)
-        }
-    }
-
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
     ) { uri: Uri? ->
@@ -218,7 +210,7 @@ fun SettingsScreen(
                 isRunningBackup = settingsUiState.isRunningAutoBackup,
                 onAutoBackupEnabledChange = viewModel::setAutoBackupEnabled,
                 onFrequencySelected = viewModel::setAutoBackupFrequency,
-                onChooseFolder = { backupFolderLauncher.launch(null) },
+                onBackupFolderSelected = viewModel::onBackupFolderSelected,
                 onBackupNow = viewModel::runAutoBackupNow,
             )
             settingsUiState.autoBackupError?.let { message ->
@@ -346,6 +338,7 @@ fun SettingsScreen(
                 onEntryTypeSyncChange = viewModel::setOneNoteEntryTypeSyncEnabled,
                 onSelectNotebook = viewModel::selectOneNoteNotebook,
                 onSelectSection = viewModel::selectOneNoteSection,
+                onEnsureTargetsLoaded = viewModel::ensureOneNoteTargetsLoaded,
             )
 
             Column(
