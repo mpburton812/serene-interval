@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.platform.app.InstrumentationRegistry
@@ -13,9 +12,11 @@ import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.SanctuaryLandscapeThemeId
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
+import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 
 object InstrumentedTestFixtures {
     private const val PREFS_NAME = "experience_settings"
+    private const val TOOLKIT_PREFS_NAME = "toolkit_preferences"
     private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
     private const val KEY_THEME_MODE = "theme_mode"
     private const val KEY_LANDSCAPE_THEME_ID = "landscape_theme_id"
@@ -27,60 +28,41 @@ object InstrumentedTestFixtures {
     private const val KEY_ENABLE_TOOLKIT = "enable_toolkit"
     private const val KEY_ENABLE_VISUALS = "enable_visuals"
     private const val KEY_ENABLE_LIVING_TREE = "enable_living_tree"
+    private const val KEY_TOOLKIT_CONFIGURED = "toolkit_configured"
+    private const val KEY_TOOLKIT_ENABLED_TOOLS = "enabled_tool_ids"
 
     fun targetContext(): Context =
         InstrumentationRegistry.getInstrumentation().targetContext
 
-    fun clearExperienceSettings(context: Context = targetContext()) {
-        val appContext = context.applicationContext
-        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .clear()
-            .commit()
-        AppGraph.settings(appContext).save(ExperienceSettings())
-    }
-
-    fun clearLaunchMigration(context: Context = targetContext()) {
-        context.applicationContext
-            .getSharedPreferences("app_launch_migration", Context.MODE_PRIVATE)
-            .edit()
-            .clear()
-            .commit()
-    }
-
-    fun seedOnboardingComplete(
-        context: Context = targetContext(),
-        preferredName: String = "Test",
-        sanctuaryName: String = "Test Sanctuary",
-    ): ExperienceSettings {
-        val settings = ExperienceSettings(
-            themeMode = ThemeMode.Light,
-            // Classic uses WEBP assets; gradient XML drawables crash Compose painterResource.
-            landscapeThemeId = SanctuaryLandscapeThemeId.Classic,
-            preferredName = preferredName,
-            sanctuaryName = sanctuaryName,
-            onboardingCompleted = true,
-            enableBreathing = true,
-            enableTimer = true,
-            enableAffirmations = true,
-            enableToolkit = true,
-            enableLivingTree = true,
-            enableVisuals = true,
-        )
-        persistExperienceSettings(context, settings)
-        return settings
-    }
-
     fun prepareMainActivityTest(context: Context = targetContext()) {
+        AppGraph.resetCachedStateForInstrumentation()
         clearLaunchMigration(context)
-        clearExperienceSettings(context)
-        seedOnboardingComplete(context)
-        ensureDefaultToolkitTools(context)
+        clearExperienceSettingsOnDisk(context)
+        seedDefaultToolkitToolsOnDisk(context)
+        persistExperienceSettingsOnDisk(
+            context,
+            ExperienceSettings(
+                themeMode = ThemeMode.Light,
+                // Classic uses WEBP assets; gradient XML drawables crash Compose painterResource.
+                landscapeThemeId = SanctuaryLandscapeThemeId.Classic,
+                preferredName = "Test",
+                sanctuaryName = "Test Sanctuary",
+                onboardingCompleted = true,
+                enableBreathing = true,
+                enableTimer = true,
+                enableAffirmations = true,
+                enableToolkit = true,
+                enableLivingTree = true,
+                enableVisuals = true,
+            ),
+        )
     }
 
     fun prepareFreshOnboarding(context: Context = targetContext()) {
+        AppGraph.resetCachedStateForInstrumentation()
         clearLaunchMigration(context)
-        clearExperienceSettings(context)
+        clearExperienceSettingsOnDisk(context)
+        clearToolkitPreferencesOnDisk(context)
     }
 
     fun dismissUpdateDialogIfShown(composeRule: ComposeTestRule) {
@@ -93,22 +75,56 @@ object InstrumentedTestFixtures {
 
     fun waitForHomeScreen(composeRule: ComposeTestRule, timeoutMillis: Long = 30_000) {
         composeRule.waitUntil(timeoutMillis) {
+            dismissUpdateDialogIfShown(composeRule)
             composeRule.onAllNodesWithContentDescription("Settings")
                 .fetchSemanticsNodes()
-                .isNotEmpty()
+                .isNotEmpty() &&
+                composeRule.onAllNodesWithText("Build your Sway")
+                    .fetchSemanticsNodes()
+                    .isEmpty()
         }
     }
 
-    private fun ensureDefaultToolkitTools(context: Context) {
-        val toolkit = AppGraph.toolkit(context.applicationContext)
-        if (toolkit.snapshot.value.enabledToolIds.isEmpty()) {
-            toolkit.saveEnabledTools(ToolkitLayout.defaultEnabledTools())
-        }
+    private fun clearExperienceSettingsOnDisk(context: Context) {
+        context.applicationContext
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .commit()
     }
 
-    private fun persistExperienceSettings(context: Context, settings: ExperienceSettings) {
-        val appContext = context.applicationContext
-        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private fun clearToolkitPreferencesOnDisk(context: Context) {
+        context.applicationContext
+            .getSharedPreferences(TOOLKIT_PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .commit()
+    }
+
+    private fun clearLaunchMigration(context: Context) {
+        context.applicationContext
+            .getSharedPreferences("app_launch_migration", Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .commit()
+    }
+
+    private fun seedDefaultToolkitToolsOnDisk(context: Context) {
+        val enabledTools = ToolkitLayout.defaultEnabledTools()
+        context.applicationContext
+            .getSharedPreferences(TOOLKIT_PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_TOOLKIT_CONFIGURED, true)
+            .putStringSet(
+                KEY_TOOLKIT_ENABLED_TOOLS,
+                enabledTools.map(ToolkitToolId::name).toSet(),
+            )
+            .commit()
+    }
+
+    private fun persistExperienceSettingsOnDisk(context: Context, settings: ExperienceSettings) {
+        context.applicationContext
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_THEME_MODE, settings.themeMode.name)
             .putString(KEY_LANDSCAPE_THEME_ID, settings.landscapeThemeId.name)
@@ -122,6 +138,5 @@ object InstrumentedTestFixtures {
             .putBoolean(KEY_ENABLE_VISUALS, settings.enableVisuals)
             .putBoolean(KEY_ENABLE_LIVING_TREE, settings.enableLivingTree)
             .commit()
-        AppGraph.settings(appContext).save(settings)
     }
 }

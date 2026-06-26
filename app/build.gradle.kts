@@ -67,6 +67,7 @@ android {
         versionCode = 34
         versionName = "1.0.33"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
 
         buildConfigField("Boolean", "UPDATE_CHECK_ENABLED", "true")
         buildConfigField(

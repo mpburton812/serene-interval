@@ -31,7 +31,6 @@ class MainActivityEspressoTest {
         InstrumentedTestFixtures.prepareMainActivityTest()
         scenario = ActivityScenario.launch(MainActivity::class.java)
         composeTestRule.waitForIdle()
-        InstrumentedTestFixtures.dismissUpdateDialogIfShown(composeTestRule)
         InstrumentedTestFixtures.waitForHomeScreen(composeTestRule)
     }
 
@@ -46,7 +45,8 @@ class MainActivityEspressoTest {
         composeTestRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Home").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Breathe").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Welcome to Test Sanctuary.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Welcome to Test Sanctuary.", substring = true)
+            .assertIsDisplayed()
     }
 
     @Test

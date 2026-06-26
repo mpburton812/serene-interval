@@ -259,4 +259,17 @@ object AppGraph {
                 personTagDao = database.livingTreePersonTagDao(),
             ).also { livingTreeRepository = it }
         }
+
+    /**
+     * Clears in-memory singletons so instrumented tests can seed SharedPreferences
+     * before the app reads settings on first launch.
+     */
+    fun resetCachedStateForInstrumentation() {
+        synchronized(this) {
+            settingsPreferences = null
+            toolkitPreferences = null
+            tabBackgroundRotation = null
+            quickStartPreferences = null
+        }
+    }
 }
