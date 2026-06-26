@@ -1,8 +1,8 @@
 ﻿{
-  "versionCode": 33,
-  "versionName": "1.0.32",
-  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.32/sway_meditation.apk",
-  "expectedSha256": "ef292f07ab64ab6ed13be3fc4551ee4e39d6d43f007090cda57ff8c64c652412",
-  "releaseNotes": "Settings exit crash hotfix for upgrades from v1.0.23: stable tab navigation after remodel, breathing toggle in guided setup, Visualizations via Quick Start only.",
+  "versionCode": 34,
+  "versionName": "1.0.33",
+  "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.33/sway_meditation.apk",
+  "expectedSha256": "fc5bd69776d0804c1714dde5a8a5d6d4d23ab33301804a8d2144fadc8f2044d3",
+  "releaseNotes": "Launch crash hotfix: restores stable tab navigation after v1.0.32 regression. Settings exit after remodel should also be safer.",
   "minVersionCode": 1
 }
