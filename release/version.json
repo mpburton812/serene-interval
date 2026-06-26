@@ -2,7 +2,7 @@
     "versionCode": 26,
     "versionName": "1.0.25",
     "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.25/sway_meditation.apk",
-    "expectedSha256": "",
+    "expectedSha256": "6069c19ca4bd8b62e4faea406423f257f822dd639878eb2af09ddaedb679b18c",
     "releaseNotes": "Paged sanctuary walkthrough for first-time setup. Settings Remodel your Sway (non-destructive). Quick Start drops Visualizations from Other tools and groups HEARTS proactive/reactive toolkit shortcuts.",
     "minVersionCode": 1
 }
