@@ -25,9 +25,15 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
     private val oneNoteSync = AppGraph.oneNoteSync(application)
     private val appContext = application.applicationContext
 
+    private val toolkitPreferences = AppGraph.toolkit(application)
+
     private val _draft = MutableStateFlow(run {
         val settings = preferences.load()
-        OnboardingDraft.from(settings, quickStartPreferences.load(settings))
+        OnboardingDraft.from(
+            settings = settings,
+            quickStartTargets = quickStartPreferences.load(settings),
+            enabledToolkitTools = toolkitPreferences.snapshot.value.enabledToolIds,
+        )
     })
     val draft: StateFlow<OnboardingDraft> = _draft.asStateFlow()
 
@@ -79,7 +85,11 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _draft.update { it.toggleScene(id) }
     }
 
-    fun continueFromCustomization(): Boolean {
+    fun applyWalkthroughDraft(draft: OnboardingDraft) {
+        _draft.value = draft
+    }
+
+    fun continueFromWalkthrough(): Boolean {
         val current = _draft.value
         if (!current.canComplete) return false
         if (needsExactAlarmStep()) {
@@ -265,9 +275,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             savedSettings,
             current.enabledToolkitTools,
         )
-        if (current.enableToolkit) {
-            AppGraph.toolkit(getApplication()).saveConfiguration(current.enabledToolkitTools)
-        }
+        AppGraph.toolkit(getApplication()).saveEnabledTools(current.enabledToolkitTools)
     }
 
     private fun needsExactAlarmStep(): Boolean {

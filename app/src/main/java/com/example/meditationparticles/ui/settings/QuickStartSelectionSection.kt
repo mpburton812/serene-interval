@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Handyman
-import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -26,6 +25,8 @@ import com.example.meditationparticles.domain.quickstart.QuickStartLayout
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
+import com.example.meditationparticles.domain.toolkit.ToolkitCategory
+import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.domain.toolkit.ToolkitLayout
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.ui.components.GlassCard
@@ -78,11 +79,13 @@ fun QuickStartSelectionSection(
 
         val breathingAvailable = available.filterIsInstance<QuickStartTarget.Breathing>()
         val coreAvailable = available.filter {
-            it is QuickStartTarget.Timer ||
-                it is QuickStartTarget.Affirmations ||
-                it is QuickStartTarget.Visuals
+            it is QuickStartTarget.Timer || it is QuickStartTarget.Affirmations
         }
         val toolkitAvailable = available.filterIsInstance<QuickStartTarget.Toolkit>()
+        val coreProactive = toolkitTargets(toolkitAvailable, ToolkitLane.Core, ToolkitCategory.Proactive)
+        val coreReactive = toolkitTargets(toolkitAvailable, ToolkitLane.Core, ToolkitCategory.Reactive)
+        val heartsProactive = toolkitTargets(toolkitAvailable, ToolkitLane.Hearts, ToolkitCategory.Proactive)
+        val heartsReactive = toolkitTargets(toolkitAvailable, ToolkitLane.Hearts, ToolkitCategory.Reactive)
 
         Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
             if (breathingAvailable.isNotEmpty()) {
@@ -109,9 +112,45 @@ fun QuickStartSelectionSection(
                     )
                 }
             }
-            if (toolkitAvailable.isNotEmpty()) {
-                QuickStartGroupHeader("Toolkit tools")
-                toolkitAvailable.forEach { target ->
+            if (coreProactive.isNotEmpty()) {
+                QuickStartGroupHeader("Proactive Care")
+                coreProactive.forEach { target ->
+                    QuickStartSelectionRow(
+                        target = target,
+                        checked = target in selectedTargets,
+                        enabled = target in selectedTargets ||
+                            selectionCount < QuickStartLayout.SELECTION_COUNT,
+                        onToggle = { onToggle(target) },
+                    )
+                }
+            }
+            if (coreReactive.isNotEmpty()) {
+                QuickStartGroupHeader("Reactive Relief")
+                coreReactive.forEach { target ->
+                    QuickStartSelectionRow(
+                        target = target,
+                        checked = target in selectedTargets,
+                        enabled = target in selectedTargets ||
+                            selectionCount < QuickStartLayout.SELECTION_COUNT,
+                        onToggle = { onToggle(target) },
+                    )
+                }
+            }
+            if (heartsProactive.isNotEmpty()) {
+                QuickStartGroupHeader("HEARTS · Proactive")
+                heartsProactive.forEach { target ->
+                    QuickStartSelectionRow(
+                        target = target,
+                        checked = target in selectedTargets,
+                        enabled = target in selectedTargets ||
+                            selectionCount < QuickStartLayout.SELECTION_COUNT,
+                        onToggle = { onToggle(target) },
+                    )
+                }
+            }
+            if (heartsReactive.isNotEmpty()) {
+                QuickStartGroupHeader("HEARTS · Reactive")
+                heartsReactive.forEach { target ->
                     QuickStartSelectionRow(
                         target = target,
                         checked = target in selectedTargets,
@@ -123,6 +162,15 @@ fun QuickStartSelectionSection(
             }
         }
     }
+}
+
+private fun toolkitTargets(
+    toolkitAvailable: List<QuickStartTarget.Toolkit>,
+    lane: ToolkitLane,
+    category: ToolkitCategory,
+): List<QuickStartTarget.Toolkit> = toolkitAvailable.filter { target ->
+    val tool = ToolkitCatalog.byId(target.toolId)
+    tool?.lane == lane && tool.category == category
 }
 
 @Composable
@@ -181,7 +229,7 @@ private fun quickStartMeta(target: QuickStartTarget): Pair<String, ImageVector> 
     }
     QuickStartTarget.Timer -> "Meditation" to Icons.Default.SelfImprovement
     QuickStartTarget.Affirmations -> "Affirmations" to Icons.Default.AutoAwesome
-    QuickStartTarget.Visuals -> "Visualizations" to Icons.Default.Landscape
+    QuickStartTarget.Visuals -> "Visualizations" to Icons.Default.Handyman
     is QuickStartTarget.Toolkit -> {
         val title = ToolkitCatalog.byId(target.toolId)?.title ?: "Toolkit"
         title to Icons.Default.Handyman
