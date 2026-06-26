@@ -42,4 +42,38 @@ class OnboardingDraftTest {
 
         assertFalse(draft.toExperienceSettings().enableToolkit)
     }
+
+    @Test
+    fun withToolEnabled_canDisableBreathingWhenOtherToolsRemain() {
+        val draft = OnboardingDraft(
+            enableBreathing = true,
+            enableTimer = true,
+            enableAffirmations = false,
+            enableToolkit = false,
+            enableLivingTree = false,
+            enableVisuals = false,
+            quickStartTargets = emptyList(),
+        )
+
+        val updated = draft.withToolEnabled(enableBreathing = false)
+
+        assertFalse(updated.enableBreathing)
+        assertTrue(updated.enableTimer)
+    }
+
+    @Test
+    fun withToolEnabled_cannotDisableLastRemainingTool() {
+        val draft = OnboardingDraft(
+            enableBreathing = true,
+            enableTimer = false,
+            enableAffirmations = false,
+            enableToolkit = false,
+            enableLivingTree = false,
+            enableVisuals = false,
+        )
+
+        val updated = draft.withToolEnabled(enableBreathing = false)
+
+        assertTrue(updated.enableBreathing)
+    }
 }
