@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.0.25 - 2026-06-26
+
+### Onboarding & settings
+
+- Paged sanctuary walkthrough for first-time setup (Welcome through Review)
+- Settings: **Remodel your Sway** replaces destructive rebuild; preserves journals and history
+- Quick Start: Visualizations removed from Other tools; HEARTS proactive/reactive toolkit shortcuts grouped separately
+
 ### Home timeline
 
 - HEARTS toolkit journal entries (Delight Deposit, Attunement Map, Repair & Reconnect, etc.) now appear in Recent activity on the home screen
