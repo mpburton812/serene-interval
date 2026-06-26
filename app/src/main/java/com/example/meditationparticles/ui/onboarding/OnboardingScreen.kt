@@ -44,18 +44,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.BuildConfig
 import com.example.meditationparticles.R
-import com.example.meditationparticles.domain.settings.ExperienceSettings
-import com.example.meditationparticles.domain.toolkit.ToolkitCatalog
-import com.example.meditationparticles.domain.toolkit.ToolkitCategory
-import com.example.meditationparticles.domain.toolkit.ToolkitLane
 import com.example.meditationparticles.permissions.SchedulingPermissions
 import com.example.meditationparticles.ui.components.GlassCard
-import com.example.meditationparticles.ui.settings.ExperienceSection
-import com.example.meditationparticles.ui.settings.NamingSection
-import com.example.meditationparticles.ui.settings.QuickStartSelectionSection
-import com.example.meditationparticles.ui.settings.ThemeSection
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughMode
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughScreen
+import com.example.meditationparticles.ui.sanctuary.SanctuaryWalkthroughViewModel
 import com.example.meditationparticles.ui.theme.SereneSpacing
-import com.example.meditationparticles.ui.toolkit.ToolkitToolSelectionContent
 
 @Composable
 fun OnboardingScreen(
@@ -66,7 +60,6 @@ fun OnboardingScreen(
     val draft by viewModel.draft.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     val onCompleteUpdated by rememberUpdatedState(onComplete)
-    val settingsPreview = draft.toExperienceSettings().copy(onboardingCompleted = false)
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -87,67 +80,94 @@ fun OnboardingScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(SereneSpacing.containerMargin),
+            .background(MaterialTheme.colorScheme.background),
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
     ) {
-        Spacer(modifier = Modifier.height(SereneSpacing.stackMd))
-
-        OnboardingHeader(step = draft.step)
+        if (draft.step != OnboardingStep.Customization) {
+            Spacer(modifier = Modifier.height(SereneSpacing.stackMd))
+            OnboardingHeader(step = draft.step)
+        }
 
         when (draft.step) {
             OnboardingStep.Customization -> {
-                OnboardingCustomizationStep(
-                    draft = draft,
-                    settingsPreview = settingsPreview,
-                    viewModel = viewModel,
-                    onContinue = {
-                        if (viewModel.continueFromCustomization()) onComplete()
+                val walkthroughViewModel: SanctuaryWalkthroughViewModel = viewModel()
+                SanctuaryWalkthroughScreen(
+                    mode = SanctuaryWalkthroughMode.FirstVisit,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = SereneSpacing.containerMargin),
+                    viewModel = walkthroughViewModel,
+                    onFinished = {
+                        viewModel.applyWalkthroughDraft(walkthroughViewModel.draft.value)
+                        if (viewModel.continueFromWalkthrough()) {
+                            onComplete()
+                        }
                     },
+                    onBackOut = {},
                 )
             }
             OnboardingStep.ExactAlarms -> {
-                OnboardingExactAlarmsStep(
-                    permissionState = draft.permissionState,
-                    onOpenSettings = viewModel::openExactAlarmSettings,
-                    onContinue = {
-                        if (viewModel.continueFromExactAlarms()) onComplete()
-                    },
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = SereneSpacing.containerMargin),
+                ) {
+                    OnboardingExactAlarmsStep(
+                        permissionState = draft.permissionState,
+                        onOpenSettings = viewModel::openExactAlarmSettings,
+                        onContinue = {
+                            if (viewModel.continueFromExactAlarms()) onComplete()
+                        },
+                    )
+                }
             }
             OnboardingStep.Notifications -> {
-                OnboardingNotificationsStep(
-                    permissionState = draft.permissionState,
-                    onRequestPermission = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            viewModel.markAwaitingNotificationPermissionRequest()
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                    },
-                    onOpenSettings = viewModel::openNotificationSettings,
-                    onContinue = {
-                        if (viewModel.continueFromNotifications()) onComplete()
-                    },
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = SereneSpacing.containerMargin),
+                ) {
+                    OnboardingNotificationsStep(
+                        permissionState = draft.permissionState,
+                        onRequestPermission = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                viewModel.markAwaitingNotificationPermissionRequest()
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        },
+                        onOpenSettings = viewModel::openNotificationSettings,
+                        onContinue = {
+                            if (viewModel.continueFromNotifications()) onComplete()
+                        },
+                    )
+                }
             }
             OnboardingStep.OneNoteConnect -> {
-                val activity = LocalActivity.current as? ComponentActivity
-                OnboardingOneNoteConnectStep(
-                    onConnect = {
-                        activity?.let { host ->
-                            viewModel.connectOneNote(host) { connected ->
-                                if (connected && viewModel.continueFromOneNoteConnect()) {
-                                    onComplete()
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = SereneSpacing.containerMargin),
+                ) {
+                    val activity = LocalActivity.current as? ComponentActivity
+                    OnboardingOneNoteConnectStep(
+                        onConnect = {
+                            activity?.let { host ->
+                                viewModel.connectOneNote(host) { connected ->
+                                    if (connected && viewModel.continueFromOneNoteConnect()) {
+                                        onComplete()
+                                    }
                                 }
                             }
-                        }
-                    },
-                    onSkip = {
-                        viewModel.skipOneNoteConnect()
-                        if (viewModel.continueFromOneNoteConnect()) onComplete()
-                    },
-                )
+                        },
+                        onSkip = {
+                            viewModel.skipOneNoteConnect()
+                            if (viewModel.continueFromOneNoteConnect()) onComplete()
+                        },
+                    )
+                }
             }
         }
     }
@@ -185,90 +205,6 @@ private fun OnboardingHeader(step: OnboardingStep) {
             textAlign = TextAlign.Center,
         )
     }
-}
-
-@Composable
-private fun OnboardingCustomizationStep(
-    draft: OnboardingDraft,
-    settingsPreview: ExperienceSettings,
-    viewModel: OnboardingViewModel,
-    onContinue: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
-    ) {
-        OnboardingSectionCard {
-            NamingSection(
-                sanctuaryName = draft.sanctuaryName,
-                onSanctuaryNameChange = viewModel::setSanctuaryName,
-                preferredName = draft.preferredName,
-                onPreferredNameChange = viewModel::setPreferredName,
-            )
-        }
-
-        OnboardingSectionCard {
-            ThemeSection(
-                settings = settingsPreview,
-                onThemeModeSelected = viewModel::setThemeMode,
-            )
-        }
-
-        OnboardingSectionCard {
-            ExperienceSection(
-                settings = settingsPreview,
-                onBreathingChanged = viewModel::setEnableBreathing,
-                onTimerChanged = viewModel::setEnableTimer,
-                onAffirmationsChanged = viewModel::setEnableAffirmations,
-                onToolkitChanged = viewModel::setEnableToolkit,
-                onLivingTreeChanged = viewModel::setEnableLivingTree,
-            )
-        }
-
-        OnboardingSectionCard {
-            QuickStartSelectionSection(
-                settings = settingsPreview,
-                enabledToolkitTools = draft.enabledToolkitTools,
-                selectedTargets = draft.quickStartTargets,
-                onToggle = viewModel::toggleQuickStart,
-            )
-        }
-
-        if (draft.enableToolkit) {
-            OnboardingSectionCard {
-                ToolkitToolSelectionContent(
-                    proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Core) +
-                        ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Hearts),
-                    reactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Core) +
-                        ToolkitCatalog.byCategory(ToolkitCategory.Reactive, ToolkitLane.Hearts),
-                    enabledToolIds = draft.enabledToolkitTools,
-                    onToggleTool = viewModel::toggleToolkitTool,
-                )
-            }
-        }
-    }
-
-    if (!draft.canComplete) {
-        Text(
-            text = when {
-                draft.enableToolkit && draft.enabledToolkitTools.isEmpty() ->
-                    "Enable at least one toolkit tool to continue."
-                draft.quickStartTargets.size < 4 ->
-                    "Choose 4 Quick Start tools to continue."
-                else -> "Keep at least one tool enabled to continue."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.tertiary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-
-    OnboardingPrimaryButton(
-        text = "Continue",
-        enabled = draft.canComplete,
-        onClick = onContinue,
-    )
 }
 
 @Composable
