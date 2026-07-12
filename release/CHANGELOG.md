@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.0.26 - 2026-07-12
+
+### Sanctuary tools
+
+- Experience spaces in setup and Remodel now show short descriptions under each toggle
+- New optional space: **Katie's Love List** — affirmations-style browse, review, reminders, and Quick Start, seeded with Katie's list (off by default; enable in Remodel → Spaces)
+
 ## 1.0.25 - 2026-06-26
 
 ### Onboarding & settings
