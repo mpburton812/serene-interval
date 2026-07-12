@@ -76,7 +76,10 @@ export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 require_command adb
 
 if [[ ! -f "$REPO_ROOT/local.properties" ]]; then
-    die "local.properties missing — run: echo sdk.dir=$ANDROID_HOME > local.properties"
+    # CI runners and fresh clones often have ANDROID_HOME but no local.properties
+    # (gitignored). Write sdk.dir so Gradle and local tooling share the same SDK.
+    printf 'sdk.dir=%s\n' "$ANDROID_HOME" > "$REPO_ROOT/local.properties"
+    echo "verify-android-env: wrote local.properties with sdk.dir=$ANDROID_HOME"
 fi
 
 echo "OK  sdk: $ANDROID_HOME"
