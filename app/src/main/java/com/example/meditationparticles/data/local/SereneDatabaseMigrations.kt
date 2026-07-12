@@ -549,6 +549,17 @@ private class Migration21To22 : Migration(21, 22) {
     }
 }
 
+private class Migration22To23 : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE affirmations ADD COLUMN listKind TEXT NOT NULL DEFAULT 'Affirmations'",
+        )
+        db.execSQL(
+            "ALTER TABLE affirmation_review_sessions ADD COLUMN listKind TEXT NOT NULL DEFAULT 'Affirmations'",
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -571,4 +582,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration19To20(),
     Migration20To21(),
     Migration21To22(),
+    Migration22To23(),
 )

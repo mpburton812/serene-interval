@@ -57,6 +57,10 @@ class SanctuaryWalkthroughViewModel(application: Application) : AndroidViewModel
         _draft.update { it.withToolEnabled(enableAffirmations = enabled) }
     }
 
+    fun setEnableKatiesLoveList(enabled: Boolean) {
+        _draft.update { it.withToolEnabled(enableKatiesLoveList = enabled) }
+    }
+
     fun setEnableToolkit(enabled: Boolean) {
         _draft.update { draft ->
             if (enabled && draft.enabledToolkitTools.isEmpty()) {
@@ -110,7 +114,8 @@ class SanctuaryWalkthroughViewModel(application: Application) : AndroidViewModel
         SanctuaryWalkthroughStep.Name -> true
         SanctuaryWalkthroughStep.Appearance -> true
         SanctuaryWalkthroughStep.Spaces -> draft.enableBreathing || draft.enableTimer ||
-            draft.enableAffirmations || draft.enableToolkit || draft.enableLivingTree
+            draft.enableAffirmations || draft.enableKatiesLoveList || draft.enableToolkit ||
+            draft.enableLivingTree
         SanctuaryWalkthroughStep.QuickStart -> draft.quickStartTargets.size >= 4
         SanctuaryWalkthroughStep.Toolkit -> true
         SanctuaryWalkthroughStep.Review -> draft.canComplete

@@ -405,7 +405,7 @@ class OneNoteSyncRepository(
         OneNoteEntryType.MEDITATION_REFLECTION -> database.meditationReflectionDao().getAll()
             .filter { it.moodLevel != null }
             .map { it.id }
-        OneNoteEntryType.AFFIRMATION_REVIEW -> database.affirmationReviewSessionDao().getAll()
+        OneNoteEntryType.AFFIRMATION_REVIEW -> database.affirmationReviewSessionDao().getAllKinds()
             .filter { it.moodLevel != null }
             .map { it.id }
     }
@@ -424,7 +424,7 @@ class OneNoteSyncRepository(
         OneNoteEntryType.MEDITATION_REFLECTION ->
             database.meditationReflectionDao().getAll().map { it.id }
         OneNoteEntryType.AFFIRMATION_REVIEW ->
-            database.affirmationReviewSessionDao().getAll().map { it.id }
+            database.affirmationReviewSessionDao().getAllKinds().map { it.id }
     }
 
     private suspend fun loadEntry(entryType: OneNoteEntryType, localEntryId: Long): Any? =

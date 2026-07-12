@@ -105,13 +105,22 @@ class AffirmationReviewSessionRepositoryTest {
         val entities = mutableListOf<AffirmationReviewSessionEntity>()
         private var nextId = 1L
 
-        override suspend fun getAll(): List<AffirmationReviewSessionEntity> = entities.toList()
+        override suspend fun getAll(listKind: String): List<AffirmationReviewSessionEntity> =
+            entities.filter { it.listKind == listKind }
 
-        override fun observeAll() = kotlinx.coroutines.flow.flowOf(entities.toList())
+        override suspend fun getAllKinds(): List<AffirmationReviewSessionEntity> = entities.toList()
 
-        override fun observeInRange(startMillis: Long, endMillis: Long) =
+        override fun observeAll(listKind: String) =
+            kotlinx.coroutines.flow.flowOf(entities.filter { it.listKind == listKind })
+
+        override fun observeAllKinds() =
+            kotlinx.coroutines.flow.flowOf(entities.toList())
+
+        override fun observeInRange(listKind: String, startMillis: Long, endMillis: Long) =
             kotlinx.coroutines.flow.flowOf(
-                entities.filter { it.completedAt in startMillis until endMillis },
+                entities.filter {
+                    it.listKind == listKind && it.completedAt in startMillis until endMillis
+                },
             )
 
         override suspend fun insert(entity: AffirmationReviewSessionEntity): Long {

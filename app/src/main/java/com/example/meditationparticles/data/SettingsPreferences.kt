@@ -41,6 +41,7 @@ class SettingsPreferences(context: Context) {
             enableBreathing = prefs.getBoolean(KEY_ENABLE_BREATHING, true),
             enableTimer = prefs.getBoolean(KEY_ENABLE_TIMER, true),
             enableAffirmations = prefs.getBoolean(KEY_ENABLE_AFFIRMATIONS, true),
+            enableKatiesLoveList = prefs.getBoolean(KEY_ENABLE_KATIES_LOVE_LIST, false),
             enableToolkit = prefs.getBoolean(KEY_ENABLE_TOOLKIT, true),
             enableVisuals = prefs.getBoolean(KEY_ENABLE_VISUALS, true),
             enableLivingTree = prefs.getBoolean(KEY_ENABLE_LIVING_TREE, true),
@@ -59,6 +60,7 @@ class SettingsPreferences(context: Context) {
             .putBoolean(KEY_ENABLE_BREATHING, settings.enableBreathing)
             .putBoolean(KEY_ENABLE_TIMER, settings.enableTimer)
             .putBoolean(KEY_ENABLE_AFFIRMATIONS, settings.enableAffirmations)
+            .putBoolean(KEY_ENABLE_KATIES_LOVE_LIST, settings.enableKatiesLoveList)
             .putBoolean(KEY_ENABLE_TOOLKIT, settings.enableToolkit)
             .putBoolean(KEY_ENABLE_VISUALS, settings.enableVisuals)
             .putBoolean(KEY_ENABLE_LIVING_TREE, settings.enableLivingTree)
@@ -82,6 +84,7 @@ class SettingsPreferences(context: Context) {
         private const val KEY_ENABLE_BREATHING = "enable_breathing"
         private const val KEY_ENABLE_TIMER = "enable_timer"
         private const val KEY_ENABLE_AFFIRMATIONS = "enable_affirmations"
+        private const val KEY_ENABLE_KATIES_LOVE_LIST = "enable_katies_love_list"
         private const val KEY_ENABLE_TOOLKIT = "enable_toolkit"
         private const val KEY_ENABLE_VISUALS = "enable_visuals"
         private const val KEY_ENABLE_LIVING_TREE = "enable_living_tree"

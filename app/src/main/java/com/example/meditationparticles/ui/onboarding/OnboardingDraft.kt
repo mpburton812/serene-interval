@@ -15,6 +15,7 @@ data class OnboardingDraft(
     val enableBreathing: Boolean = true,
     val enableTimer: Boolean = true,
     val enableAffirmations: Boolean = true,
+    val enableKatiesLoveList: Boolean = false,
     val enableToolkit: Boolean = true,
     val enableLivingTree: Boolean = true,
     val enableVisuals: Boolean = true,
@@ -28,7 +29,7 @@ data class OnboardingDraft(
         get() {
             val settings = previewExperienceSettings()
             val hasExperienceTool = enableBreathing || enableTimer || enableAffirmations ||
-                enableToolkit || enableLivingTree || enableVisuals
+                enableKatiesLoveList || enableToolkit || enableLivingTree || enableVisuals
             val quickStartReady = QuickStartLayout.hasValidSelection(
                 quickStartTargets,
                 settings,
@@ -51,6 +52,7 @@ data class OnboardingDraft(
         enableBreathing = enableBreathing,
         enableTimer = enableTimer,
         enableAffirmations = enableAffirmations,
+        enableKatiesLoveList = enableKatiesLoveList,
         enableToolkit = toolkitTabVisible,
         enableLivingTree = enableLivingTree,
         enableVisuals = enableVisuals,
@@ -79,6 +81,7 @@ data class OnboardingDraft(
                 enableBreathing = settings.enableBreathing,
                 enableTimer = settings.enableTimer,
                 enableAffirmations = settings.enableAffirmations,
+                enableKatiesLoveList = settings.enableKatiesLoveList,
                 enableToolkit = toolkitOn,
                 enableLivingTree = settings.enableLivingTree,
                 enableVisuals = settings.enableVisuals,
@@ -148,6 +151,7 @@ fun OnboardingDraft.withToolEnabled(
     enableBreathing: Boolean = this.enableBreathing,
     enableTimer: Boolean = this.enableTimer,
     enableAffirmations: Boolean = this.enableAffirmations,
+    enableKatiesLoveList: Boolean = this.enableKatiesLoveList,
     enableToolkit: Boolean = this.enableToolkit,
     enableLivingTree: Boolean = this.enableLivingTree,
     enableVisuals: Boolean = this.enableVisuals,
@@ -156,6 +160,7 @@ fun OnboardingDraft.withToolEnabled(
         enableBreathing = enableBreathing,
         enableTimer = enableTimer,
         enableAffirmations = enableAffirmations,
+        enableKatiesLoveList = enableKatiesLoveList,
         enableToolkit = enableToolkit && enabledToolkitTools.isNotEmpty(),
         enableLivingTree = enableLivingTree,
         enableVisuals = enableVisuals,

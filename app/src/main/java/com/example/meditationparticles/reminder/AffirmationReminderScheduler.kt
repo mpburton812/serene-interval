@@ -5,40 +5,47 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.example.meditationparticles.data.AffirmationPreferences
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 import java.util.Calendar
 
 object AffirmationReminderScheduler {
-    private const val REQUEST_CODE = 42002
+    const val EXTRA_LIST_KIND = "affirmation_list_kind"
 
-    fun schedule(context: Context, hour: Int, minute: Int) {
+    fun schedule(context: Context, listKind: AffirmationListKind, hour: Int, minute: Int) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.setInexactRepeating(
             AlarmManager.RTC_WAKEUP,
             nextTriggerTime(hour, minute),
             AlarmManager.INTERVAL_DAY,
-            reminderPendingIntent(context),
+            reminderPendingIntent(context, listKind),
         )
     }
 
-    fun cancel(context: Context) {
+    fun cancel(context: Context, listKind: AffirmationListKind) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.cancel(reminderPendingIntent(context))
+        alarmManager.cancel(reminderPendingIntent(context, listKind))
     }
 
-    fun syncFromPreferences(context: Context) {
-        val prefs = AffirmationPreferences(context).load()
+    fun syncFromPreferences(context: Context, listKind: AffirmationListKind = AffirmationListKind.Affirmations) {
+        val prefs = AffirmationPreferences(context, listKind).load()
         if (prefs.reminderEnabled) {
-            schedule(context, prefs.reminderHour, prefs.reminderMinute)
+            schedule(context, listKind, prefs.reminderHour, prefs.reminderMinute)
         } else {
-            cancel(context)
+            cancel(context, listKind)
         }
     }
 
-    private fun reminderPendingIntent(context: Context): PendingIntent {
-        val intent = Intent(context, AffirmationReminderReceiver::class.java)
+    fun syncAllFromPreferences(context: Context) {
+        AffirmationListKind.entries.forEach { syncFromPreferences(context, it) }
+    }
+
+    private fun reminderPendingIntent(context: Context, listKind: AffirmationListKind): PendingIntent {
+        val intent = Intent(context, AffirmationReminderReceiver::class.java).apply {
+            putExtra(EXTRA_LIST_KIND, listKind.name)
+        }
         return PendingIntent.getBroadcast(
             context,
-            REQUEST_CODE,
+            listKind.reminderRequestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

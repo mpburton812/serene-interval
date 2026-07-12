@@ -6,6 +6,7 @@ import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 sealed class QuickStartTarget {
     data object Timer : QuickStartTarget()
     data object Affirmations : QuickStartTarget()
+    data object KatiesLoveList : QuickStartTarget()
     data object Visuals : QuickStartTarget()
     data class Breathing(val patternId: String) : QuickStartTarget()
     data class Toolkit(val toolId: ToolkitToolId) : QuickStartTarget()
@@ -13,6 +14,7 @@ sealed class QuickStartTarget {
     fun encode(): String = when (this) {
         Timer -> KEY_TIMER
         Affirmations -> KEY_AFFIRMATIONS
+        KatiesLoveList -> KEY_KATIES_LOVE_LIST
         Visuals -> KEY_VISUALS
         is Breathing -> "$KEY_BREATHING_PREFIX$patternId"
         is Toolkit -> "$KEY_TOOLKIT_PREFIX${toolId.name}"
@@ -21,6 +23,7 @@ sealed class QuickStartTarget {
     companion object {
         private const val KEY_TIMER = "timer"
         private const val KEY_AFFIRMATIONS = "affirmations"
+        private const val KEY_KATIES_LOVE_LIST = "katies_love_list"
         private const val KEY_VISUALS = "visuals"
         private const val KEY_BREATHING_PREFIX = "breathing:"
         private const val KEY_TOOLKIT_PREFIX = "toolkit:"
@@ -31,6 +34,7 @@ sealed class QuickStartTarget {
             return when {
                 key.equals(KEY_TIMER, ignoreCase = true) -> Timer
                 key.equals(KEY_AFFIRMATIONS, ignoreCase = true) -> Affirmations
+                key.equals(KEY_KATIES_LOVE_LIST, ignoreCase = true) -> KatiesLoveList
                 key.equals(KEY_VISUALS, ignoreCase = true) -> Visuals
                 key.startsWith(KEY_BREATHING_PREFIX, ignoreCase = true) -> {
                     val patternId = key.substringAfter(':')
@@ -51,6 +55,7 @@ sealed class QuickStartTarget {
         private fun decodeLegacy(legacy: String): QuickStartTarget? = when (legacy.uppercase()) {
             "TIMER" -> Timer
             "AFFIRMATIONS" -> Affirmations
+            "KATIES_LOVE_LIST", "LOVE_LIST" -> KatiesLoveList
             "VISUALS" -> Visuals
             "BREATHING" -> Breathing(BreathingPattern.BoxBreathing.id)
             "TOOLKIT" -> Toolkit(ToolkitToolId.ThoughtDump)

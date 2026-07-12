@@ -7,18 +7,34 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AffirmationReviewSessionDao {
+    @Query(
+        "SELECT * FROM affirmation_review_sessions WHERE listKind = :listKind " +
+            "ORDER BY completedAt DESC",
+    )
+    fun observeAll(listKind: String): Flow<List<AffirmationReviewSessionEntity>>
+
     @Query("SELECT * FROM affirmation_review_sessions ORDER BY completedAt DESC")
-    fun observeAll(): Flow<List<AffirmationReviewSessionEntity>>
+    fun observeAllKinds(): Flow<List<AffirmationReviewSessionEntity>>
 
     @Query(
         "SELECT * FROM affirmation_review_sessions " +
-            "WHERE completedAt >= :startMillis AND completedAt < :endMillis " +
+            "WHERE listKind = :listKind AND completedAt >= :startMillis AND completedAt < :endMillis " +
             "ORDER BY completedAt DESC",
     )
-    fun observeInRange(startMillis: Long, endMillis: Long): Flow<List<AffirmationReviewSessionEntity>>
+    fun observeInRange(
+        listKind: String,
+        startMillis: Long,
+        endMillis: Long,
+    ): Flow<List<AffirmationReviewSessionEntity>>
+
+    @Query(
+        "SELECT * FROM affirmation_review_sessions WHERE listKind = :listKind " +
+            "ORDER BY completedAt DESC",
+    )
+    suspend fun getAll(listKind: String): List<AffirmationReviewSessionEntity>
 
     @Query("SELECT * FROM affirmation_review_sessions ORDER BY completedAt DESC")
-    suspend fun getAll(): List<AffirmationReviewSessionEntity>
+    suspend fun getAllKinds(): List<AffirmationReviewSessionEntity>
 
     @Insert
     suspend fun insert(entity: AffirmationReviewSessionEntity): Long
