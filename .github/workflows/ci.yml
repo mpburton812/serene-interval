@@ -37,6 +37,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Ensure local.properties for Android SDK
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "sdk.dir=$SDK" > local.properties
+          echo "Using Android SDK at $SDK"
+
       - name: Run unit tests and lint
         run: bash scripts/run-tests.sh --unit --lint
 
