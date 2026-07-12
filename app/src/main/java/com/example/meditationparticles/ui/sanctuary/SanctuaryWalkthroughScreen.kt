@@ -327,6 +327,7 @@ private fun SpacesStepContent(
             onBreathingChanged = viewModel::setEnableBreathing,
             onTimerChanged = viewModel::setEnableTimer,
             onAffirmationsChanged = viewModel::setEnableAffirmations,
+            onKatiesLoveListChanged = viewModel::setEnableKatiesLoveList,
             onToolkitChanged = viewModel::setEnableToolkit,
             onLivingTreeChanged = viewModel::setEnableLivingTree,
         )
@@ -374,6 +375,7 @@ private fun ReviewStepContent(
         if (settings.enableBreathing) add("Breathing")
         if (settings.enableTimer) add("Timer")
         if (settings.enableAffirmations) add("Affirmations")
+        if (settings.enableKatiesLoveList) add("Katie's Love List")
         if (draft.toolkitTabVisible) add("Toolkit (${draft.enabledToolkitTools.size} tools)")
         if (settings.enableLivingTree) add("Living Flower")
     }
@@ -422,7 +424,7 @@ private fun validationMessageFor(
 ): String? = when (step) {
     SanctuaryWalkthroughStep.Spaces -> if (
         !draft.enableBreathing && !draft.enableTimer && !draft.enableAffirmations &&
-        !draft.enableToolkit && !draft.enableLivingTree
+        !draft.enableKatiesLoveList && !draft.enableToolkit && !draft.enableLivingTree
     ) {
         "Enable at least one space to continue."
     } else {

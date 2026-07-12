@@ -59,6 +59,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.meditationparticles.audio.TimerAudioPlayer
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.data.parseAffirmationLines
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 import com.example.meditationparticles.domain.affirmations.AffirmationReviewLogic
 import com.example.meditationparticles.domain.timer.TimerBellSoundChoice
 import com.example.meditationparticles.ui.components.GlassCard
@@ -72,11 +73,16 @@ private const val TransitionMs = 300
 @Composable
 fun AffirmationsTab(
     modifier: Modifier = Modifier,
-    viewModel: AffirmationsViewModel = viewModel(),
+    listKind: AffirmationListKind = AffirmationListKind.Affirmations,
 ) {
+    val context = LocalContext.current
+    val application = context.applicationContext as android.app.Application
+    val viewModel: AffirmationsViewModel = viewModel(
+        key = listKind.name,
+        factory = AffirmationsViewModel.factory(application, listKind),
+    )
     val state by viewModel.uiState.collectAsState()
     val affirmationCalendar by viewModel.affirmationCalendar.collectAsState()
-    val context = LocalContext.current
     val audioPlayer = remember { TimerAudioPlayer(context) }
 
     DisposableEffect(audioPlayer) {
@@ -97,7 +103,7 @@ fun AffirmationsTab(
         if (!state.showReview) {
             Column(modifier = Modifier.fillMaxSize()) {
             SereneTabHeader(
-                title = "Affirmations",
+                title = listKind.displayTitle,
                 controls = {
                     TextButton(onClick = viewModel::showAddDialog) {
                         Icon(Icons.Default.AddCircle, contentDescription = null, tint = SerenePrimary)
@@ -118,6 +124,8 @@ fun AffirmationsTab(
             ) {
                 AffirmationHeroCard(
                     affirmation = state.currentAffirmation,
+                    heroLabel = listKind.heroLabel,
+                    emptyMessage = listKind.heroEmptyMessage,
                     onNext = viewModel::nextAffirmation,
                 )
 
@@ -126,7 +134,7 @@ fun AffirmationsTab(
                     enabled = state.canStartReview,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Affirmations Review")
+                    Text(listKind.reviewButtonLabel)
                 }
 
                 AffirmationCalendarSection(
@@ -206,7 +214,7 @@ fun AffirmationsTab(
                         style = MaterialTheme.typography.headlineMedium,
                     )
                     Text(
-                        text = "Your personal echoes of strength",
+                        text = listKind.collectionSubtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -231,7 +239,7 @@ fun AffirmationsTab(
                 if (state.affirmations.isEmpty()) {
                     GlassCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "No affirmations yet. Add your first one.",
+                            text = listKind.emptyCollectionMessage,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(24.dp),
@@ -269,6 +277,7 @@ fun AffirmationsTab(
             notes = state.reviewAssessmentNotes,
             moodLevel = state.reviewAssessmentMoodLevel,
             affirmationCount = state.completedReviewAffirmationCount,
+            itemNoun = listKind.itemNoun,
             onNotesChange = viewModel::updateReviewAssessmentNotes,
             onMoodChange = viewModel::updateReviewAssessmentMoodLevel,
             onSave = viewModel::saveReviewAssessment,
@@ -278,15 +287,17 @@ fun AffirmationsTab(
 
     if (state.showBulkImportDialog) {
         BulkImportDialog(
+            itemNoun = listKind.itemNoun,
             onDismiss = viewModel::dismissBulkImportDialog,
             onImport = viewModel::bulkImport,
         )
     }
 
     if (state.showAddDialog) {
+        val noun = listKind.itemNoun.replaceFirstChar { it.uppercase() }
         AffirmationEditorDialog(
             initialText = state.editingAffirmation?.text ?: "",
-            title = if (state.editingAffirmation == null) "Add Affirmation" else "Edit Affirmation",
+            title = if (state.editingAffirmation == null) "Add $noun" else "Edit $noun",
             onDismiss = viewModel::dismissDialog,
             onSave = viewModel::saveAffirmation,
         )
@@ -296,6 +307,8 @@ fun AffirmationsTab(
 @Composable
 private fun AffirmationHeroCard(
     affirmation: AffirmationEntity?,
+    heroLabel: String,
+    emptyMessage: String,
     onNext: () -> Unit,
 ) {
     GlassCard(
@@ -310,14 +323,14 @@ private fun AffirmationHeroCard(
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
         ) {
             Text(
-                text = "CURRENT AFFIRMATION",
+                text = heroLabel,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing,
             )
 
             AnimatedContent(
-                targetState = affirmation?.text ?: "Add affirmations to begin your collection.",
+                targetState = affirmation?.text ?: emptyMessage,
                 transitionSpec = {
                     (fadeIn(tween(TransitionMs)) + slideInVertically { it / 4 }) togetherWith
                         (fadeOut(tween(TransitionMs)) + slideOutVertically { -it / 4 })
@@ -400,6 +413,7 @@ private fun AffirmationReviewAssessmentDialog(
     notes: String,
     moodLevel: Int?,
     affirmationCount: Int,
+    itemNoun: String,
     onNotesChange: (String) -> Unit,
     onMoodChange: (Int?) -> Unit,
     onSave: () -> Unit,
@@ -413,7 +427,7 @@ private fun AffirmationReviewAssessmentDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "You reviewed $affirmationCount affirmation${if (affirmationCount == 1) "" else "s"}. " +
+                    text = "You reviewed $affirmationCount $itemNoun${if (affirmationCount == 1) "" else "s"}. " +
                         "How did that feel?",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -446,6 +460,7 @@ private fun AffirmationReviewAssessmentDialog(
 
 @Composable
 private fun BulkImportDialog(
+    itemNoun: String,
     onDismiss: () -> Unit,
     onImport: (String) -> Unit,
 ) {
@@ -458,7 +473,7 @@ private fun BulkImportDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Paste one affirmation per line. Empty lines are ignored.",
+                    text = "Paste one $itemNoun per line. Empty lines are ignored.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -466,14 +481,14 @@ private fun BulkImportDialog(
                     value = text,
                     onValueChange = { text = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("I am calm and present…\nI choose peace over worry…") },
+                    placeholder = { Text("One item per line…") },
                     minLines = 8,
                 )
                 Text(
                     text = when (parsedCount) {
-                        0 -> "No affirmations to import"
-                        1 -> "1 affirmation ready to import"
-                        else -> "$parsedCount affirmations ready to import"
+                        0 -> "No ${itemNoun}s to import"
+                        1 -> "1 $itemNoun ready to import"
+                        else -> "$parsedCount ${itemNoun}s ready to import"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = if (parsedCount > 0) {

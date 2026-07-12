@@ -9,6 +9,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Home
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Air
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.Home
@@ -44,6 +46,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
 import com.example.meditationparticles.domain.toolkit.ToolkitToolId
 import com.example.meditationparticles.domain.visualizations.CalmingVisualizationCatalog
@@ -80,9 +83,15 @@ private val allBottomNavItems = listOf(
     BottomNavItem(SereneDestination.Timer, "Meditation", Icons.Outlined.Timer, Icons.Default.Timer),
     BottomNavItem(
         SereneDestination.Affirmations,
-        "Affirmations",
+        AffirmationListKind.Affirmations.shortNavLabel,
         Icons.Outlined.FormatQuote,
         Icons.Default.FormatQuote,
+    ),
+    BottomNavItem(
+        SereneDestination.KatiesLoveList,
+        AffirmationListKind.KatiesLoveList.shortNavLabel,
+        Icons.Outlined.FavoriteBorder,
+        Icons.Default.Favorite,
     ),
     BottomNavItem(SereneDestination.Toolkit, "Toolkit", Icons.Outlined.Handyman, Icons.Default.Handyman),
     BottomNavItem(
@@ -98,6 +107,7 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Breathe.route,
     SereneDestination.Timer.route,
     SereneDestination.Affirmations.route,
+    SereneDestination.KatiesLoveList.route,
     SereneDestination.Toolkit.route,
     SereneDestination.LivingTree.route,
 )
@@ -180,6 +190,7 @@ fun SereneNavHost(
         settings.enableBreathing,
         settings.enableTimer,
         settings.enableAffirmations,
+        settings.enableKatiesLoveList,
         settings.enableToolkit,
         settings.enableLivingTree,
     ) {
@@ -189,6 +200,7 @@ fun SereneNavHost(
                 SereneDestination.Breathe -> settings.enableBreathing
                 SereneDestination.Timer -> settings.enableTimer
                 SereneDestination.Affirmations -> settings.enableAffirmations
+                SereneDestination.KatiesLoveList -> settings.enableKatiesLoveList
                 SereneDestination.Toolkit -> settings.enableToolkit
                 SereneDestination.LivingTree -> settings.enableLivingTree
                 else -> false
@@ -238,6 +250,7 @@ fun SereneNavHost(
             }
             QuickStartTarget.Timer -> navigateToTab(SereneDestination.Timer)
             QuickStartTarget.Affirmations -> navigateToTab(SereneDestination.Affirmations)
+            QuickStartTarget.KatiesLoveList -> navigateToTab(SereneDestination.KatiesLoveList)
             QuickStartTarget.Visuals -> navigateToTab(SereneDestination.Visualizations)
             is QuickStartTarget.Toolkit -> {
                 quickStartToolkitToolId = target.toolId
@@ -300,6 +313,13 @@ fun SereneNavHost(
             ToolkitTab.AFFIRMATIONS -> {
                 if (settings.enableAffirmations) {
                     SereneDestination.Affirmations.route
+                } else {
+                    null
+                }
+            }
+            ToolkitTab.KATIES_LOVE_LIST -> {
+                if (settings.enableKatiesLoveList) {
+                    SereneDestination.KatiesLoveList.route
                 } else {
                     null
                 }
@@ -393,6 +413,7 @@ fun SereneNavHost(
             composable(SereneDestination.Breathe.route) { }
             composable(SereneDestination.Timer.route) { }
             composable(SereneDestination.Affirmations.route) { }
+            composable(SereneDestination.KatiesLoveList.route) { }
             composable(SereneDestination.Toolkit.route) { }
             composable(SereneDestination.LivingTree.route) { }
             composable(
@@ -435,6 +456,7 @@ fun SereneNavHost(
                 val tab = entry.arguments?.getString("tab")
                 val route = when (tab) {
                     ToolkitTab.AFFIRMATIONS -> SereneDestination.Affirmations.route
+                    ToolkitTab.KATIES_LOVE_LIST -> SereneDestination.KatiesLoveList.route
                     else -> SereneDestination.Toolkit.route
                 }
                 LaunchedEffect(route) {
@@ -497,6 +519,9 @@ fun SereneNavHost(
                         }
                         SereneDestination.Affirmations -> {
                             AffirmationsScreen()
+                        }
+                        SereneDestination.KatiesLoveList -> {
+                            AffirmationsScreen(listKind = AffirmationListKind.KatiesLoveList)
                         }
                         SereneDestination.Toolkit -> {
                             ToolkitScreen(

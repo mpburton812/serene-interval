@@ -61,6 +61,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _draft.update { it.withToolEnabled(enableAffirmations = enabled) }
     }
 
+    fun setEnableKatiesLoveList(enabled: Boolean) {
+        _draft.update { it.withToolEnabled(enableKatiesLoveList = enabled) }
+    }
+
     fun setEnableToolkit(enabled: Boolean) {
         _draft.update { it.withToolEnabled(enableToolkit = enabled) }
     }

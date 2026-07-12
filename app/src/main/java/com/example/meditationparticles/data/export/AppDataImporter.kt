@@ -5,6 +5,7 @@ import com.example.meditationparticles.data.AffirmationPreferences
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.TimerPreferences
 import com.example.meditationparticles.data.local.AffirmationEntity
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 import com.example.meditationparticles.data.local.CenterOfGravityEntryEntity
 import com.example.meditationparticles.data.local.HeartsEntryEntity
 import com.example.meditationparticles.data.local.FutureSelfMessageEntity
@@ -196,6 +197,7 @@ class AppDataImporter(
             enableBreathing = json.optBoolean("enableBreathing", current.enableBreathing),
             enableTimer = json.optBoolean("enableTimer", current.enableTimer),
             enableAffirmations = json.optBoolean("enableAffirmations", current.enableAffirmations),
+            enableKatiesLoveList = json.optBoolean("enableKatiesLoveList", current.enableKatiesLoveList),
             enableToolkit = json.optBoolean("enableToolkit", current.enableToolkit),
             enableVisuals = json.optBoolean("enableVisuals", current.enableVisuals),
             enableLivingTree = json.optBoolean("enableLivingTree", current.enableLivingTree),
@@ -491,7 +493,7 @@ class AppDataImporter(
         skips: MutableList<ImportSkip>,
     ): Int {
         if (array == null || array.length() == 0) return 0
-        val existing = dao.getAll()
+        val existing = dao.getAllKinds()
         var imported = 0
 
         for (index in 0 until array.length()) {
@@ -502,7 +504,8 @@ class AppDataImporter(
                 continue
             }
             val createdAt = item.optLong("createdAt", System.currentTimeMillis())
-            if (existing.any { it.text == text && it.createdAt == createdAt }) {
+            val listKind = item.optString("listKind", AffirmationListKind.Affirmations.name)
+            if (existing.any { it.text == text && it.createdAt == createdAt && it.listKind == listKind }) {
                 skips += ImportSkip("affirmation", "duplicate", detail = text.take(40))
                 continue
             }
@@ -512,6 +515,7 @@ class AppDataImporter(
                     text = text,
                     createdAt = createdAt,
                     sortOrder = item.optInt("sortOrder", 0),
+                    listKind = listKind,
                 ),
             )
             imported++

@@ -38,7 +38,7 @@ class HomeActivityRepository(
         val refactoringFlow = database.refactoringEntryDao().observeAll()
         val cogFlow = database.centerOfGravityEntryDao().observeAll()
         val futureSelfFlow = database.futureSelfMessageDao().observeAll()
-        val affirmationReviewsFlow = database.affirmationReviewSessionDao().observeAll()
+        val affirmationReviewsFlow = database.affirmationReviewSessionDao().observeAllKinds()
         val heartsFlow = database.heartsEntryDao().observeAll()
 
         val primaryFlow = combine(

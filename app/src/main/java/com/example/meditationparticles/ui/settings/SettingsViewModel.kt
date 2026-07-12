@@ -140,6 +140,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun setEnableKatiesLoveList(enabled: Boolean) {
+        preferences.update { current ->
+            current.withToolToggle { it.copy(enableKatiesLoveList = enabled) }
+        }
+    }
+
     fun setEnableToolkit(enabled: Boolean) {
         preferences.update { current ->
             current.withToolToggle { it.copy(enableToolkit = enabled) }

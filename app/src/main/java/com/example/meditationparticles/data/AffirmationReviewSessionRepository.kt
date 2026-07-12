@@ -2,6 +2,7 @@ package com.example.meditationparticles.data
 
 import com.example.meditationparticles.data.local.AffirmationReviewSessionDao
 import com.example.meditationparticles.data.local.AffirmationReviewSessionEntity
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 import com.example.meditationparticles.domain.mood.MoodScale
 import com.example.meditationparticles.domain.mood.MoodSource
 import kotlinx.coroutines.flow.Flow
@@ -9,7 +10,10 @@ import kotlinx.coroutines.flow.Flow
 class AffirmationReviewSessionRepository(
     private val dao: AffirmationReviewSessionDao,
     private val moodTracker: MoodTrackerRepository,
+    private val listKind: AffirmationListKind = AffirmationListKind.Affirmations,
 ) {
+    private val kindKey = listKind.name
+
     suspend fun save(
         notes: String,
         affirmationCount: Int,
@@ -23,6 +27,7 @@ class AffirmationReviewSessionRepository(
                 moodLevel = normalizedMood,
                 affirmationCount = affirmationCount.coerceAtLeast(0),
                 completedAt = completedAt,
+                listKind = kindKey,
             ),
         )
         normalizedMood?.let { level ->
@@ -38,7 +43,7 @@ class AffirmationReviewSessionRepository(
     }
 
     fun observeInRange(startMillis: Long, endMillis: Long): Flow<List<AffirmationReviewSessionEntity>> =
-        dao.observeInRange(startMillis, endMillis)
+        dao.observeInRange(kindKey, startMillis, endMillis)
 
     suspend fun getById(id: Long): AffirmationReviewSessionEntity? = dao.getById(id)
 
