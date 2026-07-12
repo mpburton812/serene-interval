@@ -17,6 +17,8 @@
 - Settings: **Remodel your Sway** replaces destructive rebuild; preserves journals and history
 - Quick Start: Visualizations removed from Other tools; HEARTS proactive/reactive toolkit shortcuts grouped separately
 
+## 1.0.24 - 2026-06-26
+
 ### Home timeline
 
 - HEARTS toolkit journal entries (Delight Deposit, Attunement Map, Repair & Reconnect, etc.) now appear in Recent activity on the home screen
@@ -25,6 +27,10 @@
 
 - Local automatic JSON backup to a user-chosen folder (daily or weekly) via WorkManager; retains the latest 14 files
 - HEARTS journal entries included in export/import JSON backups
+
+### Tooling
+
+- Timeout-guarded Android test runners (`scripts/run-tests.sh`, `scripts/verify-android-env.sh`)
 
 ## Production rollback — 2026-06-26
 
