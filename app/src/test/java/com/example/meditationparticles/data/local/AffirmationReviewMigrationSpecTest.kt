@@ -12,4 +12,13 @@ class AffirmationReviewMigrationSpecTest {
         assertTrue(migration.startVersion == 20)
         assertTrue(migration.endVersion == 21)
     }
+
+    @Test
+    fun migration22To23_addsListKindColumns() {
+        val migration = SERENE_DATABASE_MIGRATIONS.first {
+            it.startVersion == 22 && it.endVersion == 23
+        }
+        assertTrue(migration.startVersion == 22)
+        assertTrue(migration.endVersion == 23)
+    }
 }

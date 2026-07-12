@@ -10,6 +10,7 @@ data class ExperienceSettings(
     val enableBreathing: Boolean = true,
     val enableTimer: Boolean = true,
     val enableAffirmations: Boolean = true,
+    val enableKatiesLoveList: Boolean = false,
     val enableToolkit: Boolean = true,
     val enableVisuals: Boolean = true,
     val enableLivingTree: Boolean = true,
@@ -20,7 +21,8 @@ data class ExperienceSettings(
     val showToolkitTab: Boolean get() = enableToolkit
 
     val hasAnyToolEnabled: Boolean
-        get() = enableBreathing || enableTimer || enableAffirmations || enableToolkit || enableVisuals
+        get() = enableBreathing || enableTimer || enableAffirmations || enableKatiesLoveList ||
+            enableToolkit || enableVisuals
 
     val displayName: String get() = preferredName.trim().ifBlank { "there" }
 

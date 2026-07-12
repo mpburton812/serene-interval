@@ -3,6 +3,7 @@ package com.example.meditationparticles.ui.home
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.SelfImprovement
@@ -79,6 +80,12 @@ private fun quickStartPresentation(
     QuickStartTarget.Affirmations -> QuickStartPresentation(
         label = "Affirmations",
         icon = Icons.Default.AutoAwesome,
+        iconTint = scheme.tertiary,
+        iconBackground = scheme.tertiaryContainer.copy(alpha = 0.3f),
+    )
+    QuickStartTarget.KatiesLoveList -> QuickStartPresentation(
+        label = "Love List",
+        icon = Icons.Default.Favorite,
         iconTint = scheme.tertiary,
         iconBackground = scheme.tertiaryContainer.copy(alpha = 0.3f),
     )

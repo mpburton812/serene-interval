@@ -39,7 +39,7 @@ class AppDataExporter(
         val timerPrefs = TimerPreferences(context).load()
 
         val thoughtDumps = db.thoughtDumpDao().getAll()
-        val affirmations = db.affirmationDao().getAll()
+        val affirmations = db.affirmationDao().getAllKinds()
         val futureSelfMessages = db.futureSelfMessageDao().getAll()
         val refactoringEntries = db.refactoringEntryDao().getAll()
         val centerOfGravityEntries = db.centerOfGravityEntryDao().getAll()
@@ -86,6 +86,7 @@ class AppDataExporter(
             put("enableBreathing", settings.enableBreathing)
             put("enableTimer", settings.enableTimer)
             put("enableAffirmations", settings.enableAffirmations)
+            put("enableKatiesLoveList", settings.enableKatiesLoveList)
             put("enableToolkit", settings.enableToolkit)
             put("enableVisuals", settings.enableVisuals)
             put("enableLivingTree", settings.enableLivingTree)
@@ -178,6 +179,7 @@ class AppDataExporter(
         put("text", text)
         put("createdAt", createdAt)
         put("sortOrder", sortOrder)
+        put("listKind", listKind)
     }
 
     private fun ThoughtDumpEntity.toJson(): JSONObject = JSONObject().apply {

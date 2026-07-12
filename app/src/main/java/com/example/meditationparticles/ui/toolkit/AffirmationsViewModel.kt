@@ -2,12 +2,15 @@ package com.example.meditationparticles.ui.toolkit
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AffirmationPreferences
 import com.example.meditationparticles.data.AffirmationRepository
 import com.example.meditationparticles.data.AppGraph
 import com.example.meditationparticles.data.local.AffirmationEntity
 import com.example.meditationparticles.domain.affirmations.AffirmationCalendarLogic
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 import com.example.meditationparticles.domain.affirmations.AffirmationReviewLogic
 import com.example.meditationparticles.domain.mood.MoodCalendarLogic
 import com.example.meditationparticles.domain.mood.MoodGraphPeriod
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -63,11 +67,14 @@ data class AffirmationsUiState(
         get() = AffirmationReviewLogic.canStartReview(affirmations.size)
 }
 
-class AffirmationsViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository: AffirmationRepository = AppGraph.affirmations(application)
-    private val reviewSessionRepository = AppGraph.affirmationReviewSessions(application)
-    private val oneNoteSync = AppGraph.oneNoteSync(application)
-    private val preferences = AffirmationPreferences(application)
+class AffirmationsViewModel(
+    application: Application,
+    val listKind: AffirmationListKind = AffirmationListKind.Affirmations,
+) : AndroidViewModel(application) {
+    private val repository: AffirmationRepository = AppGraph.affirmations(application, listKind)
+    private val reviewSessionRepository = AppGraph.affirmationReviewSessions(application, listKind)
+    private val oneNoteSync by lazy { AppGraph.oneNoteSync(application) }
+    private val preferences = AffirmationPreferences(application, listKind)
     private val calendarMonthOffset = MutableStateFlow(0)
     private val zoneId = ZoneId.systemDefault()
     private val locale = Locale.getDefault()
@@ -97,6 +104,14 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
                 )
             }
         }
+        .catch {
+            emit(
+                AffirmationCalendarUiState(
+                    weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
+                    monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, 0, zoneId, locale),
+                ),
+            )
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -120,7 +135,9 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
         }
 
         viewModelScope.launch {
-            repository.affirmations.collect { list ->
+            repository.affirmations
+                .catch { }
+                .collect { list ->
                 _uiState.update { state ->
                     val index = state.currentIndex.coerceIn(0, (list.size - 1).coerceAtLeast(0))
                     val reviewIndex = state.reviewIndex.coerceIn(0, (list.size - 1).coerceAtLeast(0))
@@ -263,11 +280,12 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
     fun bulkImport(text: String) {
         viewModelScope.launch {
             val count = repository.bulkAdd(text)
+            val noun = listKind.itemNoun
             _uiState.update {
                 it.copy(
                     showBulkImportDialog = false,
                     importMessage = if (count > 0) {
-                        "Imported $count affirmation${if (count == 1) "" else "s"}."
+                        "Imported $count $noun${if (count == 1) "" else "s"}."
                     } else {
                         null
                     },
@@ -314,9 +332,9 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
         }
         persistPrefs()
         if (enabled) {
-            AffirmationReminderScheduler.schedule(getApplication(), hour, minute)
+            AffirmationReminderScheduler.schedule(getApplication(), listKind, hour, minute)
         } else {
-            AffirmationReminderScheduler.cancel(getApplication())
+            AffirmationReminderScheduler.cancel(getApplication(), listKind)
         }
     }
 
@@ -329,5 +347,18 @@ class AffirmationsViewModel(application: Application) : AndroidViewModel(applica
                 reminderMinute = state.reminderMinute,
             ),
         )
+    }
+
+    companion object {
+        fun factory(
+            application: Application,
+            listKind: AffirmationListKind,
+        ): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return AffirmationsViewModel(application, listKind) as T
+                }
+            }
     }
 }

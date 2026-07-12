@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.Checkbox
@@ -79,7 +80,9 @@ fun QuickStartSelectionSection(
 
         val breathingAvailable = available.filterIsInstance<QuickStartTarget.Breathing>()
         val coreAvailable = available.filter {
-            it is QuickStartTarget.Timer || it is QuickStartTarget.Affirmations
+            it is QuickStartTarget.Timer ||
+                it is QuickStartTarget.Affirmations ||
+                it is QuickStartTarget.KatiesLoveList
         }
         val toolkitAvailable = available.filterIsInstance<QuickStartTarget.Toolkit>()
         val coreProactive = toolkitTargets(toolkitAvailable, ToolkitLane.Core, ToolkitCategory.Proactive)
@@ -229,6 +232,7 @@ private fun quickStartMeta(target: QuickStartTarget): Pair<String, ImageVector> 
     }
     QuickStartTarget.Timer -> "Meditation" to Icons.Default.SelfImprovement
     QuickStartTarget.Affirmations -> "Affirmations" to Icons.Default.AutoAwesome
+    QuickStartTarget.KatiesLoveList -> "Katie's Love List" to Icons.Default.Favorite
     QuickStartTarget.Visuals -> "Visualizations" to Icons.Default.Handyman
     is QuickStartTarget.Toolkit -> {
         val title = ToolkitCatalog.byId(target.toolId)?.title ?: "Toolkit"

@@ -5,6 +5,7 @@ import com.example.meditationparticles.data.local.AffirmationEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -34,13 +35,19 @@ class AffirmationRepositoryReorderTest {
         val entries = initial.toMutableList()
         private val flow = MutableStateFlow(entries.toList())
 
-        override fun observeAll(): Flow<List<AffirmationEntity>> = flow.asStateFlow()
+        override fun observeAll(listKind: String): Flow<List<AffirmationEntity>> =
+            flow.asStateFlow().map { list -> list.filter { it.listKind == listKind } }
 
-        override suspend fun getAll(): List<AffirmationEntity> = entries.toList()
+        override suspend fun getAll(listKind: String): List<AffirmationEntity> =
+            entries.filter { it.listKind == listKind }
 
-        override suspend fun count(): Int = entries.size
+        override suspend fun getAllKinds(): List<AffirmationEntity> = entries.toList()
 
-        override suspend fun random(): AffirmationEntity? = entries.randomOrNull()
+        override suspend fun count(listKind: String): Int =
+            entries.count { it.listKind == listKind }
+
+        override suspend fun random(listKind: String): AffirmationEntity? =
+            entries.filter { it.listKind == listKind }.randomOrNull()
 
         override suspend fun insert(entity: AffirmationEntity): Long {
             val id = (entries.maxOfOrNull { it.id } ?: 0L) + 1

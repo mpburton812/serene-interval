@@ -9,12 +9,14 @@ import com.example.meditationparticles.data.onenote.OneNoteAuthManager
 import com.example.meditationparticles.data.onenote.OneNoteGraphClient
 import com.example.meditationparticles.data.onenote.OneNotePreferences
 import com.example.meditationparticles.data.onenote.OneNoteSyncRepository
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 
 object AppGraph {
     @Volatile
-    private var affirmationReviewSessionRepository: AffirmationReviewSessionRepository? = null
+    private var affirmationRepositories: MutableMap<AffirmationListKind, AffirmationRepository>? = null
     @Volatile
-    private var affirmationRepository: AffirmationRepository? = null
+    private var affirmationReviewSessionRepositories:
+        MutableMap<AffirmationListKind, AffirmationReviewSessionRepository>? = null
     @Volatile
     private var thoughtDumpRepository: ThoughtDumpRepository? = null
     @Volatile
@@ -107,19 +109,36 @@ object AppGraph {
             ).also { homeActivityRepository = it }
         }
 
-    fun affirmations(context: Context): AffirmationRepository =
-        affirmationRepository ?: synchronized(this) {
-            affirmationRepository ?: AffirmationRepository(
-                SereneDatabase.getInstance(context.applicationContext).affirmationDao(),
-            ).also { affirmationRepository = it }
+    fun affirmations(
+        context: Context,
+        listKind: AffirmationListKind = AffirmationListKind.Affirmations,
+    ): AffirmationRepository =
+        synchronized(this) {
+            val map = affirmationRepositories ?: mutableMapOf<AffirmationListKind, AffirmationRepository>()
+                .also { affirmationRepositories = it }
+            map.getOrPut(listKind) {
+                AffirmationRepository(
+                    dao = SereneDatabase.getInstance(context.applicationContext).affirmationDao(),
+                    listKind = listKind,
+                )
+            }
         }
 
-    fun affirmationReviewSessions(context: Context): AffirmationReviewSessionRepository =
-        affirmationReviewSessionRepository ?: synchronized(this) {
-            affirmationReviewSessionRepository ?: AffirmationReviewSessionRepository(
-                dao = SereneDatabase.getInstance(context.applicationContext).affirmationReviewSessionDao(),
-                moodTracker = moodTracker(context),
-            ).also { affirmationReviewSessionRepository = it }
+    fun affirmationReviewSessions(
+        context: Context,
+        listKind: AffirmationListKind = AffirmationListKind.Affirmations,
+    ): AffirmationReviewSessionRepository =
+        synchronized(this) {
+            val map = affirmationReviewSessionRepositories
+                ?: mutableMapOf<AffirmationListKind, AffirmationReviewSessionRepository>()
+                    .also { affirmationReviewSessionRepositories = it }
+            map.getOrPut(listKind) {
+                AffirmationReviewSessionRepository(
+                    dao = SereneDatabase.getInstance(context.applicationContext).affirmationReviewSessionDao(),
+                    moodTracker = moodTracker(context),
+                    listKind = listKind,
+                )
+            }
         }
 
     fun thoughtDumps(context: Context): ThoughtDumpRepository =

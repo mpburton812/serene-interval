@@ -186,6 +186,7 @@ fun SettingsScreen(
                 onBreathingChanged = viewModel::setEnableBreathing,
                 onTimerChanged = viewModel::setEnableTimer,
                 onAffirmationsChanged = viewModel::setEnableAffirmations,
+                onKatiesLoveListChanged = viewModel::setEnableKatiesLoveList,
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onLivingTreeChanged = viewModel::setEnableLivingTree,
             )

@@ -24,7 +24,7 @@ import androidx.room.RoomDatabase
         LivingTreePersonEntity::class,
         LivingTreePersonTagCrossRef::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {

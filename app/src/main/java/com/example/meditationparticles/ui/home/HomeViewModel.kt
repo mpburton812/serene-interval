@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.meditationparticles.data.AppGraph
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 import com.example.meditationparticles.domain.home.HomeActivityItem
 import com.example.meditationparticles.domain.mood.MoodSource
 import com.example.meditationparticles.domain.quickstart.QuickStartTarget
@@ -43,6 +44,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             affirmationRepository.seedIfEmpty()
+            AppGraph.affirmations(getApplication(), AffirmationListKind.KatiesLoveList).seedIfEmpty()
         }
     }
 

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Timer
@@ -41,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 import com.example.meditationparticles.domain.settings.ExperienceSettings
 import com.example.meditationparticles.domain.settings.ThemeMode
 import com.example.meditationparticles.domain.settings.timeOfDayPeriod
@@ -223,6 +225,7 @@ fun ExperienceSection(
     onBreathingChanged: (Boolean) -> Unit,
     onTimerChanged: (Boolean) -> Unit,
     onAffirmationsChanged: (Boolean) -> Unit,
+    onKatiesLoveListChanged: (Boolean) -> Unit,
     onToolkitChanged: (Boolean) -> Unit,
     onLivingTreeChanged: (Boolean) -> Unit,
 ) {
@@ -240,30 +243,42 @@ fun ExperienceSection(
 
         SettingsToggleRow(
             label = "Breathing",
+            description = "Guided breath patterns to settle your nervous system.",
             icon = Icons.Default.Air,
             checked = settings.enableBreathing,
             onCheckedChange = onBreathingChanged,
         )
         SettingsToggleRow(
             label = "Timer",
+            description = "Timed meditation sessions with optional bells.",
             icon = Icons.Default.Timer,
             checked = settings.enableTimer,
             onCheckedChange = onTimerChanged,
         )
         SettingsToggleRow(
-            label = "Affirmations",
+            label = AffirmationListKind.Affirmations.displayTitle,
+            description = AffirmationListKind.Affirmations.experienceDescription,
             icon = Icons.Default.AutoAwesome,
             checked = settings.enableAffirmations,
             onCheckedChange = onAffirmationsChanged,
         )
         SettingsToggleRow(
+            label = AffirmationListKind.KatiesLoveList.displayTitle,
+            description = AffirmationListKind.KatiesLoveList.experienceDescription,
+            icon = Icons.Default.Favorite,
+            checked = settings.enableKatiesLoveList,
+            onCheckedChange = onKatiesLoveListChanged,
+        )
+        SettingsToggleRow(
             label = "Toolkit",
+            description = "Practices for anxiety, boundaries, and connection you can reach for in the moment.",
             icon = Icons.Default.Handyman,
             checked = settings.enableToolkit,
             onCheckedChange = onToolkitChanged,
         )
         SettingsToggleRow(
             label = "Living Flower",
+            description = "Map the people who matter and how you stay connected.",
             icon = Icons.Default.AccountTree,
             checked = settings.enableLivingTree,
             onCheckedChange = onLivingTreeChanged,
@@ -277,6 +292,7 @@ fun SettingsToggleRow(
     icon: ImageVector,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    description: String? = null,
 ) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -290,6 +306,7 @@ fun SettingsToggleRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
+                modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -298,10 +315,19 @@ fun SettingsToggleRow(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                 )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    if (!description.isNullOrBlank()) {
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
             Switch(
                 checked = checked,

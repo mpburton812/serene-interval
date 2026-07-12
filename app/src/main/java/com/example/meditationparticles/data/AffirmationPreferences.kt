@@ -1,14 +1,17 @@
 package com.example.meditationparticles.data
 
 import android.content.Context
+import com.example.meditationparticles.domain.affirmations.AffirmationListKind
 
-private const val PREFS_NAME = "affirmation_preferences"
 private const val KEY_REMINDER_ENABLED = "reminder_enabled"
 private const val KEY_REMINDER_HOUR = "reminder_hour"
 private const val KEY_REMINDER_MINUTE = "reminder_minute"
 
-class AffirmationPreferences(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+class AffirmationPreferences(
+    context: Context,
+    private val listKind: AffirmationListKind = AffirmationListKind.Affirmations,
+) {
+    private val prefs = context.getSharedPreferences(listKind.preferencesName, Context.MODE_PRIVATE)
 
     fun load(): AffirmationPrefsSnapshot = AffirmationPrefsSnapshot(
         reminderEnabled = prefs.getBoolean(KEY_REMINDER_ENABLED, false),
