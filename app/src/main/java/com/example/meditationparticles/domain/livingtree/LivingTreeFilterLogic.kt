@@ -8,8 +8,9 @@ object LivingTreeFilterLogic {
         selectedTagIds: Set<Long>,
     ): Set<Long> {
         if (selectedTagIds.isEmpty()) return peopleTagIds.keys
+        // Multi-tag selection is AND: person must have every selected tag.
         return peopleTagIds.filterValues { tagIds ->
-            tagIds.any { it in selectedTagIds }
+            selectedTagIds.all { it in tagIds }
         }.keys
     }
 
