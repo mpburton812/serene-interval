@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.0.35 - 2026-07-13
+
+### Living Flower
+
+- Larger person bubbles on concentric elliptical rings that use more of the screen before shrinking to fit
+- Connector/spoke lines removed for a cleaner flower view
+- Edit a person (name, tags, and notes) directly from the person detail sheet
+
 ## 1.0.34 - 2026-07-12
 
 ### Sanctuary tools
