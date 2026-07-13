@@ -17,16 +17,17 @@ class LivingTreeFilterLogicTest {
     }
 
     @Test
-    fun visiblePersonIds_withSelection_usesOrLogic() {
+    fun visiblePersonIds_withSelection_usesAndLogic() {
         val people = mapOf(
             1L to setOf(10L),
             2L to setOf(20L),
             3L to setOf(10L, 20L),
             4L to setOf(30L),
+            5L to setOf(10L, 20L, 30L),
         )
 
         assertEquals(
-            setOf(1L, 2L, 3L),
+            setOf(3L, 5L),
             LivingTreeFilterLogic.visiblePersonIds(people, setOf(10L, 20L)),
         )
     }

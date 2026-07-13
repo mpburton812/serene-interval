@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import com.example.meditationparticles.R
 import com.example.meditationparticles.canvas.LivingTreeSphereFill
 import com.example.meditationparticles.canvas.drawLivingTreeGlassSphere
-import com.example.meditationparticles.domain.livingtree.LivingTreeTextContrast
 import com.example.meditationparticles.ui.theme.isDarkScheme
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -91,9 +90,6 @@ fun LivingTreeCanvas(
                 name = node.name,
                 center = Offset(node.x, node.y),
                 radius = node.radius,
-                bubbleColors = colors,
-                scheme = scheme,
-                isDark = isDark,
             )
         }
 
@@ -111,9 +107,6 @@ fun LivingTreeCanvas(
             name = centerLabel,
             center = Offset(centerX, centerY),
             radius = centerRadius,
-            bubbleColors = emptyList(),
-            scheme = scheme,
-            isDark = isDark,
             maxFontSp = 15f,
         )
     }
@@ -124,13 +117,11 @@ private fun DrawScope.drawInSphereName(
     name: String,
     center: Offset,
     radius: Float,
-    bubbleColors: List<Color>,
-    scheme: androidx.compose.material3.ColorScheme,
-    isDark: Boolean,
     maxFontSp: Float = 13f,
 ) {
-    val labelColors = LivingTreeTextContrast.labelColors(scheme, isDark)
-    val textColor = LivingTreeTextContrast.textOnBubbleFill(bubbleColors, scheme, isDark)
+    val textColor = Color.Black
+    val plateFill = Color.White
+    val plateBorder = Color.Black.copy(alpha = 0.18f)
     val maxWidth = radius * 1.55f
     val maxHeight = radius * 1.1f
     val minFontSp = 8f
@@ -188,13 +179,13 @@ private fun DrawScope.drawInSphereName(
     val plateCorner = minOf(plateSize.height / 2f, plateSize.width / 2f, 14f).coerceAtLeast(6f)
     val cornerRadius = CornerRadius(plateCorner, plateCorner)
     drawRoundRect(
-        color = labelColors.plateFill,
+        color = plateFill,
         topLeft = plateTopLeft,
         size = plateSize,
         cornerRadius = cornerRadius,
     )
     drawRoundRect(
-        color = labelColors.plateBorder,
+        color = plateBorder,
         topLeft = plateTopLeft,
         size = plateSize,
         cornerRadius = cornerRadius,
