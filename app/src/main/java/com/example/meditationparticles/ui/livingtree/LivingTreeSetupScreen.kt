@@ -351,7 +351,7 @@ fun LivingTreeSetupScreen(
     }
 
     if (showNewPerson || editingPerson != null) {
-        PersonEditorDialog(
+        LivingTreePersonEditorDialog(
             existing = editingPerson,
             tags = state.tags,
             onDismiss = {
@@ -613,110 +613,4 @@ private fun RgbSliderRow(
             steps = 254,
         )
     }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PersonEditorDialog(
-    existing: LivingTreePersonWithTags?,
-    tags: List<LivingTreeTagEntity>,
-    onDismiss: () -> Unit,
-    onSave: (String, String, Set<Long>) -> Unit,
-) {
-    val isNew = existing == null
-    var name by remember(existing) { mutableStateOf(existing?.person?.name ?: "") }
-    var notes by remember(existing) { mutableStateOf(existing?.person?.notes ?: "") }
-    var selectedTagIds by remember(existing) {
-        mutableStateOf(existing?.tags?.map { it.id }?.toSet() ?: emptySet())
-    }
-    val parsedNames = remember(name) { LivingTreePersonNames.parse(name) }
-    val isBulkAdd = isNew && parsedNames.size > 1
-    val notesEnabled = !isBulkAdd
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                when {
-                    isNew && parsedNames.size > 1 -> "New people"
-                    isNew -> "New person or people"
-                    else -> "Edit person"
-                },
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (isNew) {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Names") },
-                        placeholder = { Text("Alex, Jordan, Sam") },
-                        supportingText = {
-                            Text("Separate names with commas. Each name becomes a person with the selected tags.")
-                        },
-                        minLines = 3,
-                        maxLines = 8,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Name") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { if (notesEnabled) notes = it },
-                    label = { Text("Notes (optional)") },
-                    enabled = notesEnabled,
-                    supportingText = if (isBulkAdd) {
-                        { Text("Notes apply to single-person add only.") }
-                    } else {
-                        null
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(text = "Tags", style = MaterialTheme.typography.labelMedium)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    tags.forEach { tag ->
-                        val selected = tag.id in selectedTagIds
-                        Text(
-                            text = tag.name,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(
-                                    if (selected) Color(tag.colorArgb).copy(alpha = 0.35f)
-                                    else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                )
-                                .clickable {
-                                    selectedTagIds = selectedTagIds.toMutableSet().apply {
-                                        if (selected) remove(tag.id) else add(tag.id)
-                                    }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            color = if (selected) Color(tag.colorArgb) else MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onSave(name, notes, selectedTagIds) },
-                enabled = parsedNames.isNotEmpty(),
-            ) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
 }
