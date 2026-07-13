@@ -24,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.animation.core.animateFloatAsState
@@ -82,11 +83,11 @@ fun LivingTreeScreen(
                 val density = LocalDensity.current
                 val canvasWidthPx = with(density) { maxWidth.toPx() }
                 val canvasHeightPx = with(density) { maxHeight.toPx() }
-                val minDim = minOf(canvasWidthPx, canvasHeightPx)
                 val centerX = canvasWidthPx / 2f
                 val centerY = canvasHeightPx / 2f
                 val layoutSizing = LivingTreeLayout.computeLayoutSizing(
-                    minDimension = minDim,
+                    canvasWidth = canvasWidthPx,
+                    canvasHeight = canvasHeightPx,
                     peopleCount = state.visiblePeople.size,
                 )
                 val animatedNodeRadius by animateFloatAsState(
@@ -104,7 +105,8 @@ fun LivingTreeScreen(
                     personIds = personIds,
                     centerX = centerX,
                     centerY = centerY,
-                    orbitRadius = layoutSizing.orbitRadius,
+                    orbitRadiusX = layoutSizing.orbitRadiusX,
+                    orbitRadiusY = layoutSizing.orbitRadiusY,
                     nodeRadius = animatedNodeRadius,
                     centerRadius = animatedCenterRadius,
                 ).associateBy { it.id }
@@ -161,9 +163,21 @@ fun LivingTreeScreen(
         ) {
             PersonDetailSheetContent(
                 person = person,
+                onEdit = { viewModel.startEditPerson(person) },
                 modifier = Modifier.padding(SereneSpacing.containerMargin),
             )
         }
+    }
+
+    state.editingPerson?.let { person ->
+        LivingTreePersonEditorDialog(
+            existing = person,
+            tags = state.tags,
+            onDismiss = viewModel::dismissPersonEditor,
+            onSave = { name, notes, tagIds ->
+                viewModel.updatePerson(name, notes, tagIds, person.person.id)
+            },
+        )
     }
 }
 
@@ -299,17 +313,28 @@ fun SplitColorDot(
 @Composable
 private fun PersonDetailSheetContent(
     person: LivingTreePersonWithTags,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
     ) {
-        Text(
-            text = person.person.name,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = person.person.name,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onEdit) {
+                Text("Edit")
+            }
+        }
         if (person.tags.isNotEmpty()) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -336,7 +361,7 @@ private fun PersonDetailSheetContent(
             }
         } else {
             Text(
-                text = "No notes yet. Add notes in Setup.",
+                text = "No notes yet.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
