@@ -1,9 +1,8 @@
-﻿{
-    "versionCode":  29,
-    "versionName":  "1.0.35",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.35/sway_meditation.apk",
-    "expectedSha256":  "0ffcedbe08282d139ebfb0f99ca0f222cff54e2f0258aa2605e5e192c21c8606",
-    "releaseNotes":  "Living Flower: larger multi-ring layout without connectors; edit tags and notes from person detail.",
-    "minVersionCode":  1
-}
-
+﻿{
+    "versionCode": 30,
+    "versionName": "1.0.36",
+    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.36/sway_meditation.apk",
+    "expectedSha256": "",
+    "releaseNotes": "Living Flower: clearer black-on-white name labels; multi-tag filters require all selected tags.",
+    "minVersionCode": 1
+}

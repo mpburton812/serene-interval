@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.0.36 - 2026-07-13
+
+### Living Flower
+
+- Name labels use black text on a white plate for clearer readability
+- Selecting multiple tags shows only people who match **all** of those tags
+
 ## 1.0.35 - 2026-07-13
 
 ### Living Flower
