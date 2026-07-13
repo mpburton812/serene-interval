@@ -1,8 +1,8 @@
 ﻿{
-    "versionCode": 28,
-    "versionName": "1.0.34",
-    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.34/sway_meditation.apk",
-    "expectedSha256": "c54afdf390c41181a60795ab528f1c411695eac2f9830042df0ee688865d8f40",
-    "releaseNotes": "Sanctuary space descriptions in setup/Remodel. New optional Katie's Love List (affirmations-style) — enable in Remodel → Spaces.",
+    "versionCode": 29,
+    "versionName": "1.0.35",
+    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.35/sway_meditation.apk",
+    "expectedSha256": "",
+    "releaseNotes": "Living Flower: larger multi-ring layout without connectors; edit tags and notes from person detail.",
     "minVersionCode": 1
 }
