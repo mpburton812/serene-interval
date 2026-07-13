@@ -5,8 +5,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.hypot
-import kotlin.math.sin
 
 class LivingTreeLayoutTest {
     private val canvas = 360f
@@ -87,7 +87,48 @@ class LivingTreeLayoutTest {
         assertEquals(180f, positions[0].x, 0.01f)
         assertEquals(100f, positions[0].y, 0.01f)
         positions.forEach { assertEquals(24f, it.radius, 0.01f) }
-        assertNoOverlap(3, LivingTreeLayout.LayoutSizing(24f, 80f, 40f), positions)
+        assertNoOverlap(3, LivingTreeLayout.LayoutSizing(24f, 80f, 80f, 40f), positions)
+    }
+
+    @Test
+    fun radialPositions_ellipticalOrbit_usesFullCanvasAxes() {
+        val positions = LivingTreeLayout.radialPositions(
+            personIds = listOf(1L, 2L, 3L, 4L),
+            centerX = 200f,
+            centerY = 300f,
+            orbitRadiusX = 160f,
+            orbitRadiusY = 240f,
+            nodeRadius = 28f,
+            centerRadius = 40f,
+        )
+
+        assertEquals(4, positions.size)
+        // First slot at angle 0 → right along X axis
+        assertEquals(360f, positions[0].x, 0.01f)
+        assertEquals(300f, positions[0].y, 0.01f)
+        // Second slot at π/2 → up along Y axis (taller orbit)
+        assertEquals(200f, positions[1].x, 0.01f)
+        assertEquals(540f, positions[1].y, 0.01f)
+
+        val xExtents = positions.map { abs(it.x - 200f) }
+        val yExtents = positions.map { abs(it.y - 300f) }
+        assertTrue(yExtents.max() > xExtents.max())
+    }
+
+    @Test
+    fun computeLayoutSizing_portraitCanvas_usesTallerOrbit() {
+        val sizing = LivingTreeLayout.computeLayoutSizing(
+            canvasWidth = 360f,
+            canvasHeight = 640f,
+            peopleCount = 8,
+        )
+        assertTrue(sizing.orbitRadiusY > sizing.orbitRadiusX)
+        assertNoOverlap(
+            count = 8,
+            sizing = sizing,
+            canvasWidth = 360f,
+            canvasHeight = 640f,
+        )
     }
 
     @Test
@@ -99,7 +140,8 @@ class LivingTreeLayoutTest {
             personIds = ids,
             centerX = canvas / 2f,
             centerY = canvas / 2f,
-            orbitRadius = sizing.orbitRadius,
+            orbitRadiusX = sizing.orbitRadiusX,
+            orbitRadiusY = sizing.orbitRadiusY,
             nodeRadius = sizing.nodeRadius,
             centerRadius = sizing.centerRadius,
             storedPositions = ids.associateWith {
@@ -122,7 +164,8 @@ class LivingTreeLayoutTest {
             personIds = visibleIds,
             centerX = 50f,
             centerY = 50f,
-            orbitRadius = sizing.orbitRadius,
+            orbitRadiusX = sizing.orbitRadiusX,
+            orbitRadiusY = sizing.orbitRadiusY,
             nodeRadius = sizing.nodeRadius,
             centerRadius = sizing.centerRadius,
         )
@@ -161,7 +204,8 @@ class LivingTreeLayoutTest {
         val sizing = LivingTreeLayout.computeLayoutSizing(canvas, 24)
         val rings = LivingTreeLayout.planRings(
             totalCount = 24,
-            orbitRadius = sizing.orbitRadius,
+            orbitRadiusX = sizing.orbitRadiusX,
+            orbitRadiusY = sizing.orbitRadiusY,
             nodeRadius = sizing.nodeRadius,
             centerRadius = sizing.centerRadius,
         )
@@ -214,14 +258,15 @@ class LivingTreeLayoutTest {
     fun maxNodeRadiusForMultiRingLayout_usesMultipleRingsForLargeGroups() {
         val sizing = LivingTreeLayout.computeLayoutSizing(1080f, 24)
         assertNoOverlap(24, sizing, canvasDim = 1080f)
-        assertNoPipeOverlap(24, sizing, canvasDim = 1080f)
         val rings = LivingTreeLayout.planRings(
             totalCount = 24,
-            orbitRadius = sizing.orbitRadius,
+            orbitRadiusX = sizing.orbitRadiusX,
+            orbitRadiusY = sizing.orbitRadiusY,
             nodeRadius = sizing.nodeRadius,
             centerRadius = sizing.centerRadius,
         )
         assertTrue(rings.sumOf { it.count } >= 24)
+        assertTrue(rings.size >= 2)
     }
 
     @Test
@@ -263,13 +308,36 @@ class LivingTreeLayoutTest {
     }
 
     @Test
-    fun computeLayoutSizing_largeGroups_noPipeCrossing() {
+    fun computeLayoutSizing_midCounts_preferLargerBubblesWithoutSpokes() {
+        // Without spoke clearance, mid-size groups stay large on a phone-sized canvas.
         val phoneCanvas = 1080f
-        listOf(20, 30, 45).forEach { count ->
-            val sizing = LivingTreeLayout.computeLayoutSizing(phoneCanvas, count)
-            assertNoOverlap(count, sizing, canvasDim = phoneCanvas)
-            assertNoPipeOverlap(count, sizing, canvasDim = phoneCanvas)
-        }
+        val sizing = LivingTreeLayout.computeLayoutSizing(phoneCanvas, 12)
+        assertTrue(
+            "Expected nodeRadius >= 56 for 12 people on phone canvas, got ${sizing.nodeRadius}",
+            sizing.nodeRadius >= 56f,
+        )
+        assertNoOverlap(12, sizing, canvasDim = phoneCanvas)
+        val tinySizing = LivingTreeLayout.computeLayoutSizing(canvas, 12)
+        assertTrue(tinySizing.nodeRadius >= LivingTreeLayout.MIN_NODE_RADIUS)
+        assertNoOverlap(12, tinySizing)
+    }
+
+    @Test
+    fun planRings_spacesRingsByBubbleDiameter() {
+        val orbit = 200f
+        val nodeRadius = 30f
+        val centerRadius = 40f
+        val rings = LivingTreeLayout.planRings(
+            totalCount = 20,
+            orbitRadiusX = orbit,
+            orbitRadiusY = orbit,
+            nodeRadius = nodeRadius,
+            centerRadius = centerRadius,
+        )
+        assertTrue(rings.size >= 2)
+        val outer = rings[0].radiusFraction * orbit
+        val inner = rings[1].radiusFraction * orbit
+        assertTrue(outer - inner >= 2f * nodeRadius + LivingTreeLayout.BUBBLE_GAP - 0.5f)
     }
 
     private fun assertNoOverlap(
@@ -277,21 +345,24 @@ class LivingTreeLayoutTest {
         sizing: LivingTreeLayout.LayoutSizing,
         positions: List<LivingTreeLayout.NodePosition>? = null,
         canvasDim: Float = canvas,
+        canvasWidth: Float = canvasDim,
+        canvasHeight: Float = canvasDim,
     ) {
         val ids = (1L..count.toLong()).toList()
         val nodes = positions ?: LivingTreeLayout.radialPositions(
             personIds = ids,
-            centerX = canvasDim / 2f,
-            centerY = canvasDim / 2f,
-            orbitRadius = sizing.orbitRadius,
+            centerX = canvasWidth / 2f,
+            centerY = canvasHeight / 2f,
+            orbitRadiusX = sizing.orbitRadiusX,
+            orbitRadiusY = sizing.orbitRadiusY,
             nodeRadius = sizing.nodeRadius,
             centerRadius = sizing.centerRadius,
         )
         assertEquals(count, nodes.size)
         val minSeparation = 2f * sizing.nodeRadius + LivingTreeLayout.BUBBLE_GAP - 1f
         val centerSeparation = sizing.centerRadius + sizing.nodeRadius + LivingTreeLayout.BUBBLE_GAP - 1f
-        val centerX = canvasDim / 2f
-        val centerY = canvasDim / 2f
+        val centerX = canvasWidth / 2f
+        val centerY = canvasHeight / 2f
         for (i in nodes.indices) {
             for (j in i + 1 until nodes.size) {
                 val a = nodes[i]
@@ -314,46 +385,6 @@ class LivingTreeLayoutTest {
                 "Node ${node.id} overlaps center at count=$count (dist=$centerDistance)",
                 centerDistance >= centerSeparation,
             )
-        }
-    }
-
-    private fun assertNoPipeOverlap(
-        count: Int,
-        sizing: LivingTreeLayout.LayoutSizing,
-        positions: List<LivingTreeLayout.NodePosition>? = null,
-        canvasDim: Float = canvas,
-    ) {
-        val ids = (1L..count.toLong()).toList()
-        val nodes = positions ?: LivingTreeLayout.radialPositions(
-            personIds = ids,
-            centerX = canvasDim / 2f,
-            centerY = canvasDim / 2f,
-            orbitRadius = sizing.orbitRadius,
-            nodeRadius = sizing.nodeRadius,
-            centerRadius = sizing.centerRadius,
-        )
-        val centerX = canvasDim / 2f
-        val centerY = canvasDim / 2f
-        for (i in nodes.indices) {
-            val observer = nodes[i]
-            for (j in nodes.indices) {
-                if (i == j) continue
-                val target = nodes[j]
-                assertFalse(
-                    "Node ${observer.id} overlaps pipe to node ${target.id} at count=$count",
-                    LivingTreeLayout.circleOverlapsSpoke(
-                        circleX = observer.x,
-                        circleY = observer.y,
-                        circleRadius = observer.radius,
-                        centerX = centerX,
-                        centerY = centerY,
-                        centerRadius = sizing.centerRadius,
-                        nodeX = target.x,
-                        nodeY = target.y,
-                        nodeRadius = target.radius,
-                    ),
-                )
-            }
         }
     }
 }

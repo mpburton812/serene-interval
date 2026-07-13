@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import com.example.meditationparticles.R
 import com.example.meditationparticles.canvas.LivingTreeSphereFill
 import com.example.meditationparticles.canvas.drawLivingTreeGlassSphere
-import com.example.meditationparticles.canvas.drawLivingTreeSpoke
 import com.example.meditationparticles.domain.livingtree.LivingTreeTextContrast
 import com.example.meditationparticles.ui.theme.isDarkScheme
 import kotlin.math.hypot
@@ -76,18 +75,6 @@ fun LivingTreeCanvas(
     ) {
         val centerX = size.width / 2f
         val centerY = size.height / 2f
-
-        nodes.forEach { node ->
-            drawLivingTreeSpoke(
-                center = Offset(centerX, centerY),
-                centerRadius = centerRadius,
-                nodeCenter = Offset(node.x, node.y),
-                nodeRadius = node.radius,
-                scale = visualScale,
-                pipeTexture = null,
-                shimmerPhase = 0f,
-            )
-        }
 
         nodes.forEach { node ->
             val colors = if (filterActive && node.isFilteredMatch) node.bubbleColors else emptyList()
