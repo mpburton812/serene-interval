@@ -42,11 +42,11 @@ class AffirmationRepositoryReorderTest {
         )
         val repository = AffirmationRepository(dao)
 
-        repository.archive(dao.entries.first { it.id == 2 })
+        repository.archive(dao.entries.first { it.id == 2L })
 
         assertEquals(listOf("Keep"), dao.getAll("Affirmations").map { it.text })
         assertEquals(listOf("Archive me"), dao.observeArchived("Affirmations").first().map { it.text })
-        assertTrue(dao.entries.first { it.id == 2 }.archived)
+        assertTrue(dao.entries.first { it.id == 2L }.archived)
     }
 
     @Test
@@ -59,12 +59,12 @@ class AffirmationRepositoryReorderTest {
         )
         val repository = AffirmationRepository(dao)
 
-        repository.unarchive(dao.entries.first { it.id == 2 })
+        repository.unarchive(dao.entries.first { it.id == 2L })
 
         val active = dao.getAll("Affirmations")
         assertEquals(listOf("Active", "Archived"), active.map { it.text })
-        assertEquals(1, active.first { it.id == 2 }.sortOrder)
-        assertFalse(active.first { it.id == 2 }.archived)
+        assertEquals(1, active.first { it.id == 2L }.sortOrder)
+        assertFalse(active.first { it.id == 2L }.archived)
     }
 
     @Test
@@ -82,8 +82,8 @@ class AffirmationRepositoryReorderTest {
 
         val active = dao.entries.filter { !it.archived }.sortedBy { it.sortOrder }
         assertEquals(listOf("B", "A"), active.map { it.text })
-        assertTrue(dao.entries.first { it.id == 3 }.archived)
-        assertEquals(99, dao.entries.first { it.id == 3 }.sortOrder)
+        assertTrue(dao.entries.first { it.id == 3L }.archived)
+        assertEquals(99, dao.entries.first { it.id == 3L }.sortOrder)
     }
 
     private class FakeAffirmationDao(
