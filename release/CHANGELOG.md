@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.0.37 - 2026-07-19
+
+### Affirmations
+
+- Archive affirmations you no longer want in your active list without deleting them
+- View and restore archived affirmations from My Collection
+
 ## 1.0.36 - 2026-07-13
 
 ### Living Flower
