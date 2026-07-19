@@ -42,6 +42,8 @@ data class AffirmationCalendarUiState(
 
 data class AffirmationsUiState(
     val affirmations: List<AffirmationEntity> = emptyList(),
+    val archivedAffirmations: List<AffirmationEntity> = emptyList(),
+    val showArchived: Boolean = false,
     val currentIndex: Int = 0,
     val reminderEnabled: Boolean = false,
     val reminderHour: Int = 9,
@@ -148,6 +150,14 @@ class AffirmationsViewModel(
                     )
                 }
             }
+        }
+
+        viewModelScope.launch {
+            repository.archivedAffirmations
+                .catch { }
+                .collect { list ->
+                    _uiState.update { it.copy(archivedAffirmations = list) }
+                }
         }
     }
 
@@ -310,6 +320,22 @@ class AffirmationsViewModel(
         viewModelScope.launch {
             repository.delete(entity)
         }
+    }
+
+    fun archiveAffirmation(entity: AffirmationEntity) {
+        viewModelScope.launch {
+            repository.archive(entity)
+        }
+    }
+
+    fun unarchiveAffirmation(entity: AffirmationEntity) {
+        viewModelScope.launch {
+            repository.unarchive(entity)
+        }
+    }
+
+    fun toggleShowArchived() {
+        _uiState.update { it.copy(showArchived = !it.showArchived) }
     }
 
     fun reorderAffirmations(fromIndex: Int, toIndex: Int) {

@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AffirmationRepositoryReorderTest {
@@ -24,9 +26,36 @@ class AffirmationRepositoryReorderTest {
 
         repository.reorder(fromIndex = 0, toIndex = 2)
 
-        val ordered = dao.entries.sortedBy { it.sortOrder }
+        val ordered = dao.activeEntries.sortedBy { it.sortOrder }
         assertEquals(listOf("B", "C", "A"), ordered.map { it.text })
         assertEquals(listOf(0, 1, 2), ordered.map { it.sortOrder })
+    }
+
+    @Test
+    fun archive_hidesFromActiveList() = runBlocking {
+        val entity = AffirmationEntity(id = 1, text = "A", sortOrder = 0)
+        val dao = FakeAffirmationDao(listOf(entity))
+        val repository = AffirmationRepository(dao)
+
+        repository.archive(entity)
+
+        assertTrue(dao.activeEntries.isEmpty())
+        assertEquals(1, dao.archivedEntries.size)
+        assertTrue(dao.archivedEntries.single().isArchived)
+    }
+
+    @Test
+    fun unarchive_restoresToActiveListAtEnd() = runBlocking {
+        val active = AffirmationEntity(id = 1, text = "A", sortOrder = 0)
+        val archived = AffirmationEntity(id = 2, text = "B", sortOrder = 1, isArchived = true)
+        val dao = FakeAffirmationDao(listOf(active, archived))
+        val repository = AffirmationRepository(dao)
+
+        repository.unarchive(archived)
+
+        assertEquals(listOf("A", "B"), dao.activeEntries.sortedBy { it.sortOrder }.map { it.text })
+        assertEquals(1, dao.activeEntries.last().sortOrder)
+        assertTrue(dao.archivedEntries.isEmpty())
     }
 
     private class FakeAffirmationDao(
@@ -35,19 +64,35 @@ class AffirmationRepositoryReorderTest {
         val entries = initial.toMutableList()
         private val flow = MutableStateFlow(entries.toList())
 
-        override fun observeAll(listKind: String): Flow<List<AffirmationEntity>> =
-            flow.asStateFlow().map { list -> list.filter { it.listKind == listKind } }
+        val activeEntries: List<AffirmationEntity>
+            get() = entries.filter { !it.isArchived }
 
-        override suspend fun getAll(listKind: String): List<AffirmationEntity> =
-            entries.filter { it.listKind == listKind }
+        val archivedEntries: List<AffirmationEntity>
+            get() = entries.filter { it.isArchived }
+
+        override fun observeActive(listKind: String): Flow<List<AffirmationEntity>> =
+            flow.asStateFlow().map { list ->
+                list.filter { it.listKind == listKind && !it.isArchived }
+            }
+
+        override fun observeArchived(listKind: String): Flow<List<AffirmationEntity>> =
+            flow.asStateFlow().map { list ->
+                list.filter { it.listKind == listKind && it.isArchived }
+            }
+
+        override suspend fun getActive(listKind: String): List<AffirmationEntity> =
+            entries.filter { it.listKind == listKind && !it.isArchived }
 
         override suspend fun getAllKinds(): List<AffirmationEntity> = entries.toList()
 
-        override suspend fun count(listKind: String): Int =
+        override suspend fun countAll(listKind: String): Int =
             entries.count { it.listKind == listKind }
 
-        override suspend fun random(listKind: String): AffirmationEntity? =
-            entries.filter { it.listKind == listKind }.randomOrNull()
+        override suspend fun countActive(listKind: String): Int =
+            entries.count { it.listKind == listKind && !it.isArchived }
+
+        override suspend fun randomActive(listKind: String): AffirmationEntity? =
+            entries.filter { it.listKind == listKind && !it.isArchived }.randomOrNull()
 
         override suspend fun insert(entity: AffirmationEntity): Long {
             val id = (entries.maxOfOrNull { it.id } ?: 0L) + 1

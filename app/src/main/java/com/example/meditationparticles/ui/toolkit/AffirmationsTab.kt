@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,11 +27,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -234,6 +237,20 @@ fun AffirmationsTab(
                             modifier = Modifier.padding(top = 4.dp),
                         )
                     }
+                    if (state.archivedAffirmations.isNotEmpty()) {
+                        Text(
+                            text = if (state.showArchived) {
+                                "Hide archived (${state.archivedAffirmations.size})"
+                            } else {
+                                "View archived (${state.archivedAffirmations.size})"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .clickable(onClick = viewModel::toggleShowArchived),
+                        )
+                    }
                 }
 
                 if (state.affirmations.isEmpty()) {
@@ -250,9 +267,29 @@ fun AffirmationsTab(
                     ReorderableAffirmationList(
                         affirmations = state.affirmations,
                         onEdit = viewModel::showEditDialog,
+                        onArchive = viewModel::archiveAffirmation,
                         onDelete = viewModel::deleteAffirmation,
                         onReorder = viewModel::reorderAffirmations,
                     )
+                }
+
+                if (state.showArchived && state.archivedAffirmations.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
+                    ) {
+                        Text(
+                            text = "Archived",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = SereneSpacing.stackMd),
+                        )
+                        state.archivedAffirmations.forEach { affirmation ->
+                            ArchivedAffirmationCard(
+                                affirmation = affirmation,
+                                onRestore = { viewModel.unarchiveAffirmation(affirmation) },
+                            )
+                        }
+                    }
                 }
             }
             }
@@ -367,6 +404,7 @@ private fun AffirmationHeroCard(
 internal fun AffirmationCollectionCard(
     affirmation: AffirmationEntity,
     onEdit: () -> Unit,
+    onArchive: () -> Unit,
     onDelete: () -> Unit,
     isDragging: Boolean = false,
     modifier: Modifier = Modifier,
@@ -399,9 +437,57 @@ internal fun AffirmationCollectionCard(
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
                     }
+                    IconButton(onClick = onArchive) {
+                        Icon(Icons.Default.Archive, contentDescription = "Archive")
+                    }
                     IconButton(onClick = onDelete) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ArchivedAffirmationCard(
+    affirmation: AffirmationEntity,
+    onRestore: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "\"${affirmation.text}\"",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = formatSavedAgo(affirmation.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = onRestore) {
+                    Icon(
+                        Icons.Default.Unarchive,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .size(18.dp),
+                    )
+                    Text("Restore")
                 }
             }
         }
