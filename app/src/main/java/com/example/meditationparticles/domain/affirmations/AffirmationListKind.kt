@@ -53,6 +53,18 @@ enum class AffirmationListKind {
             KatiesLoveList -> "No love notes yet. Add your first one."
         }
 
+    val emptyArchivedMessage: String
+        get() = when (this) {
+            Affirmations -> "No archived affirmations."
+            KatiesLoveList -> "No archived love notes."
+        }
+
+    val archivedLinkLabel: String
+        get() = when (this) {
+            Affirmations -> "View archived affirmations"
+            KatiesLoveList -> "View archived love notes"
+        }
+
     val heroEmptyMessage: String
         get() = when (this) {
             Affirmations -> "Add affirmations to begin your collection."

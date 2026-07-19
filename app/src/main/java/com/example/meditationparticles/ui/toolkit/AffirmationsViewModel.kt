@@ -42,6 +42,7 @@ data class AffirmationCalendarUiState(
 
 data class AffirmationsUiState(
     val affirmations: List<AffirmationEntity> = emptyList(),
+    val archivedAffirmations: List<AffirmationEntity> = emptyList(),
     val currentIndex: Int = 0,
     val reminderEnabled: Boolean = false,
     val reminderHour: Int = 9,
@@ -50,6 +51,7 @@ data class AffirmationsUiState(
     val showBulkImportDialog: Boolean = false,
     val importMessage: String? = null,
     val editingAffirmation: AffirmationEntity? = null,
+    val showArchivedList: Boolean = false,
     val showReview: Boolean = false,
     val reviewIndex: Int = 0,
     val showReviewAssessment: Boolean = false,
@@ -65,6 +67,9 @@ data class AffirmationsUiState(
 
     val canStartReview: Boolean
         get() = AffirmationReviewLogic.canStartReview(affirmations.size)
+
+    val hasArchived: Boolean
+        get() = archivedAffirmations.isNotEmpty()
 }
 
 class AffirmationsViewModel(
@@ -148,6 +153,19 @@ class AffirmationsViewModel(
                     )
                 }
             }
+        }
+
+        viewModelScope.launch {
+            repository.archivedAffirmations
+                .catch { }
+                .collect { list ->
+                    _uiState.update { state ->
+                        state.copy(
+                            archivedAffirmations = list,
+                            showArchivedList = state.showArchivedList && list.isNotEmpty(),
+                        )
+                    }
+                }
         }
     }
 
@@ -311,6 +329,22 @@ class AffirmationsViewModel(
             repository.delete(entity)
         }
     }
+
+    fun archiveAffirmation(entity: AffirmationEntity) {
+        viewModelScope.launch {
+            repository.archive(entity)
+        }
+    }
+
+    fun unarchiveAffirmation(entity: AffirmationEntity) {
+        viewModelScope.launch {
+            repository.unarchive(entity)
+        }
+    }
+
+    fun showArchivedList() = _uiState.update { it.copy(showArchivedList = true) }
+
+    fun hideArchivedList() = _uiState.update { it.copy(showArchivedList = false) }
 
     fun reorderAffirmations(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {

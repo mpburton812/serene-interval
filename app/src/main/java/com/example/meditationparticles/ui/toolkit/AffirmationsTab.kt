@@ -26,11 +26,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -209,22 +211,50 @@ fun AffirmationsTab(
                 }
 
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "My Collection",
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                    Text(
-                        text = listKind.collectionSubtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (state.affirmations.isNotEmpty()) {
+                    if (state.showArchivedList) {
                         Text(
-                            text = "Press and hold to reorder",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp),
+                            text = "Archived",
+                            style = MaterialTheme.typography.headlineMedium,
                         )
+                        Text(
+                            text = "Restore items to bring them back into your collection",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TextButton(
+                            onClick = viewModel::hideArchivedList,
+                            modifier = Modifier.padding(top = 4.dp),
+                        ) {
+                            Text("Back to collection")
+                        }
+                    } else {
+                        Text(
+                            text = "My Collection",
+                            style = MaterialTheme.typography.headlineMedium,
+                        )
+                        Text(
+                            text = listKind.collectionSubtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (state.affirmations.isNotEmpty()) {
+                            Text(
+                                text = "Press and hold to reorder",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                        if (state.hasArchived) {
+                            TextButton(
+                                onClick = viewModel::showArchivedList,
+                                modifier = Modifier.padding(top = 4.dp),
+                            ) {
+                                Text(
+                                    text = "${listKind.archivedLinkLabel} (${state.archivedAffirmations.size})",
+                                )
+                            }
+                        }
                     }
                     state.importMessage?.let { message ->
                         Text(
@@ -236,7 +266,31 @@ fun AffirmationsTab(
                     }
                 }
 
-                if (state.affirmations.isEmpty()) {
+                if (state.showArchivedList) {
+                    if (state.archivedAffirmations.isEmpty()) {
+                        GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = listKind.emptyArchivedMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(24.dp),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.gutter)) {
+                            state.archivedAffirmations.forEach { affirmation ->
+                                AffirmationCollectionCard(
+                                    affirmation = affirmation,
+                                    onEdit = { viewModel.showEditDialog(affirmation) },
+                                    onArchive = null,
+                                    onUnarchive = { viewModel.unarchiveAffirmation(affirmation) },
+                                    onDelete = { viewModel.deleteAffirmation(affirmation) },
+                                )
+                            }
+                        }
+                    }
+                } else if (state.affirmations.isEmpty()) {
                     GlassCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = listKind.emptyCollectionMessage,
@@ -250,6 +304,7 @@ fun AffirmationsTab(
                     ReorderableAffirmationList(
                         affirmations = state.affirmations,
                         onEdit = viewModel::showEditDialog,
+                        onArchive = viewModel::archiveAffirmation,
                         onDelete = viewModel::deleteAffirmation,
                         onReorder = viewModel::reorderAffirmations,
                     )
@@ -368,6 +423,8 @@ internal fun AffirmationCollectionCard(
     affirmation: AffirmationEntity,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onArchive: (() -> Unit)? = null,
+    onUnarchive: (() -> Unit)? = null,
     isDragging: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -398,6 +455,16 @@ internal fun AffirmationCollectionCard(
                 Row {
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
+                    if (onArchive != null) {
+                        IconButton(onClick = onArchive) {
+                            Icon(Icons.Default.Archive, contentDescription = "Archive")
+                        }
+                    }
+                    if (onUnarchive != null) {
+                        IconButton(onClick = onUnarchive) {
+                            Icon(Icons.Default.Unarchive, contentDescription = "Restore")
+                        }
                     }
                     IconButton(onClick = onDelete) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")

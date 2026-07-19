@@ -11,13 +11,19 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AffirmationDao {
     @Query(
-        "SELECT * FROM affirmations WHERE listKind = :listKind " +
+        "SELECT * FROM affirmations WHERE listKind = :listKind AND archived = 0 " +
             "ORDER BY sortOrder ASC, createdAt DESC",
     )
     fun observeAll(listKind: String): Flow<List<AffirmationEntity>>
 
     @Query(
-        "SELECT * FROM affirmations WHERE listKind = :listKind " +
+        "SELECT * FROM affirmations WHERE listKind = :listKind AND archived = 1 " +
+            "ORDER BY sortOrder ASC, createdAt DESC",
+    )
+    fun observeArchived(listKind: String): Flow<List<AffirmationEntity>>
+
+    @Query(
+        "SELECT * FROM affirmations WHERE listKind = :listKind AND archived = 0 " +
             "ORDER BY sortOrder ASC, createdAt DESC",
     )
     suspend fun getAll(listKind: String): List<AffirmationEntity>
@@ -28,8 +34,11 @@ interface AffirmationDao {
     @Query("SELECT COUNT(*) FROM affirmations WHERE listKind = :listKind")
     suspend fun count(listKind: String): Int
 
+    @Query("SELECT COUNT(*) FROM affirmations WHERE listKind = :listKind AND archived = 0")
+    suspend fun countActive(listKind: String): Int
+
     @Query(
-        "SELECT * FROM affirmations WHERE listKind = :listKind " +
+        "SELECT * FROM affirmations WHERE listKind = :listKind AND archived = 0 " +
             "ORDER BY RANDOM() LIMIT 1",
     )
     suspend fun random(listKind: String): AffirmationEntity?

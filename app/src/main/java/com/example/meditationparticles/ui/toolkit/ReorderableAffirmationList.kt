@@ -24,6 +24,7 @@ import kotlin.math.roundToInt
 internal fun ReorderableAffirmationList(
     affirmations: List<AffirmationEntity>,
     onEdit: (AffirmationEntity) -> Unit,
+    onArchive: (AffirmationEntity) -> Unit,
     onDelete: (AffirmationEntity) -> Unit,
     onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
 ) {
@@ -38,6 +39,7 @@ internal fun ReorderableAffirmationList(
             AffirmationCollectionCard(
                 affirmation = affirmation,
                 onEdit = { onEdit(affirmation) },
+                onArchive = { onArchive(affirmation) },
                 onDelete = { onDelete(affirmation) },
                 isDragging = isDragging,
                 modifier = Modifier

@@ -180,6 +180,7 @@ class AppDataExporter(
         put("createdAt", createdAt)
         put("sortOrder", sortOrder)
         put("listKind", listKind)
+        put("archived", archived)
     }
 
     private fun ThoughtDumpEntity.toJson(): JSONObject = JSONObject().apply {

@@ -560,6 +560,14 @@ private class Migration22To23 : Migration(22, 23) {
     }
 }
 
+private class Migration23To24 : Migration(23, 24) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE affirmations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -583,4 +591,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration20To21(),
     Migration21To22(),
     Migration22To23(),
+    Migration23To24(),
 )

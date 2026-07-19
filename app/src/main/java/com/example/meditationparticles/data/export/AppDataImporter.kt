@@ -516,6 +516,7 @@ class AppDataImporter(
                     createdAt = createdAt,
                     sortOrder = item.optInt("sortOrder", 0),
                     listKind = listKind,
+                    archived = item.optBoolean("archived", false),
                 ),
             )
             imported++

@@ -11,4 +11,5 @@ data class AffirmationEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val sortOrder: Int = 0,
     val listKind: String = AffirmationListKind.Affirmations.name,
+    val archived: Boolean = false,
 )

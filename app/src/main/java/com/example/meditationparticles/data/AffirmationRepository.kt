@@ -14,6 +14,8 @@ class AffirmationRepository(
 
     val affirmations: Flow<List<AffirmationEntity>> = dao.observeAll(kindKey)
 
+    val archivedAffirmations: Flow<List<AffirmationEntity>> = dao.observeArchived(kindKey)
+
     suspend fun seedIfEmpty() {
         if (dao.count(kindKey) > 0) return
         listKind.defaultTexts.forEachIndexed { index, text ->
@@ -36,7 +38,7 @@ class AffirmationRepository(
         dao.insert(
             AffirmationEntity(
                 text = trimmed,
-                sortOrder = dao.count(kindKey),
+                sortOrder = dao.countActive(kindKey),
                 listKind = kindKey,
             ),
         )
@@ -45,7 +47,7 @@ class AffirmationRepository(
     suspend fun bulkAdd(rawText: String): Int {
         val texts = parseAffirmationLines(rawText)
         if (texts.isEmpty()) return 0
-        val baseSortOrder = dao.count(kindKey)
+        val baseSortOrder = dao.countActive(kindKey)
         val entities = texts.mapIndexed { index, text ->
             AffirmationEntity(
                 text = text,
@@ -60,6 +62,21 @@ class AffirmationRepository(
     suspend fun update(entity: AffirmationEntity) = dao.update(entity)
 
     suspend fun delete(entity: AffirmationEntity) = dao.delete(entity)
+
+    suspend fun archive(entity: AffirmationEntity) {
+        if (entity.archived) return
+        dao.update(entity.copy(archived = true))
+    }
+
+    suspend fun unarchive(entity: AffirmationEntity) {
+        if (!entity.archived) return
+        dao.update(
+            entity.copy(
+                archived = false,
+                sortOrder = dao.countActive(kindKey),
+            ),
+        )
+    }
 
     suspend fun reorder(fromIndex: Int, toIndex: Int) {
         val current = dao.getAll(kindKey)
