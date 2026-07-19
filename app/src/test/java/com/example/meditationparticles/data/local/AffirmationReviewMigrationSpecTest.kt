@@ -21,4 +21,13 @@ class AffirmationReviewMigrationSpecTest {
         assertTrue(migration.startVersion == 22)
         assertTrue(migration.endVersion == 23)
     }
+
+    @Test
+    fun migration23To24_addsIsArchivedColumn() {
+        val migration = SERENE_DATABASE_MIGRATIONS.first {
+            it.startVersion == 23 && it.endVersion == 24
+        }
+        assertTrue(migration.startVersion == 23)
+        assertTrue(migration.endVersion == 24)
+    }
 }

@@ -12,10 +12,12 @@ class AffirmationRepository(
 ) {
     private val kindKey = listKind.name
 
-    val affirmations: Flow<List<AffirmationEntity>> = dao.observeAll(kindKey)
+    val affirmations: Flow<List<AffirmationEntity>> = dao.observeActive(kindKey)
+
+    val archivedAffirmations: Flow<List<AffirmationEntity>> = dao.observeArchived(kindKey)
 
     suspend fun seedIfEmpty() {
-        if (dao.count(kindKey) > 0) return
+        if (dao.countAll(kindKey) > 0) return
         listKind.defaultTexts.forEachIndexed { index, text ->
             dao.insert(
                 AffirmationEntity(
@@ -28,7 +30,7 @@ class AffirmationRepository(
         }
     }
 
-    suspend fun randomAffirmation(): AffirmationEntity? = dao.random(kindKey)
+    suspend fun randomAffirmation(): AffirmationEntity? = dao.randomActive(kindKey)
 
     suspend fun add(text: String) {
         val trimmed = text.trim()
@@ -36,7 +38,7 @@ class AffirmationRepository(
         dao.insert(
             AffirmationEntity(
                 text = trimmed,
-                sortOrder = dao.count(kindKey),
+                sortOrder = dao.countActive(kindKey),
                 listKind = kindKey,
             ),
         )
@@ -45,7 +47,7 @@ class AffirmationRepository(
     suspend fun bulkAdd(rawText: String): Int {
         val texts = parseAffirmationLines(rawText)
         if (texts.isEmpty()) return 0
-        val baseSortOrder = dao.count(kindKey)
+        val baseSortOrder = dao.countActive(kindKey)
         val entities = texts.mapIndexed { index, text ->
             AffirmationEntity(
                 text = text,
@@ -61,8 +63,21 @@ class AffirmationRepository(
 
     suspend fun delete(entity: AffirmationEntity) = dao.delete(entity)
 
+    suspend fun archive(entity: AffirmationEntity) {
+        dao.update(entity.copy(isArchived = true))
+    }
+
+    suspend fun unarchive(entity: AffirmationEntity) {
+        dao.update(
+            entity.copy(
+                isArchived = false,
+                sortOrder = dao.countActive(kindKey),
+            ),
+        )
+    }
+
     suspend fun reorder(fromIndex: Int, toIndex: Int) {
-        val current = dao.getAll(kindKey)
+        val current = dao.getActive(kindKey)
         val reordered = AffirmationReorder.reorder(current, fromIndex, toIndex)
         val updates = reordered.mapIndexedNotNull { index, entity ->
             if (entity.sortOrder != index) entity.copy(sortOrder = index) else null

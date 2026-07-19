@@ -11,28 +11,37 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AffirmationDao {
     @Query(
-        "SELECT * FROM affirmations WHERE listKind = :listKind " +
+        "SELECT * FROM affirmations WHERE listKind = :listKind AND isArchived = 0 " +
             "ORDER BY sortOrder ASC, createdAt DESC",
     )
-    fun observeAll(listKind: String): Flow<List<AffirmationEntity>>
+    fun observeActive(listKind: String): Flow<List<AffirmationEntity>>
 
     @Query(
-        "SELECT * FROM affirmations WHERE listKind = :listKind " +
+        "SELECT * FROM affirmations WHERE listKind = :listKind AND isArchived = 1 " +
             "ORDER BY sortOrder ASC, createdAt DESC",
     )
-    suspend fun getAll(listKind: String): List<AffirmationEntity>
+    fun observeArchived(listKind: String): Flow<List<AffirmationEntity>>
+
+    @Query(
+        "SELECT * FROM affirmations WHERE listKind = :listKind AND isArchived = 0 " +
+            "ORDER BY sortOrder ASC, createdAt DESC",
+    )
+    suspend fun getActive(listKind: String): List<AffirmationEntity>
 
     @Query("SELECT * FROM affirmations ORDER BY sortOrder ASC, createdAt DESC")
     suspend fun getAllKinds(): List<AffirmationEntity>
 
     @Query("SELECT COUNT(*) FROM affirmations WHERE listKind = :listKind")
-    suspend fun count(listKind: String): Int
+    suspend fun countAll(listKind: String): Int
+
+    @Query("SELECT COUNT(*) FROM affirmations WHERE listKind = :listKind AND isArchived = 0")
+    suspend fun countActive(listKind: String): Int
 
     @Query(
-        "SELECT * FROM affirmations WHERE listKind = :listKind " +
+        "SELECT * FROM affirmations WHERE listKind = :listKind AND isArchived = 0 " +
             "ORDER BY RANDOM() LIMIT 1",
     )
-    suspend fun random(listKind: String): AffirmationEntity?
+    suspend fun randomActive(listKind: String): AffirmationEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: AffirmationEntity): Long
