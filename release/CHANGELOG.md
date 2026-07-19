@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.0.37 - 2026-07-19
+
+### Affirmations
+
+- Archive affirmations to hide them from the main collection without deleting them
+- View archived items and restore them when you want them back
+- Archived affirmations stay out of hero, review, reminders, and home daily picks
+
 ## 1.0.36 - 2026-07-13
 
 ### Living Flower

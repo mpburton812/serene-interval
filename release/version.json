@@ -1,9 +1,8 @@
 ﻿{
-    "versionCode":  30,
-    "versionName":  "1.0.36",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.36/sway_meditation.apk",
-    "expectedSha256":  "a874a5e9a69644dd8632135e82f321ca95ae40e05aa9823c2adccc86b359bd4b",
-    "releaseNotes":  "Living Flower: clearer black-on-white name labels; multi-tag filters require all selected tags.",
-    "minVersionCode":  1
+    "versionCode": 31,
+    "versionName": "1.0.37",
+    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v1.0.37/sway_meditation.apk",
+    "expectedSha256": "",
+    "releaseNotes": "Affirmations: archive and restore items; archived affirmations stay out of hero, review, reminders, and home picks.",
+    "minVersionCode": 1
 }
-
