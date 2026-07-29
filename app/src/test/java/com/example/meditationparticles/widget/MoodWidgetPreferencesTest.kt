@@ -48,6 +48,37 @@ class MoodWidgetPreferencesTest {
     }
 
     @Test
+    fun saveAndLoadFlash_roundTripsValues() {
+        val backing = InMemorySharedPreferences()
+        val preferences = MoodWidgetPreferences(backing)
+        val expected = MoodWidgetFlashState(level = 2, blend = 0.75f)
+
+        preferences.saveFlash(appWidgetId = 5, flash = expected)
+
+        assertEquals(expected, preferences.loadFlash(appWidgetId = 5))
+        assertEquals(2, backing.getInt(MoodWidgetPreferences.keyFlashLevel(5), -99))
+        assertEquals(0.75f, backing.getFloat(MoodWidgetPreferences.keyFlashBlend(5), -1f), 0.001f)
+    }
+
+    @Test
+    fun clearFlash_removesStoredFlashState() {
+        val backing = InMemorySharedPreferences()
+        val preferences = MoodWidgetPreferences(backing)
+        preferences.saveFlash(
+            appWidgetId = 8,
+            flash = MoodWidgetFlashState(level = 1, blend = 1f),
+        )
+
+        preferences.clearFlash(appWidgetId = 8)
+
+        assertEquals(null, preferences.loadFlash(appWidgetId = 8))
+        assertEquals(
+            MoodWidgetPreferences.NO_FLASH_LEVEL,
+            backing.getInt(MoodWidgetPreferences.keyFlashLevel(8), MoodWidgetPreferences.NO_FLASH_LEVEL),
+        )
+    }
+
+    @Test
     fun remove_clearsStoredWidgetConfig() {
         val backing = InMemorySharedPreferences()
         val preferences = MoodWidgetPreferences(backing)
@@ -67,6 +98,7 @@ class MoodWidgetPreferencesTest {
             preferences.load(appWidgetId = 9).transparency,
             0.001f,
         )
+        assertEquals(null, preferences.loadFlash(appWidgetId = 9))
     }
 
     private class InMemorySharedPreferences : SharedPreferences {

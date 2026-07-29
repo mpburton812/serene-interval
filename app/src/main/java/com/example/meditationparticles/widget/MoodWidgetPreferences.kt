@@ -52,20 +52,50 @@ class MoodWidgetPreferences internal constructor(
             .apply()
     }
 
+    fun loadFlash(appWidgetId: Int): MoodWidgetFlashState? {
+        val level = prefs.getInt(keyFlashLevel(appWidgetId), NO_FLASH_LEVEL)
+        if (level == NO_FLASH_LEVEL) return null
+        val blend = prefs.getFloat(keyFlashBlend(appWidgetId), 0f).coerceIn(0f, 1f)
+        return MoodWidgetFlashState(level = level, blend = blend)
+    }
+
+    fun saveFlash(appWidgetId: Int, flash: MoodWidgetFlashState) {
+        prefs.edit()
+            .putInt(keyFlashLevel(appWidgetId), flash.level)
+            .putFloat(keyFlashBlend(appWidgetId), flash.blend.coerceIn(0f, 1f))
+            .apply()
+    }
+
+    fun clearFlash(appWidgetId: Int) {
+        prefs.edit()
+            .remove(keyFlashLevel(appWidgetId))
+            .remove(keyFlashBlend(appWidgetId))
+            .apply()
+    }
+
     fun remove(appWidgetId: Int) {
         prefs.edit()
             .remove(keyBackgroundStyle(appWidgetId))
             .remove(keyTransparency(appWidgetId))
+            .remove(keyFlashLevel(appWidgetId))
+            .remove(keyFlashBlend(appWidgetId))
             .apply()
     }
 
     companion object {
         const val PREFS_NAME = "mood_widget"
+        internal const val NO_FLASH_LEVEL = -1
 
         internal fun keyBackgroundStyle(appWidgetId: Int): String =
             "background_style_$appWidgetId"
 
         internal fun keyTransparency(appWidgetId: Int): String =
             "transparency_$appWidgetId"
+
+        internal fun keyFlashLevel(appWidgetId: Int): String =
+            "flash_level_$appWidgetId"
+
+        internal fun keyFlashBlend(appWidgetId: Int): String =
+            "flash_blend_$appWidgetId"
     }
 }

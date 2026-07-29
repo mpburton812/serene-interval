@@ -33,20 +33,32 @@ class MoodWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
-        val config = MoodWidgetPreferences(context).load(appWidgetId)
+        val preferences = MoodWidgetPreferences(context)
+        val config = preferences.load(appWidgetId)
+        val flash = preferences.loadFlash(appWidgetId)
         provideContent {
-            MoodWidgetContent(config = config)
+            MoodWidgetContent(config = config, flash = flash)
         }
     }
 }
 
 @Composable
-private fun MoodWidgetContent(config: MoodWidgetConfig) {
+private fun MoodWidgetContent(
+    config: MoodWidgetConfig,
+    flash: MoodWidgetFlashState?,
+) {
     val backgroundArgb = when (config.backgroundStyle) {
         MoodWidgetBackgroundStyle.WHITE -> 0xFFFFFFFF
         MoodWidgetBackgroundStyle.BLACK -> 0xFF000000
     }
-    val backgroundColor = Color(backgroundArgb).copy(alpha = config.transparency)
+    val baseBackground = Color(backgroundArgb).copy(alpha = config.transparency)
+    val backgroundColor = flash?.let { state ->
+        MoodWidgetFlash.blendedBackground(
+            baseBackground = baseBackground,
+            moodLevel = state.level,
+            blend = state.blend,
+        )
+    } ?: baseBackground
     val levels = MoodWidgetLayout.moodLevels()
 
     Box(
