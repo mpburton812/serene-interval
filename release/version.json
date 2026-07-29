@@ -1,8 +1,8 @@
-{
-    "versionCode":  32,
-    "versionName":  "1.0.38",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.38/sway_meditation.apk",
-    "expectedSha256":  "64d87e17a42a4842877930d2f8c0fd4febe747a8f78eb49d5b6955392c7c5f00",
-    "releaseNotes":  "Mood Tracker widget: background flashes the selected mood color three times; red face is now sad.",
+﻿{
+    "versionCode":  33,
+    "versionName":  "1.0.39",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.39/sway_meditation.apk",
+    "expectedSha256":  "a4f479c84e111e5172da1bd93ce669ca80d04489c76805423fa41ab66e2a684c",
+    "releaseNotes":  "Mood Tracker widget: selected face enlarges on each of the three background color pulses.",
     "minVersionCode":  1
 }
