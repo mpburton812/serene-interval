@@ -56,10 +56,30 @@ class MoodWidgetSelectionFlashTest {
 
     @Test
     fun flashStore_clearsWhenAlphaIsZero() {
-        MoodWidgetFlashStore.set(99, MoodWidgetFlash(MoodScale.COLOR_GREEN, 0.8f))
+        MoodWidgetFlashStore.set(99, MoodWidgetFlash(MoodScale.COLOR_GREEN, 0.8f, level = 4))
         assertEquals(0.8f, MoodWidgetFlashStore.get(99)?.alpha)
-        MoodWidgetFlashStore.set(99, MoodWidgetFlash(MoodScale.COLOR_GREEN, 0f))
+        MoodWidgetFlashStore.set(99, MoodWidgetFlash(MoodScale.COLOR_GREEN, 0f, level = 4))
         assertNull(MoodWidgetFlashStore.get(99))
         MoodWidgetFlashStore.clear(99)
+    }
+
+    @Test
+    fun isFaceEnlarged_onlyNearPeakForMatchingLevel() {
+        val peak = MoodWidgetFlash(MoodScale.COLOR_BLUE, alpha = 1f, level = 3)
+        val mid = MoodWidgetFlash(MoodScale.COLOR_BLUE, alpha = 0.7f, level = 3)
+        val low = MoodWidgetFlash(MoodScale.COLOR_BLUE, alpha = 0.35f, level = 3)
+
+        assertTrue(MoodWidgetSelectionFlash.isFaceEnlarged(peak, level = 3))
+        assertTrue(MoodWidgetSelectionFlash.isFaceEnlarged(mid, level = 3))
+        assertTrue(!MoodWidgetSelectionFlash.isFaceEnlarged(low, level = 3))
+        assertTrue(!MoodWidgetSelectionFlash.isFaceEnlarged(peak, level = 1))
+        assertEquals(
+            MoodWidgetSelectionFlash.HIGHLIGHT_CIRCLE_DP,
+            MoodWidgetSelectionFlash.circleSizeDp(enlarged = true),
+        )
+        assertEquals(
+            MoodWidgetSelectionFlash.NORMAL_ICON_DP,
+            MoodWidgetSelectionFlash.iconSizeDp(enlarged = false),
+        )
     }
 }

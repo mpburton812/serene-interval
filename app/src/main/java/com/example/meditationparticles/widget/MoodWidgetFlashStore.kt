@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 data class MoodWidgetFlash(
     val colorArgb: Long,
     val alpha: Float,
+    val level: Int = 0,
 )
 
 object MoodWidgetFlashStore {
@@ -24,4 +25,6 @@ object MoodWidgetFlashStore {
     fun clear(appWidgetId: Int) {
         flashes.remove(appWidgetId)
     }
+
+    fun isActive(appWidgetId: Int): Boolean = flashes.containsKey(appWidgetId)
 }
