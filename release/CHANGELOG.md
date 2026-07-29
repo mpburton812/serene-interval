@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.0.38 - 2026-07-29
+
+### Mood Tracker widget
+
+- After you log a mood, the widget background fast-fades that color in and out three times
+- Red (very dissatisfied) face now shows a frown instead of a smile
+
 ## 1.0.37 - 2026-07-19
 
 ### Affirmations
