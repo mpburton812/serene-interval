@@ -65,8 +65,8 @@ android {
         applicationId = "com.example.meditationparticles"
         minSdk = 26
         targetSdk = 36
-        versionCode = 32
-        versionName = "1.0.38"
+        versionCode = 33
+        versionName = "1.0.39"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("Boolean", "UPDATE_CHECK_ENABLED", "true")

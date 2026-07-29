@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.0.39 - 2026-07-29
+
+### Mood Tracker widget
+
+- Selected mood face briefly enlarges on each of the three background color pulses (home-screen bounce feedback)
+
 ## 1.0.38 - 2026-07-29
 
 ### Mood Tracker widget

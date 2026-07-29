@@ -73,7 +73,7 @@ internal fun MoodWidgetContent(
                     modifier = GlanceModifier.defaultWeight(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    MoodWidgetButton(level = level)
+                    MoodWidgetButton(level = level, flash = flash)
                 }
             }
         }
@@ -105,15 +105,19 @@ internal fun resolveWidgetBackground(
 }
 
 @Composable
-private fun MoodWidgetButton(level: Int) {
+private fun MoodWidgetButton(level: Int, flash: MoodWidgetFlash?) {
     val color = Color(MoodScale.colorArgb(level))
     val context = LocalContext.current
+    val enlarged = MoodWidgetSelectionFlash.isFaceEnlarged(flash, level)
+    val circleDp = MoodWidgetSelectionFlash.circleSizeDp(enlarged)
+    val iconDp = MoodWidgetSelectionFlash.iconSizeDp(enlarged)
+    val cornerDp = MoodWidgetSelectionFlash.cornerRadiusDp(enlarged)
 
     Box(
         modifier = GlanceModifier
-            .size(48.dp)
+            .size(circleDp.dp)
             .background(ColorProvider(color.copy(alpha = 0.18f)))
-            .cornerRadius(24.dp)
+            .cornerRadius(cornerDp.dp)
             .clickable(
                 onClick = actionRunCallback<MoodLogAction>(
                     actionParametersOf(MoodLogAction.moodLevelKey to level),
@@ -127,7 +131,7 @@ private fun MoodWidgetButton(level: Int) {
                 R.string.mood_widget_button_description,
                 MoodScale.label(level),
             ),
-            modifier = GlanceModifier.size(32.dp),
+            modifier = GlanceModifier.size(iconDp.dp),
             colorFilter = ColorFilter.tint(ColorProvider(color)),
         )
     }
