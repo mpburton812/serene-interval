@@ -34,19 +34,27 @@ class MoodWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         val config = MoodWidgetPreferences(context).load(appWidgetId)
+        val flash = MoodWidgetFlashStore.get(appWidgetId)
         provideContent {
-            MoodWidgetContent(config = config)
+            MoodWidgetContent(config = config, flash = flash)
         }
     }
 }
 
 @Composable
-private fun MoodWidgetContent(config: MoodWidgetConfig) {
-    val backgroundArgb = when (config.backgroundStyle) {
+internal fun MoodWidgetContent(
+    config: MoodWidgetConfig,
+    flash: MoodWidgetFlash? = null,
+) {
+    val baseArgb = when (config.backgroundStyle) {
         MoodWidgetBackgroundStyle.WHITE -> 0xFFFFFFFF
         MoodWidgetBackgroundStyle.BLACK -> 0xFF000000
     }
-    val backgroundColor = Color(backgroundArgb).copy(alpha = config.transparency)
+    val backgroundColor = resolveWidgetBackground(
+        baseArgb = baseArgb,
+        transparency = config.transparency,
+        flash = flash,
+    )
     val levels = MoodWidgetLayout.moodLevels()
 
     Box(
@@ -65,23 +73,51 @@ private fun MoodWidgetContent(config: MoodWidgetConfig) {
                     modifier = GlanceModifier.defaultWeight(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    MoodWidgetButton(level = level)
+                    MoodWidgetButton(level = level, flash = flash)
                 }
             }
         }
     }
 }
 
+internal fun resolveWidgetBackground(
+    baseArgb: Long,
+    transparency: Float,
+    flash: MoodWidgetFlash?,
+): Color {
+    if (flash != null && flash.alpha > 0f) {
+        val flashStrength = flash.alpha.coerceIn(0f, 1f)
+        val flashColor = Color(flash.colorArgb).copy(alpha = transparency * flashStrength)
+        if (flashStrength >= 0.999f) {
+            return flashColor
+        }
+        // Cross-fade base chrome with the selected mood color for intermediate frames.
+        val base = Color(baseArgb).copy(alpha = transparency * (1f - flashStrength))
+        return Color(
+            red = base.red * (1f - flashStrength) + flashColor.red * flashStrength,
+            green = base.green * (1f - flashStrength) + flashColor.green * flashStrength,
+            blue = base.blue * (1f - flashStrength) + flashColor.blue * flashStrength,
+            alpha = (base.alpha * (1f - flashStrength) + flashColor.alpha * flashStrength)
+                .coerceIn(0f, 1f),
+        )
+    }
+    return Color(baseArgb).copy(alpha = transparency)
+}
+
 @Composable
-private fun MoodWidgetButton(level: Int) {
+private fun MoodWidgetButton(level: Int, flash: MoodWidgetFlash?) {
     val color = Color(MoodScale.colorArgb(level))
     val context = LocalContext.current
+    val enlarged = MoodWidgetSelectionFlash.isFaceEnlarged(flash, level)
+    val circleDp = MoodWidgetSelectionFlash.circleSizeDp(enlarged)
+    val iconDp = MoodWidgetSelectionFlash.iconSizeDp(enlarged)
+    val cornerDp = MoodWidgetSelectionFlash.cornerRadiusDp(enlarged)
 
     Box(
         modifier = GlanceModifier
-            .size(48.dp)
+            .size(circleDp.dp)
             .background(ColorProvider(color.copy(alpha = 0.18f)))
-            .cornerRadius(24.dp)
+            .cornerRadius(cornerDp.dp)
             .clickable(
                 onClick = actionRunCallback<MoodLogAction>(
                     actionParametersOf(MoodLogAction.moodLevelKey to level),
@@ -95,7 +131,7 @@ private fun MoodWidgetButton(level: Int) {
                 R.string.mood_widget_button_description,
                 MoodScale.label(level),
             ),
-            modifier = GlanceModifier.size(32.dp),
+            modifier = GlanceModifier.size(iconDp.dp),
             colorFilter = ColorFilter.tint(ColorProvider(color)),
         )
     }
