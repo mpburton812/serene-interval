@@ -1,9 +1,8 @@
-﻿{
-    "versionCode":  30,
-    "versionName":  "1.0.36",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.36/sway_meditation.apk",
-    "expectedSha256":  "a874a5e9a69644dd8632135e82f321ca95ae40e05aa9823c2adccc86b359bd4b",
-    "releaseNotes":  "Living Flower: clearer black-on-white name labels; multi-tag filters require all selected tags.",
+{
+    "versionCode":  32,
+    "versionName":  "1.0.38",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.38/sway_meditation.apk",
+    "expectedSha256":  "64d87e17a42a4842877930d2f8c0fd4febe747a8f78eb49d5b6955392c7c5f00",
+    "releaseNotes":  "Mood Tracker widget: background flashes the selected mood color three times; red face is now sad.",
     "minVersionCode":  1
 }
-
