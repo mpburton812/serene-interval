@@ -577,6 +577,7 @@ fun TimerScreen(
                             weekdayHeaders = meditationCalendar.weekdayHeaders,
                             onPreviousMonth = { viewModel.shiftCalendarMonth(forward = false) },
                             onNextMonth = { viewModel.shiftCalendarMonth(forward = true) },
+                            canGoForward = meditationCalendar.canGoForward,
                             modifier = Modifier.fillMaxWidth(),
                         )
 
