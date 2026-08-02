@@ -1,8 +1,8 @@
-﻿{
-    "versionCode":  35,
-    "versionName":  "2.0.1",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.1/safehaven.apk",
-    "expectedSha256":  "e9c955c87670e40661238e3d79c4d92ee2069322799d185b6eeb38bd400849b9",
-    "releaseNotes":  "Setup/Remodel: Toolkit can be turned back on; Quick Start follows Toolkit; home greeting name stacks under the cog.",
-    "minVersionCode":  1
+{
+    "versionCode": 36,
+    "versionName": "2.0.2",
+    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v2.0.2/safehaven.apk",
+    "expectedSha256": "006f4271f0b55731f805af3c8e0c791e6884f25e6473b4a3353636096b1b7e9b",
+    "releaseNotes": "Mood graphs: subtler non-overshooting curves, full-period axes; calendars show historical mood and meditation days.",
+    "minVersionCode": 1
 }
