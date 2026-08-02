@@ -1,0 +1,323 @@
+package com.safehaven.affirmations.ui.home
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.safehaven.affirmations.domain.home.HomeActivityItem
+import com.safehaven.affirmations.domain.mood.MoodGraphPeriod
+import com.safehaven.affirmations.domain.settings.ExperienceSettings
+import com.safehaven.affirmations.domain.quickstart.QuickStartTarget
+import com.safehaven.affirmations.navigation.SereneDestination
+import com.safehaven.affirmations.ui.components.GlassCard
+import com.safehaven.affirmations.ui.components.SereneTabBackground
+import com.safehaven.affirmations.ui.mood.MoodQuickLogCard
+import com.safehaven.affirmations.ui.mood.MoodSummariesSection
+import com.safehaven.affirmations.ui.mood.MoodTrackerViewModel
+import com.safehaven.affirmations.ui.settings.LocalExperienceSettings
+import com.safehaven.affirmations.ui.theme.SereneSpacing
+import java.util.Calendar
+
+@Composable
+fun HomeScreen(
+    onNavigate: (SereneDestination, String?) -> Unit,
+    onQuickStart: (QuickStartTarget) -> Unit,
+    onOpenSettings: () -> Unit,
+    onNavigateToMoodGraph: (MoodGraphPeriod) -> Unit = {},
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel(),
+    moodTrackerViewModel: MoodTrackerViewModel = viewModel(),
+) {
+    val dailyAffirmation by viewModel.dailyAffirmation.collectAsState()
+    val quickStartTargets by viewModel.quickStartTargets.collectAsState()
+    val activityTimeline by viewModel.activityTimeline.collectAsState()
+    val moodAverages by moodTrackerViewModel.averages.collectAsState()
+    var openedActivity by remember { mutableStateOf<HomeActivityItem?>(null) }
+    val settings = LocalExperienceSettings.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshDailyAffirmation()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val quickStartTiles = buildQuickStartTiles(
+        selectedTargets = quickStartTargets,
+        settings = settings,
+        onQuickStart = onQuickStart,
+    )
+
+    SereneTabBackground(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(SereneSpacing.containerMargin),
+            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackLg),
+        ) {
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                val name = settings.preferredName.trim()
+                if (name.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "${greeting()},",
+                            style = MaterialTheme.typography.displayLarge,
+                        )
+                        Text(
+                            text = name,
+                            style = MaterialTheme.typography.displayLarge,
+                            textAlign = TextAlign.End,
+                        )
+                    }
+                } else {
+                    Text(
+                        text = greeting(),
+                        style = MaterialTheme.typography.displayLarge,
+                    )
+                }
+                Text(
+                    text = homeSubtitle(settings),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.padding(start = SereneSpacing.gutter),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = 32.dp,
+        ) {
+            Column(modifier = Modifier.padding(32.dp)) {
+                Icon(
+                    imageVector = Icons.Default.FormatQuote,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                    modifier = Modifier.size(40.dp),
+                )
+                Text(
+                    text = "\"$dailyAffirmation\"",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = SereneSpacing.stackMd),
+                )
+                Row(
+                    modifier = Modifier.padding(top = SereneSpacing.stackMd),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 32.dp, height = 1.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                    )
+                    Text(
+                        text = "DAILY AFFIRMATION",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        MoodQuickLogCard(
+            onLogMood = viewModel::logMood,
+        )
+
+        MoodSummariesSection(
+            averages = moodAverages,
+            onPeriodClick = onNavigateToMoodGraph,
+        )
+
+        if (quickStartTiles.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
+                Text(
+                    text = "Quick Start",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+                quickStartTiles.chunked(2).forEach { rowTiles ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(SereneSpacing.gutter),
+                    ) {
+                        rowTiles.forEach { tile ->
+                            QuickStartTile(
+                                label = tile.label,
+                                icon = tile.icon,
+                                iconTint = tile.iconTint,
+                                iconBackground = tile.iconBackground,
+                                onClick = tile.onClick,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (rowTiles.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+
+        HomeActivityTimelineSection(
+            activities = activityTimeline,
+            onOpenTextEntry = { openedActivity = it },
+        )
+
+        openedActivity?.let { activity ->
+            HomeActivityTextDialog(
+                activity = activity,
+                onDismiss = { openedActivity = null },
+            )
+        }
+
+        Spacer(modifier = Modifier.height(SereneSpacing.stackLg))
+        }
+    }
+}
+
+@Composable
+private fun QuickStartTile(
+    label: String,
+    icon: ImageVector,
+    iconTint: Color,
+    iconBackground: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    GlassCard(
+        modifier = modifier.clickable(onClick = onClick),
+        cornerRadius = 40.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(iconBackground),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = iconTint,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = SereneSpacing.stackMd),
+            )
+        }
+    }
+}
+
+private fun welcomeHeadline(settings: ExperienceSettings): String {
+    val name = settings.preferredName.trim()
+    return if (name.isNotEmpty()) {
+        "${greeting()}, $name"
+    } else {
+        greeting()
+    }
+}
+
+private fun greeting(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when (hour) {
+        in 5..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        in 17..20 -> "Good evening"
+        else -> "Good evening"
+    }
+}
+
+private fun homeSubtitle(settings: ExperienceSettings): String {
+    val sanctuary = settings.sanctuaryName.trim()
+    return if (sanctuary.isNotEmpty()) {
+        "Welcome to $sanctuary."
+    } else {
+        greetingSubtitle()
+    }
+}
+
+private fun greetingSubtitle(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when (hour) {
+        in 5..11 -> "The quiet of the morning is a gift for the soul."
+        in 12..16 -> "Take a breath and find your center."
+        in 17..20 -> "Let the day settle into stillness."
+        else -> "Rest easy — tomorrow begins anew."
+    }
+}

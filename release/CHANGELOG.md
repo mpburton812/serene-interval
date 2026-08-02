@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 2.0.0 - 2026-08-02
+
+### Brand
+
+- Renamed to **SafeHaven:Affirmations & Tools** (`com.safehaven.affirmations`) with a cabin-and-pine launcher icon
+- Fresh install required — does not upgrade in place from `com.example.meditationparticles`
+
+### Mood graphs
+
+- Day, week, and month charts use smooth curves into each point, full equally-spaced timelines, and 1–4 color faces on the Y-axis
+
+### UX polish
+
+- Status bar no longer overlaps Toolkit / Capture Thought chrome
+- Long journal text scrolls inside the capture field and entry detail dialog
+- Home greeting is left/right justified with the settings cog raised
+- Flower tab uses a florist icon; Living Flower bubbles fade in/out over 1s when tags change
+
+### OneNote
+
+- Release/CI builds can inject `onenote.clientId` via GitHub secret `ONENOTE_CLIENT_ID` so sync is available in production APKs
+
 ## 1.0.39 - 2026-07-29
 
 ### Mood Tracker widget

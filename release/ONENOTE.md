@@ -10,16 +10,16 @@ Optional one-way sync of saved toolkit journal entries to Microsoft OneNote. The
 ## 1. Register the Android app
 
 1. Open **App registrations** → **New registration**.
-2. Name: `Serene Interval` (or your choice).
+2. Name: `SafeHaven` (or your choice).
 3. Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**.
 4. Redirect URI: **Public client/native (mobile & desktop)**  
-   - Package: `com.example.meditationparticles`  
+   - Package: `com.safehaven.affirmations`  
    - Signature hash (standard Base64 from sideload keystore SHA-1): `wnyLuNCKNp+EU4eMI6tuS0f+G/I=`  
      - Note **`MI6`** uses capital **I**, not lowercase **l** (`Ml6`).
    - Azure accepts either form; register **one or both**:
      ```
-     msauth://com.example.meditationparticles/wnyLuNCKNp+EU4eMI6tuS0f+G/I=
-     msauth://com.example.meditationparticles/wnyLuNCKNp%2BEU4eMI6tuS0f%2BG%2FI%3D
+     msauth://com.safehaven.affirmations/wnyLuNCKNp+EU4eMI6tuS0f+G/I=
+     msauth://com.safehaven.affirmations/wnyLuNCKNp%2BEU4eMI6tuS0f%2BG%2FI%3D
      ```
    - Do **not** use URL-safe Base64 (`-` / `_`, no padding). MSAL Android expects standard Base64 (`+` / `/` / `=`).
    - This hash matches the project **sideload** keystore (`keystore/sideload.jks`). All debug/release builds in this repo use that key (see `release/SIGNING.md`).
@@ -40,7 +40,7 @@ We expected '…' and we received '…'.
 The app builds config with `Uri.Builder` (same as MSAL). For this hash that is:
 
 ```
-msauth://com.example.meditationparticles/wnyLuNCKNp+EU4eMI6tuS0f+G%2FI=
+msauth://com.safehaven.affirmations/wnyLuNCKNp+EU4eMI6tuS0f+G%2FI=
 ```
 
 (`+` and `=` stay literal; the `/` inside the hash becomes `%2F`.)
@@ -83,7 +83,7 @@ Without a client ID, the app builds normally and OneNote sync stays disabled (Se
 ## 3. Verify in the app
 
 1. **Settings → Integrations → OneNote** — Connect Microsoft account.
-2. On first connect, the app creates a **Serene Interval** section in your default OneNote notebook (first notebook in the account).
+2. On first connect, the app creates a **SafeHaven** section in your default OneNote notebook (first notebook in the account).
 3. Choose a different **notebook** or **section** if you prefer; the current target is shown as `Syncing to: {notebook} → {section}`.
 4. Toggle which **entry types** sync (NVC, Refactoring, Center of Gravity, Thought Dump, Anxiety Log, Future Self).
 5. Save a toolkit entry — it syncs when **Auto-sync on save** is on and that entry type is enabled.
@@ -132,7 +132,7 @@ When sync is connected and enabled, **journal text** from toolkit entries is sen
 |---|---|
 | Connect fails immediately | Client ID in `local.properties`; config redirect matches MSAL **Expected** value (not Azure’s fully encoded copy); Azure has matching redirect URI; hash uses `MI6` not `Ml6` |
 | Sync pending forever | Network, account session (try Reconnect in Settings), Graph throttling |
-| Section not found | Reconnect to recreate **Serene Interval** section |
+| Section not found | Reconnect to recreate **SafeHaven** section |
 | Build works but no OneNote UI actions | `onenote.clientId` missing from `local.properties` |
 
 ### `Some or all required scopes have been declined by the Server`
@@ -208,9 +208,9 @@ If your app shows **Single tenant** only, consumer accounts are not enabled — 
 Some older or misconfigured registrations cannot switch from single-tenant to multitenant + personal. Create a **new** registration:
 
 1. **App registrations** → **New registration**.
-2. Name: e.g. `Serene Interval OneNote` (distinct from any old app).
+2. Name: e.g. `SafeHaven OneNote` (distinct from any old app).
 3. **Supported account types**: select **Accounts in any organizational directory and personal Microsoft accounts** (not single-tenant).
-4. Redirect URI: **Public client/native** — add both redirect URIs from [section 1](#1-register-the-android-app) for package `com.example.meditationparticles`.
+4. Redirect URI: **Public client/native** — add both redirect URIs from [section 1](#1-register-the-android-app) for package `com.safehaven.affirmations`.
 5. **Register** → copy the new **Application (client) ID** (Overview).
 6. **API permissions** → add delegated `Notes.ReadWrite` and `User.Read` under Microsoft Graph (same as section 1).
 7. **Authentication** → **Advanced settings** → **Allow public client flows** = **Yes**.

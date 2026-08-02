@@ -15,7 +15,7 @@ This keystore is committed on purpose so every developer machine and CI produce 
 
 If a phone was installed with a machine-specific Android debug key (default `~/.android/debug.keystore` on another PC):
 
-1. Uninstall Sway Meditation on the device.
+1. Uninstall SafeHaven on the device.
 2. Install the latest APK from [GitHub Releases](https://github.com/mpburton812/serene-interval/releases) (or run `installDebug` after pulling this change).
 3. Future in-app updates will install normally.
 
@@ -31,7 +31,7 @@ Local `assembleDebug` output and CI `release-apk.yml` output can differ in size 
 
 **Required order:**
 
-1. Publish the GitHub release (`sway_meditation.apk` at `/releases/download/vX.Y.Z/`)
+1. Publish the GitHub release (`safehaven.apk` at `/releases/download/vX.Y.Z/`)
 2. Download that URL (or use `gh release download`)
 3. Compute SHA256 of the downloaded file
 4. Write `release/version.json` with pinned `apkUrl` and that hash
@@ -60,9 +60,9 @@ The script uploads only for **new** releases. If the release already exists, use
 .\gradlew.bat assembleDebug
 ```
 
-Gradle outputs `app/build/outputs/apk/debug/app-debug.apk`. Upload as **`sway_meditation.apk`** on the GitHub release.
+Gradle outputs `app/build/outputs/apk/debug/app-debug.apk`. Upload as **`safehaven.apk`** on the GitHub release.
 
-Use a version-pinned `apkUrl` (`/releases/download/vX.Y.Z/sway_meditation.apk`), not `/releases/latest/download/`.
+Use a version-pinned `apkUrl` (`/releases/download/vX.Y.Z/safehaven.apk`), not `/releases/latest/download/`.
 
 ### Verify before merge
 

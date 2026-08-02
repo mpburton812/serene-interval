@@ -91,16 +91,16 @@ function Test-ReleaseAssets {
     )
 
     $release = gh release view $ReleaseTag --repo $WorkflowRepo --json assets | ConvertFrom-Json
-    $apkAssets = @($release.assets | Where-Object { $_.name -eq "sway_meditation.apk" })
+    $apkAssets = @($release.assets | Where-Object { $_.name -eq "safehaven.apk" })
 
     if ($apkAssets.Count -eq 0) {
-        throw "Release $ReleaseTag has no sway_meditation.apk asset."
+        throw "Release $ReleaseTag has no safehaven.apk asset."
     }
     if ($apkAssets.Count -gt 1) {
-        throw "Release $ReleaseTag has $($apkAssets.Count) sway_meditation.apk assets. Remove duplicates before deploy."
+        throw "Release $ReleaseTag has $($apkAssets.Count) safehaven.apk assets. Remove duplicates before deploy."
     }
 
-    $otherApks = @($release.assets | Where-Object { $_.name -like "*.apk" -and $_.name -ne "sway_meditation.apk" })
+    $otherApks = @($release.assets | Where-Object { $_.name -like "*.apk" -and $_.name -ne "safehaven.apk" })
     if ($otherApks.Count -gt 0) {
         $names = ($otherApks | ForEach-Object { $_.name }) -join ", "
         throw "Release $ReleaseTag has extra APK assets ($names). Users may download the wrong file."

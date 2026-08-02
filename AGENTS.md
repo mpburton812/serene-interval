@@ -2,8 +2,8 @@
 
 ## Cursor Cloud specific instructions
 
-This repository is a single **Android app** (Jetpack Compose) — "Serene Interval" / Sway
-(Gradle module `:app`, applicationId `com.example.meditationparticles`, root project
+This repository is a single **Android app** (Jetpack Compose) — **SafeHaven:Affirmations & Tools**
+(Gradle module `:app`, applicationId `com.safehaven.affirmations`, root project
 `MeditationParticles`). It is a meditation / breathing / affirmations app. There is no
 backend or web service; the only artifact is the debug APK.
 
