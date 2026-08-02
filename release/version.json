@@ -1,8 +1,8 @@
 ﻿{
-    "versionCode":  34,
-    "versionName":  "2.0.0",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.0/safehaven.apk",
-    "expectedSha256":  "d4e1b8d5bc2c882ca35edaaf7e35210f62fdf936efa2d33c6a49e14bded16abc",
-    "releaseNotes":  "SafeHaven:Affirmations & Focus — new package (fresh install), smoother mood graphs, status-bar and scroll polish, florist nav icon, Living Flower fade.",
+    "versionCode":  35,
+    "versionName":  "2.0.1",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.1/safehaven.apk",
+    "expectedSha256":  "e9c955c87670e40661238e3d79c4d92ee2069322799d185b6eeb38bd400849b9",
+    "releaseNotes":  "Setup/Remodel: Toolkit can be turned back on; Quick Start follows Toolkit; home greeting name stacks under the cog.",
     "minVersionCode":  1
 }
