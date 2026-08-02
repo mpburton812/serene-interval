@@ -41,6 +41,12 @@ jobs:
         run: |
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           echo "sdk.dir=$SDK" > local.properties
+          if [[ -n "${{ secrets.ONENOTE_CLIENT_ID }}" ]]; then
+            echo "onenote.clientId=${{ secrets.ONENOTE_CLIENT_ID }}" >> local.properties
+            echo "OneNote client ID injected for this build"
+          else
+            echo "ONENOTE_CLIENT_ID secret not set; OneNote sync disabled in this build"
+          fi
           echo "Using Android SDK at $SDK"
 
       - name: Run unit tests and lint

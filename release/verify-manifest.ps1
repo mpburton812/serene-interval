@@ -39,8 +39,9 @@ function Test-ManifestJson {
         throw "apkUrl must include /releases/download/$expectedTag/ for versionName $($script:VersionName)"
     }
 
-    if ($script:ApkUrl -notlike "*sway_meditation.apk") {
-        throw "apkUrl must end with sway_meditation.apk"
+    # Accept legacy sway_meditation.apk until v2.0.0 pins safehaven.apk.
+    if ($script:ApkUrl -notlike "*safehaven.apk" -and $script:ApkUrl -notlike "*sway_meditation.apk") {
+        throw "apkUrl must end with safehaven.apk (or legacy sway_meditation.apk)"
     }
 }
 

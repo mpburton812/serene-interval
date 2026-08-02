@@ -45,9 +45,10 @@ if ($resolvedTag -and (Get-Command gh -ErrorAction SilentlyContinue)) {
         $dlDir = Join-Path ([System.IO.Path]::GetTempPath()) ("gh-apk-" + [guid]::NewGuid().ToString())
         New-Item -ItemType Directory -Path $dlDir -Force | Out-Null
         try {
-            & gh release download $resolvedTag --repo mpburton812/serene-interval --pattern "sway_meditation.apk" --dir $dlDir --clobber
+            $pattern = if ($ApkUrl -like "*sway_meditation.apk*") { "sway_meditation.apk" } else { "safehaven.apk" }
+            & gh release download $resolvedTag --repo mpburton812/serene-interval --pattern $pattern --dir $dlDir --clobber
             if ($LASTEXITCODE -eq 0) {
-                $downloaded = Join-Path $dlDir "sway_meditation.apk"
+                $downloaded = Join-Path $dlDir $pattern
                 if (Test-Path $downloaded) {
                     Copy-Item -Force $downloaded $OutFile
                     Test-DownloadedApk -Path $OutFile

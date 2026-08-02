@@ -21,7 +21,7 @@ $verifyScript = Join-Path $PSScriptRoot "verify-manifest.ps1"
 $preDeployScript = Join-Path $PSScriptRoot "pre-deploy-check.ps1"
 $manifestPath = Join-Path $repoRoot "release/version.json"
 $localApk = Join-Path $repoRoot "app/build/outputs/apk/debug/app-debug.apk"
-$releaseApkName = "sway_meditation.apk"
+$releaseApkName = "safehaven.apk"
 
 function Read-GradleVersion {
     param([string]$BuildGradlePath)

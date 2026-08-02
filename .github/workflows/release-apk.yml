@@ -20,11 +20,22 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Inject local.properties (SDK + optional OneNote client ID)
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "sdk.dir=$SDK" > local.properties
+          if [[ -n "${{ secrets.ONENOTE_CLIENT_ID }}" ]]; then
+            echo "onenote.clientId=${{ secrets.ONENOTE_CLIENT_ID }}" >> local.properties
+            echo "OneNote client ID injected for release build"
+          else
+            echo "::warning::ONENOTE_CLIENT_ID secret not set; OneNote sync will be disabled in this APK"
+          fi
+
       - name: Build debug APK (sideload-signed)
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Rename APK for release
-        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/sway_meditation.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/safehaven.apk
 
       - name: Verify APK metadata matches build.gradle
         run: |
@@ -40,7 +51,7 @@ jobs:
           fi
           GRADLE_CODE="$(sed -n 's/.*versionCode *= *\([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n1)"
           GRADLE_NAME="$(sed -n 's/.*versionName *= *"\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n1)"
-          BADGING="$("$AAPT" dump badging app/build/outputs/apk/debug/sway_meditation.apk)"
+          BADGING="$("$AAPT" dump badging app/build/outputs/apk/debug/safehaven.apk)"
           APK_CODE="$(sed -n "s/.*versionCode='\([^']*\)'.*/\1/p" <<<"$BADGING")"
           APK_NAME="$(sed -n "s/.*versionName='\([^']*\)'.*/\1/p" <<<"$BADGING")"
           echo "Gradle: versionCode=$GRADLE_CODE versionName=$GRADLE_NAME"
@@ -53,7 +64,7 @@ jobs:
       - name: Compute local APK SHA256 (build artifact only)
         id: apk_hash
         run: |
-          SHA256=$(sha256sum app/build/outputs/apk/debug/sway_meditation.apk | awk '{print $1}')
+          SHA256=$(sha256sum app/build/outputs/apk/debug/safehaven.apk | awk '{print $1}')
           echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
           echo "Local build SHA256: $SHA256"
           echo "Do not use this hash in release/version.json until verified against the live GitHub download."
@@ -61,8 +72,8 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sway_meditation
-          path: app/build/outputs/apk/debug/sway_meditation.apk
+          name: safehaven
+          path: app/build/outputs/apk/debug/safehaven.apk
 
       - name: Attach to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -71,7 +82,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: app/build/outputs/apk/debug/sway_meditation.apk
+          files: app/build/outputs/apk/debug/safehaven.apk
 
       - name: Verify live release asset matches upload
         if: startsWith(github.ref, 'refs/tags/v')
@@ -79,7 +90,7 @@ jobs:
           set -euo pipefail
           TAG="${{ github.ref_name }}"
           REPO="${{ github.repository }}"
-          APK_URL="https://github.com/${REPO}/releases/download/${TAG}/sway_meditation.apk"
+          APK_URL="https://github.com/${REPO}/releases/download/${TAG}/safehaven.apk"
           tmp_apk="$(mktemp -t sway-live.XXXXXX.apk)"
           trap 'rm -f "$tmp_apk"' EXIT
 
