@@ -25,9 +25,13 @@ download_release_apk() {
     if [[ -n "$tag" ]] && command -v gh >/dev/null 2>&1; then
         local dl_dir
         dl_dir="$(mktemp -d)"
-        if gh release download "$tag" --repo "$REPO" --pattern "sway_meditation.apk" --dir "$dl_dir" --clobber 2>/dev/null; then
-            if [[ -f "$dl_dir/sway_meditation.apk" ]]; then
-                cp "$dl_dir/sway_meditation.apk" "$out_file"
+        local pattern="safehaven.apk"
+        if [[ "$apk_url" == *"sway_meditation.apk"* ]]; then
+            pattern="sway_meditation.apk"
+        fi
+        if gh release download "$tag" --repo "$REPO" --pattern "$pattern" --dir "$dl_dir" --clobber 2>/dev/null; then
+            if [[ -f "$dl_dir/$pattern" ]]; then
+                cp "$dl_dir/$pattern" "$out_file"
                 rm -rf "$dl_dir"
                 local size
                 size="$(wc -c <"$out_file" | tr -d ' ')"
@@ -134,8 +138,9 @@ validate_manifest_json() {
         return 1
     fi
 
-    if [[ "$APK_URL" != *"sway_meditation.apk" ]]; then
-        echo "apkUrl must end with sway_meditation.apk" >&2
+    # Accept legacy sway_meditation.apk until v2.0.0 pins safehaven.apk.
+    if [[ "$APK_URL" != *"safehaven.apk" && "$APK_URL" != *"sway_meditation.apk" ]]; then
+        echo "apkUrl must end with safehaven.apk (or legacy sway_meditation.apk)" >&2
         return 1
     fi
 }
@@ -165,7 +170,7 @@ run_self_tests() {
 {
   "versionCode": 99,
   "versionName": "9.9.9",
-  "apkUrl": "https://github.com/example/repo/releases/download/v9.9.9/sway_meditation.apk",
+  "apkUrl": "https://github.com/example/repo/releases/download/v9.9.9/safehaven.apk",
   "expectedSha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab"
 }
 EOF
@@ -173,8 +178,8 @@ EOF
     validate_manifest_json "$pass_manifest"
 
     for bad_url in \
-        "https://github.com/example/repo/releases/latest/download/sway_meditation.apk" \
-        "https://github.com/example/repo/releases/download/v9.9.8/sway_meditation.apk"
+        "https://github.com/example/repo/releases/latest/download/safehaven.apk" \
+        "https://github.com/example/repo/releases/download/v9.9.8/safehaven.apk"
     do
         bad_manifest="$tmp_dir/bad-url.json"
         jq --arg url "$bad_url" '.apkUrl = $url' "$pass_manifest" >"$bad_manifest"

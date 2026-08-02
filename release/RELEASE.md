@@ -10,7 +10,7 @@ Use this for every sideload release. Skipping a step causes in-app update hash m
 
 ## Root cause of hash mismatches
 
-Two different machines can produce different APK bytes (local Windows build vs CI Ubuntu build). Pushing tag `v*` runs `.github/workflows/release-apk.yml`, which **uploads its own** `sway_meditation.apk`. If you pin `expectedSha256` from a local upload and CI runs afterward (or vice versa), users see **APK hash mismatch**.
+Two different machines can produce different APK bytes (local Windows build vs CI Ubuntu build). Pushing tag `v*` runs `.github/workflows/release-apk.yml`, which **uploads its own** `safehaven.apk`. If you pin `expectedSha256` from a local upload and CI runs afterward (or vice versa), users see **APK hash mismatch**.
 
 **Rule:** `expectedSha256` must always come from the **live GitHub download**, after all uploads and CI workflows have finished.
 
@@ -43,7 +43,7 @@ Only when you are **not** pushing a `v*` tag (otherwise CI will overwrite the as
 .\release\publish-release.ps1 -ReleaseNotes "• bullet points for users"
 ```
 
-Creating a **new** release uploads `sway_meditation.apk`. If the release already exists, you must pass `-Upload` intentionally — default is to refuse, to avoid clobbering CI bytes.
+Creating a **new** release uploads `safehaven.apk`. If the release already exists, you must pass `-Upload` intentionally — default is to refuse, to avoid clobbering CI bytes.
 
 ## Mandatory pre-deploy gate
 
@@ -61,7 +61,7 @@ With a freshly pushed tag, wait for CI first:
 
 This script:
 
-- Confirms exactly one `sway_meditation.apk` on the GitHub release (no duplicate APK assets)
+- Confirms exactly one `safehaven.apk` on the GitHub release (no duplicate APK assets)
 - Downloads the live asset twice and ensures the hash is stable
 - Runs `verify-manifest.ps1` (manifest `expectedSha256` vs live bytes)
 

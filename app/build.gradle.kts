@@ -1,4 +1,4 @@
-﻿import java.util.Properties
+import java.util.Properties
 import java.time.Duration
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -47,7 +47,7 @@ val sideloadProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.example.meditationparticles"
+    namespace = "com.safehaven.affirmations"
     compileSdk = 36
 
     signingConfigs {
@@ -62,11 +62,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.meditationparticles"
+        applicationId = "com.safehaven.affirmations"
         minSdk = 26
         targetSdk = 36
-        versionCode = 33
-        versionName = "1.0.39"
+        versionCode = 34
+        versionName = "2.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("Boolean", "UPDATE_CHECK_ENABLED", "true")
