@@ -34,6 +34,7 @@ fun MeditationCalendarSection(
     weekdayHeaders: List<String>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    canGoForward: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     GlassCard(modifier = modifier.fillMaxWidth(), cornerRadius = 20.dp) {
@@ -52,6 +53,7 @@ fun MeditationCalendarSection(
                 title = monthTitle,
                 onPrevious = onPreviousMonth,
                 onNext = onNextMonth,
+                canGoForward = canGoForward,
             )
             MeditationCalendarGrid(
                 days = days,

@@ -15,6 +15,8 @@ import com.safehaven.affirmations.domain.affirmations.AffirmationReviewLogic
 import com.safehaven.affirmations.domain.mood.MoodCalendarLogic
 import com.safehaven.affirmations.domain.mood.MoodGraphPeriod
 import com.safehaven.affirmations.domain.mood.MoodScale
+import com.safehaven.affirmations.domain.mood.canShiftPeriodForward
+import com.safehaven.affirmations.domain.mood.clampPeriodOffset
 import com.safehaven.affirmations.domain.mood.moodPeriodBounds
 import com.safehaven.affirmations.domain.mood.moodPeriodTitle
 import com.safehaven.affirmations.domain.mood.periodReferenceMillis
@@ -38,6 +40,7 @@ data class AffirmationCalendarUiState(
     val days: List<com.safehaven.affirmations.domain.affirmations.AffirmationCalendarDay> = emptyList(),
     val weekdayHeaders: List<String> = emptyList(),
     val monthTitle: String = "",
+    val canGoForward: Boolean = false,
 )
 
 data class AffirmationsUiState(
@@ -103,6 +106,7 @@ class AffirmationsViewModel(
                     ),
                     weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
                     monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, offset, zoneId, locale),
+                    canGoForward = canShiftPeriodForward(offset),
                 )
             }
         }
@@ -111,6 +115,7 @@ class AffirmationsViewModel(
                 AffirmationCalendarUiState(
                     weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
                     monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, 0, zoneId, locale),
+                    canGoForward = canShiftPeriodForward(0),
                 ),
             )
         }
@@ -120,6 +125,7 @@ class AffirmationsViewModel(
             initialValue = AffirmationCalendarUiState(
                 weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
                 monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, 0, zoneId, locale),
+                canGoForward = canShiftPeriodForward(0),
             ),
         )
 
@@ -345,7 +351,10 @@ class AffirmationsViewModel(
     }
 
     fun shiftCalendarMonth(forward: Boolean) {
-        calendarMonthOffset.value += if (forward) 1 else -1
+        if (forward && !canShiftPeriodForward(calendarMonthOffset.value)) return
+        calendarMonthOffset.value = clampPeriodOffset(
+            calendarMonthOffset.value + if (forward) 1 else -1,
+        )
     }
 
     fun setReminder(enabled: Boolean, hour: Int, minute: Int) {

@@ -53,26 +53,28 @@ fun MoodLineGraph(
     val averageLineColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.95f)
     val useMonthRolling = period == MoodGraphPeriod.MONTH &&
         monthGraphMode == MoodMonthGraphMode.ROLLING_7_DAY
+    val useMonthDailyAverage = period == MoodGraphPeriod.MONTH &&
+        monthGraphMode == MoodMonthGraphMode.TOTAL_AVERAGE
     val graphPoints = remember(sorted, period, monthGraphMode, startMillis, endMillis, graphEndMillis, zoneId) {
-        if (useMonthRolling) {
-            MoodGraphSeriesBuilder.monthRollingAverageSeries(
+        when {
+            useMonthRolling -> MoodGraphSeriesBuilder.monthRollingAverageSeries(
                 entries = sorted,
                 startMillis = startMillis,
                 endMillis = endMillis,
                 graphEndMillis = graphEndMillis,
                 zoneId = zoneId,
             )
-        } else {
-            MoodGraphSeriesBuilder.entryPoints(sorted)
+            useMonthDailyAverage -> MoodGraphSeriesBuilder.dailyAverageSeries(sorted, zoneId)
+            else -> MoodGraphSeriesBuilder.entryPoints(sorted)
         }
     }
-    // Full period domain so empty slots still occupy equal space (day/week/month).
-    val xDomain = remember(startMillis, graphEndMillis) {
-        MoodGraphSeriesBuilder.monthDomainMillis(startMillis, graphEndMillis)
+    // Full calendar period for axis layout; graphEndMillis only filters which points appear.
+    val xDomain = remember(startMillis, endMillis) {
+        MoodGraphSeriesBuilder.periodDomainMillis(startMillis, endMillis)
     }
     val showAverageLine = average != null && period != MoodGraphPeriod.CALENDAR
-    val xTicks = remember(period, startMillis, graphEndMillis, zoneId, locale) {
-        MoodGraphAxisFormatter.xAxisTicks(period, startMillis, graphEndMillis, zoneId, locale)
+    val xTicks = remember(period, startMillis, endMillis, zoneId, locale) {
+        MoodGraphAxisFormatter.xAxisTicks(period, startMillis, endMillis, zoneId, locale)
     }
     val yTicks = remember { MoodGraphAxisFormatter.yAxisTicks() }
     val fillColors = remember {
@@ -107,7 +109,7 @@ fun MoodLineGraph(
 
         fun xForPoint(xMillis: Long): Float {
             val fraction = if (period == MoodGraphPeriod.MONTH) {
-                MoodGraphSeriesBuilder.monthXFraction(xMillis, startMillis, graphEndMillis, zoneId)
+                MoodGraphSeriesBuilder.monthXFraction(xMillis, startMillis, endMillis, zoneId)
             } else {
                 MoodGraphSeriesBuilder.xFraction(
                     xMillis = xMillis,
@@ -211,11 +213,12 @@ fun MoodLineGraph(
             )
         }
 
+        val useDayAverageDots = useMonthRolling || useMonthDailyAverage
         val dotRadius = if (useMonthRolling) 9f else 7f
 
         if (points.size == 1) {
             val level = graphPoints.first().yLevel
-            val moodLevel = if (useMonthRolling) {
+            val moodLevel = if (useDayAverageDots) {
                 MoodScale.averageToLevel(level) ?: MoodScale.MIN
             } else {
                 sorted.first().moodLevel
@@ -247,7 +250,7 @@ fun MoodLineGraph(
         )
         points.forEachIndexed { index, point ->
             val level = graphPoints[index].yLevel
-            val moodLevel = if (useMonthRolling) {
+            val moodLevel = if (useDayAverageDots) {
                 MoodScale.averageToLevel(level) ?: MoodScale.MIN
             } else {
                 sorted.getOrNull(index)?.moodLevel ?: MoodScale.averageToLevel(level) ?: MoodScale.MIN

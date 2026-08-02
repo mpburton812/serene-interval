@@ -21,6 +21,23 @@ object MoodGraphSeriesBuilder {
             .sortedBy { it.recordedAtMillis }
             .map { MoodGraphPoint(it.recordedAtMillis, it.moodLevel.toDouble()) }
 
+    /** One point per calendar day (noon) using that day's average mood — used for month total mode. */
+    fun dailyAverageSeries(
+        entries: List<MoodEntryEntity>,
+        zoneId: ZoneId = ZoneId.systemDefault(),
+    ): List<MoodGraphPoint> =
+        entries
+            .groupBy { entry ->
+                Instant.ofEpochMilli(entry.recordedAtMillis).atZone(zoneId).toLocalDate()
+            }
+            .map { (day, dayEntries) ->
+                MoodGraphPoint(
+                    xMillis = day.atStartOfDay(zoneId).plusHours(12).toInstant().toEpochMilli(),
+                    yLevel = dayEntries.map { it.moodLevel.toDouble() }.average(),
+                )
+            }
+            .sortedBy { it.xMillis }
+
     fun dataSpanMillis(points: List<MoodGraphPoint>): Pair<Long, Long>? {
         if (points.isEmpty()) return null
         if (points.size == 1) {
@@ -77,23 +94,33 @@ object MoodGraphSeriesBuilder {
         return points
     }
 
+    /** Full calendar period domain (inclusive end for plotting). Prefer [periodDomainMillis]. */
     fun monthDomainMillis(
         startMillis: Long,
-        graphEndMillis: Long,
-    ): Pair<Long, Long> = startMillis to (graphEndMillis - 1).coerceAtLeast(startMillis)
+        endMillis: Long,
+    ): Pair<Long, Long> = periodDomainMillis(startMillis, endMillis)
 
+    /** Inclusive plot domain covering [startMillis, endMillis). */
+    fun periodDomainMillis(
+        startMillis: Long,
+        endMillis: Long,
+    ): Pair<Long, Long> = startMillis to (endMillis - 1).coerceAtLeast(startMillis)
+
+    /**
+     * Maps a timestamp onto the full month width (day 1 … last day), regardless of "now".
+     * Future days stay empty because callers filter points with [entriesWithinGraph].
+     */
     fun monthXFraction(
         xMillis: Long,
         startMillis: Long,
-        graphEndMillis: Long,
+        endMillis: Long,
         zoneId: ZoneId = ZoneId.systemDefault(),
     ): Float {
         val monthStart = Instant.ofEpochMilli(startMillis).atZone(zoneId).toLocalDate()
-        val graphLastDay = Instant.ofEpochMilli(graphEndMillis - 1).atZone(zoneId).toLocalDate()
-        val dayCount = monthStart.until(graphLastDay).days + 1
+        val daysInMonth = monthStart.lengthOfMonth().coerceAtLeast(1)
         val day = Instant.ofEpochMilli(xMillis).atZone(zoneId).toLocalDate()
-        val dayOffset = monthStart.until(day).days.coerceIn(0, dayCount - 1)
-        return dayOffset.toFloat() / (dayCount - 1).coerceAtLeast(1).toFloat()
+        val dayOffset = (day.dayOfMonth - 1).coerceIn(0, daysInMonth - 1)
+        return dayOffset.toFloat() / (daysInMonth - 1).coerceAtLeast(1).toFloat()
     }
 
     fun entriesWithinGraph(

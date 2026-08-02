@@ -26,4 +26,14 @@ interface SessionDao {
         """,
     )
     fun observeInRangeByType(type: String, startMillis: Long, endMillis: Long): Flow<List<SessionEntity>>
+
+    @Query(
+        """
+        SELECT * FROM sessions
+        WHERE completedAt >= :startMillis
+          AND completedAt < :endMillis
+        ORDER BY completedAt DESC
+        """,
+    )
+    fun observeInRange(startMillis: Long, endMillis: Long): Flow<List<SessionEntity>>
 }
