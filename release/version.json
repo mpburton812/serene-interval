@@ -1,8 +1,8 @@
 ﻿{
-    "versionCode":  33,
-    "versionName":  "1.0.39",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v1.0.39/sway_meditation.apk",
-    "expectedSha256":  "a4f479c84e111e5172da1bd93ce669ca80d04489c76805423fa41ab66e2a684c",
-    "releaseNotes":  "Mood Tracker widget: selected face enlarges on each of the three background color pulses.",
+    "versionCode":  34,
+    "versionName":  "2.0.0",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.0/safehaven.apk",
+    "expectedSha256":  "d4e1b8d5bc2c882ca35edaaf7e35210f62fdf936efa2d33c6a49e14bded16abc",
+    "releaseNotes":  "SafeHaven:Affirmations & Focus — new package (fresh install), smoother mood graphs, status-bar and scroll polish, florist nav icon, Living Flower fade.",
     "minVersionCode":  1
 }
