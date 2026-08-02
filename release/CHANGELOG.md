@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 2.0.1 - 2026-08-02
+
+### Setup & Toolkit
+
+- Experience space toggles apply reliably during setup/Remodel (no longer silently blocked by Quick Start validity)
+- Toolkit can be turned back on after being disabled; empty selection seeds default tools and refills Quick Start
+- Toolkit step shows **Turn Toolkit back on** when the tab would be hidden
+- Walkthrough order is now Spaces → Toolkit → Quick Start → Review
+
+### Home
+
+- Greeting name stacks under “Good afternoon,” so it no longer fights the settings cog
+
 ## 2.0.0 - 2026-08-02
 
 ### Brand

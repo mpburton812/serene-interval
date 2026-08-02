@@ -147,6 +147,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setEnableToolkit(enabled: Boolean) {
+        val toolkitPreferences = AppGraph.toolkit(getApplication())
+        if (enabled && enabledToolkitTools.value.isEmpty()) {
+            toolkitPreferences.saveEnabledTools(ToolkitLayout.defaultEnabledTools())
+        }
         preferences.update { current ->
             current.withToolToggle { it.copy(enableToolkit = enabled) }
         }
