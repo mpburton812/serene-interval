@@ -25,9 +25,13 @@ download_release_apk() {
     if [[ -n "$tag" ]] && command -v gh >/dev/null 2>&1; then
         local dl_dir
         dl_dir="$(mktemp -d)"
-        if gh release download "$tag" --repo "$REPO" --pattern "safehaven.apk" --dir "$dl_dir" --clobber 2>/dev/null; then
-            if [[ -f "$dl_dir/safehaven.apk" ]]; then
-                cp "$dl_dir/safehaven.apk" "$out_file"
+        local pattern="safehaven.apk"
+        if [[ "$apk_url" == *"sway_meditation.apk"* ]]; then
+            pattern="sway_meditation.apk"
+        fi
+        if gh release download "$tag" --repo "$REPO" --pattern "$pattern" --dir "$dl_dir" --clobber 2>/dev/null; then
+            if [[ -f "$dl_dir/$pattern" ]]; then
+                cp "$dl_dir/$pattern" "$out_file"
                 rm -rf "$dl_dir"
                 local size
                 size="$(wc -c <"$out_file" | tr -d ' ')"
@@ -134,8 +138,9 @@ validate_manifest_json() {
         return 1
     fi
 
-    if [[ "$APK_URL" != *"safehaven.apk" ]]; then
-        echo "apkUrl must end with safehaven.apk" >&2
+    # Accept legacy sway_meditation.apk until v2.0.0 pins safehaven.apk.
+    if [[ "$APK_URL" != *"safehaven.apk" && "$APK_URL" != *"sway_meditation.apk" ]]; then
+        echo "apkUrl must end with safehaven.apk (or legacy sway_meditation.apk)" >&2
         return 1
     fi
 }

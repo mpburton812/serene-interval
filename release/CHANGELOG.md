@@ -6,7 +6,7 @@
 
 ### Brand
 
-- Renamed to **SafeHaven:Affirmations & Tools** (`com.safehaven.affirmations`) with a cabin-and-pine launcher icon
+- Renamed to **SafeHaven:Affirmations & Focus** (`com.safehaven.affirmations`) with a cabin-and-pine launcher icon
 - Fresh install required — does not upgrade in place from `com.example.meditationparticles`
 
 ### Mood graphs
