@@ -34,6 +34,7 @@ fun AffirmationCalendarSection(
     weekdayHeaders: List<String>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    canGoForward: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     GlassCard(modifier = modifier.fillMaxWidth(), cornerRadius = 20.dp) {
@@ -52,6 +53,7 @@ fun AffirmationCalendarSection(
                 title = monthTitle,
                 onPrevious = onPreviousMonth,
                 onNext = onNextMonth,
+                canGoForward = canGoForward,
             )
             AffirmationCalendarGrid(
                 days = days,

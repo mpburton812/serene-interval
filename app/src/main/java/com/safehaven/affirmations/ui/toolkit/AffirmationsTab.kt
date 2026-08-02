@@ -146,6 +146,7 @@ fun AffirmationsTab(
                     weekdayHeaders = affirmationCalendar.weekdayHeaders,
                     onPreviousMonth = { viewModel.shiftCalendarMonth(forward = false) },
                     onNextMonth = { viewModel.shiftCalendarMonth(forward = true) },
+                    canGoForward = affirmationCalendar.canGoForward,
                     modifier = Modifier.fillMaxWidth(),
                 )
 

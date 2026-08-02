@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 2.0.2 - 2026-08-02
+
+### Mood graphs
+
+- Smoother curves that no longer overshoot markers or fold backward in time
+- Day/week/month axes always span the full period (day through midnight; month days evenly spaced)
+- Month total mode plots one average point per day; data only appears for days that have passed
+
+### Calendars
+
+- Mood day sheets load historical meditations via range queries (not truncated recent timeline)
+- Meditation calendar marks timer, breathing, and visualization practice days
+- Meditation and affirmation calendars clamp navigation so you cannot page into the future
+
 ## 2.0.1 - 2026-08-02
 
 ### Setup & Toolkit

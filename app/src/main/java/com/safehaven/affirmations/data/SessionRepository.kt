@@ -57,6 +57,12 @@ class SessionRepository(
             entities.map { it.toDomain() }
         }
 
+    /** All meditation session types (timer, breathing, visualization) in a time range. */
+    fun observeSessionsInRange(startMillis: Long, endMillis: Long): Flow<List<MeditationSession>> =
+        dao.observeInRange(startMillis, endMillis).map { entities ->
+            entities.map { it.toDomain() }
+        }
+
     private fun SessionEntity.toDomain(): MeditationSession = MeditationSession(
         id = id,
         type = runCatching { SessionType.valueOf(type) }.getOrDefault(SessionType.TIMER),

@@ -15,6 +15,8 @@ import com.safehaven.affirmations.domain.timer.TimerSessionState
 import com.safehaven.affirmations.domain.timer.TimerSoundOption
 import com.safehaven.affirmations.domain.mood.MoodCalendarLogic
 import com.safehaven.affirmations.domain.mood.MoodGraphPeriod
+import com.safehaven.affirmations.domain.mood.canShiftPeriodForward
+import com.safehaven.affirmations.domain.mood.clampPeriodOffset
 import com.safehaven.affirmations.domain.mood.moodPeriodBounds
 import com.safehaven.affirmations.domain.mood.moodPeriodTitle
 import com.safehaven.affirmations.domain.mood.periodReferenceMillis
@@ -35,6 +37,8 @@ data class MeditationCalendarUiState(
     val days: List<com.safehaven.affirmations.domain.timer.MeditationCalendarDay> = emptyList(),
     val weekdayHeaders: List<String> = emptyList(),
     val monthTitle: String = "",
+    val monthOffset: Int = 0,
+    val canGoForward: Boolean = false,
 )
 
 class TimerViewModel(application: Application) : AndroidViewModel(application) {
@@ -61,7 +65,8 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { offset ->
             val referenceMillis = periodReferenceMillis(MoodGraphPeriod.MONTH, offset, zoneId, locale)
             val bounds = moodPeriodBounds(MoodGraphPeriod.MONTH, referenceMillis, zoneId, locale)
-            sessionRepository.observeTimerSessionsInRange(bounds.startMillis, bounds.endMillis).map { sessions ->
+            // Include timer, breathing, and visualization so past practice days stay marked.
+            sessionRepository.observeSessionsInRange(bounds.startMillis, bounds.endMillis).map { sessions ->
                 val practicedDates = MeditationCalendarLogic.practicedDatesFromCompletedAt(
                     completedAtMillis = sessions.map { it.completedAt },
                     zoneId = zoneId,
@@ -75,6 +80,8 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                     ),
                     weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
                     monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, offset, zoneId, locale),
+                    monthOffset = offset,
+                    canGoForward = canShiftPeriodForward(offset),
                 )
             }
         }
@@ -84,6 +91,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = MeditationCalendarUiState(
                 weekdayHeaders = MoodCalendarLogic.weekdayHeaders(locale),
                 monthTitle = moodPeriodTitle(MoodGraphPeriod.MONTH, 0, zoneId, locale),
+                canGoForward = canShiftPeriodForward(0),
             ),
         )
 
@@ -172,7 +180,10 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun shiftCalendarMonth(forward: Boolean) {
-        calendarMonthOffset.value += if (forward) 1 else -1
+        if (forward && !canShiftPeriodForward(calendarMonthOffset.value)) return
+        calendarMonthOffset.value = clampPeriodOffset(
+            calendarMonthOffset.value + if (forward) 1 else -1,
+        )
     }
 
     private fun finishReflectionCapture() {

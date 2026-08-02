@@ -104,6 +104,46 @@ class MoodGraphSeriesBuilderTest {
     }
 
     @Test
+    fun dailyAverageSeries_onePointPerDay() {
+        val day = LocalDate.of(2026, 7, 31)
+        val entries = listOf(
+            entry(day, 2),
+            entry(day, 4),
+            entry(day.plusDays(1), 3),
+        )
+
+        val series = MoodGraphSeriesBuilder.dailyAverageSeries(entries, zoneId)
+
+        assertEquals(2, series.size)
+        assertEquals(3.0, series[0].yLevel, 0.01)
+        assertEquals(3.0, series[1].yLevel, 0.01)
+    }
+
+    @Test
+    fun monthXFraction_spansFullMonthWidth() {
+        val startMillis = LocalDate.of(2026, 8, 1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val endMillis = LocalDate.of(2026, 9, 1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val day1 = LocalDate.of(2026, 8, 1).atTime(12, 0).atZone(zoneId).toInstant().toEpochMilli()
+        val day31 = LocalDate.of(2026, 8, 31).atTime(12, 0).atZone(zoneId).toInstant().toEpochMilli()
+
+        assertEquals(
+            0f,
+            MoodGraphSeriesBuilder.monthXFraction(day1, startMillis, endMillis, zoneId),
+            0.001f,
+        )
+        assertEquals(
+            1f,
+            MoodGraphSeriesBuilder.monthXFraction(day31, startMillis, endMillis, zoneId),
+            0.001f,
+        )
+    }
+
+    @Test
+    fun periodDomainMillis_usesFullPeriodExclusiveEnd() {
+        assertEquals(1000L to 1999L, MoodGraphSeriesBuilder.periodDomainMillis(1000L, 2000L))
+    }
+
+    @Test
     fun entriesWithinGraph_excludesFutureEntries() {
         val entries = listOf(
             MoodEntryEntity(1, 2, 1000L, "test", null, null),

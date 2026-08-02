@@ -20,18 +20,37 @@ class HomeActivityRepository(
 ) {
     fun observeTimeline(limit: Int = HomeActivityTimelineBuilder.DEFAULT_LIMIT): Flow<List<HomeActivityItem>> {
         val sessionsFlow = database.sessionDao().observeRecent(limit).map { rows ->
-            rows.map { entity ->
-                MeditationSession(
-                    id = entity.id,
-                    type = runCatching { SessionType.valueOf(entity.type) }
-                        .getOrDefault(SessionType.TIMER),
-                    title = entity.title,
-                    detail = entity.detail,
-                    durationSeconds = entity.durationSeconds,
-                    completedAt = entity.completedAt,
-                )
-            }
+            rows.map { entity -> entity.toMeditationSession() }
         }
+        return observeTimelineFrom(sessionsFlow, limit)
+    }
+
+    /**
+     * Day-scoped timeline that queries sessions by range so historical days
+     * (e.g. July 31) still show past meditations even when the global recent
+     * timeline is truncated.
+     */
+    fun observeActivitiesForDay(
+        date: LocalDate,
+        zoneId: ZoneId = ZoneId.systemDefault(),
+        limit: Int = 2_000,
+    ): Flow<List<HomeActivityItem>> {
+        val startMillis = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val endMillis = date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val sessionsFlow = database.sessionDao().observeInRange(startMillis, endMillis).map { rows ->
+            rows.map { entity -> entity.toMeditationSession() }
+        }
+        return observeTimelineFrom(sessionsFlow, limit).map { items ->
+            items
+                .filter { it.completedAt in startMillis until endMillis }
+                .sortedByDescending { it.completedAt }
+        }
+    }
+
+    private fun observeTimelineFrom(
+        sessionsFlow: Flow<List<MeditationSession>>,
+        limit: Int,
+    ): Flow<List<HomeActivityItem>> {
         val reflectionsFlow = database.meditationReflectionDao().observeAll()
         val thoughtDumpsFlow = database.thoughtDumpDao().observeAll()
         val nvcFlow = database.nvcEntryDao().observeAll()
@@ -83,19 +102,16 @@ class HomeActivityRepository(
         }.flowOn(Dispatchers.Default)
     }
 
-    fun observeActivitiesForDay(
-        date: LocalDate,
-        zoneId: ZoneId = ZoneId.systemDefault(),
-        limit: Int = 2_000,
-    ): Flow<List<HomeActivityItem>> {
-        val startMillis = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
-        val endMillis = date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
-        return observeTimeline(limit = limit).map { items ->
-            items
-                .filter { it.completedAt in startMillis until endMillis }
-                .sortedByDescending { it.completedAt }
-        }
-    }
+    private fun com.safehaven.affirmations.data.local.SessionEntity.toMeditationSession(): MeditationSession =
+        MeditationSession(
+            id = id,
+            type = runCatching { SessionType.valueOf(type) }
+                .getOrDefault(SessionType.TIMER),
+            title = title,
+            detail = detail,
+            durationSeconds = durationSeconds,
+            completedAt = completedAt,
+        )
 
     private data class TimelineSnapshot(
         val sessions: List<MeditationSession>,

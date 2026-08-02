@@ -47,8 +47,13 @@ object MoodGraphAxisFormatter {
     ): List<MoodGraphAxisTick> {
         val formatter = DateTimeFormatter.ofPattern("h a", locale)
         val dayStart = Instant.ofEpochMilli(startMillis).atZone(zoneId)
-        return listOf(0, 6, 12, 18).map { hour ->
-            val tickTime = dayStart.withHour(hour).withMinute(0).withSecond(0).withNano(0)
+        // Include end-of-day midnight so Today always spans 12 AM → 12 AM.
+        return listOf(0, 6, 12, 18, 24).map { hour ->
+            val tickTime = if (hour == 24) {
+                dayStart.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0)
+            } else {
+                dayStart.withHour(hour).withMinute(0).withSecond(0).withNano(0)
+            }
             val tickMillis = tickTime.toInstant().toEpochMilli()
             MoodGraphAxisTick(
                 positionFraction = ((tickMillis - startMillis).toFloat() / rangeMillis).coerceIn(0f, 1f),

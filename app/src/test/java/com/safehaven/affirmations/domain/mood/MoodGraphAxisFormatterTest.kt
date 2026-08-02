@@ -25,7 +25,7 @@ class MoodGraphAxisFormatterTest {
     }
 
     @Test
-    fun dayXAxisTicks_useHourLabelsAcrossDay() {
+    fun dayXAxisTicks_useHourLabelsAcrossFullDayIncludingMidnight() {
         val startMillis = LocalDate.of(2026, 6, 5)
             .atStartOfDay(zoneId)
             .toInstant()
@@ -43,12 +43,40 @@ class MoodGraphAxisFormatterTest {
             locale = locale,
         )
 
-        assertEquals(4, ticks.size)
+        assertEquals(5, ticks.size)
         assertEquals("12 AM", ticks[0].label)
         assertEquals("6 AM", ticks[1].label)
         assertEquals("12 PM", ticks[2].label)
         assertEquals("6 PM", ticks[3].label)
-        assertTrue(ticks.all { it.positionFraction in 0f..1f })
+        assertEquals("12 AM", ticks[4].label)
+        assertEquals(0f, ticks[0].positionFraction, 0.001f)
+        assertEquals(1f, ticks[4].positionFraction, 0.001f)
+        assertTrue(ticks[3].positionFraction < 0.8f)
+    }
+
+    @Test
+    fun monthXAxisTicks_spreadAcrossFullMonthEvenWhenCalledEarly() {
+        val startMillis = LocalDate.of(2026, 8, 1)
+            .atStartOfDay(zoneId)
+            .toInstant()
+            .toEpochMilli()
+        val endMillis = LocalDate.of(2026, 9, 1)
+            .atStartOfDay(zoneId)
+            .toInstant()
+            .toEpochMilli()
+
+        val ticks = MoodGraphAxisFormatter.xAxisTicks(
+            period = MoodGraphPeriod.MONTH,
+            startMillis = startMillis,
+            endMillis = endMillis,
+            zoneId = zoneId,
+            locale = locale,
+        )
+
+        assertEquals(listOf("1", "8", "15", "22", "29"), ticks.map { it.label })
+        assertTrue(ticks[0].positionFraction < 0.05f)
+        assertTrue(ticks[4].positionFraction > 0.85f)
+        assertTrue(ticks.zipWithNext().all { (a, b) -> a.positionFraction < b.positionFraction })
     }
 
     @Test
