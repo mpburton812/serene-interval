@@ -112,7 +112,9 @@ fun OnboardingDraft.toggleQuickStart(target: QuickStartTarget): OnboardingDraft 
 private fun OnboardingDraft.pruneQuickStart(): OnboardingDraft {
     val settings = previewExperienceSettings()
     return copy(
-        quickStartTargets = QuickStartLayout.sanitizeSelection(
+        // Refill to 4 after space/tool changes so toggles never leave an incomplete Quick Start
+        // that silently blocks re-enabling Toolkit (or completing Review).
+        quickStartTargets = QuickStartLayout.normalizeSelection(
             quickStartTargets,
             settings,
             enabledToolkitTools,
@@ -137,6 +139,19 @@ fun OnboardingDraft.toggleToolkitTool(id: ToolkitToolId): OnboardingDraft {
     ).pruneQuickStart()
 }
 
+/** Turns Toolkit back on, seeding default tools when the selection is empty. */
+fun OnboardingDraft.enableToolkitAgain(): OnboardingDraft {
+    val tools = if (enabledToolkitTools.isEmpty()) {
+        ToolkitLayout.defaultEnabledTools()
+    } else {
+        enabledToolkitTools
+    }
+    return copy(
+        enableToolkit = true,
+        enabledToolkitTools = tools,
+    ).pruneQuickStart()
+}
+
 fun OnboardingDraft.toggleScene(id: CalmingVisualizationId): OnboardingDraft {
     val scenes = enabledScenes.toMutableSet()
     if (scenes.contains(id.name)) {
@@ -156,14 +171,20 @@ fun OnboardingDraft.withToolEnabled(
     enableLivingTree: Boolean = this.enableLivingTree,
     enableVisuals: Boolean = this.enableVisuals,
 ): OnboardingDraft {
+    val tools = when {
+        enableToolkit && enabledToolkitTools.isEmpty() -> ToolkitLayout.defaultEnabledTools()
+        else -> enabledToolkitTools
+    }
     val next = copy(
         enableBreathing = enableBreathing,
         enableTimer = enableTimer,
         enableAffirmations = enableAffirmations,
         enableKatiesLoveList = enableKatiesLoveList,
-        enableToolkit = enableToolkit && enabledToolkitTools.isNotEmpty(),
+        enableToolkit = enableToolkit && tools.isNotEmpty(),
         enableLivingTree = enableLivingTree,
         enableVisuals = enableVisuals,
+        enabledToolkitTools = tools,
     )
-    return (if (next.canComplete || !next.enableToolkit) next else this).pruneQuickStart()
+    // Apply the toggle immediately; do not gate on Quick Start validity mid-edit.
+    return next.pruneQuickStart()
 }

@@ -21,6 +21,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -353,6 +354,9 @@ private fun ToolkitStepContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
             )
+            TextButton(onClick = viewModel::enableToolkitAgain) {
+                Text("Turn Toolkit back on")
+            }
         }
         ToolkitToolSelectionContent(
             proactiveTools = ToolkitCatalog.byCategory(ToolkitCategory.Proactive, ToolkitLane.Core) +
