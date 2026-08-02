@@ -8,6 +8,7 @@ import com.safehaven.affirmations.domain.settings.ThemeMode
 import com.safehaven.affirmations.domain.toolkit.ToolkitToolId
 import com.safehaven.affirmations.permissions.SchedulingPermissions
 import com.safehaven.affirmations.ui.onboarding.OnboardingDraft
+import com.safehaven.affirmations.ui.onboarding.enableToolkitAgain
 import com.safehaven.affirmations.ui.onboarding.toggleQuickStart
 import com.safehaven.affirmations.ui.onboarding.toggleToolkitTool
 import com.safehaven.affirmations.ui.onboarding.withToolEnabled
@@ -63,12 +64,16 @@ class SanctuaryWalkthroughViewModel(application: Application) : AndroidViewModel
 
     fun setEnableToolkit(enabled: Boolean) {
         _draft.update { draft ->
-            if (enabled && draft.enabledToolkitTools.isEmpty()) {
-                draft.withToolEnabled(enableToolkit = true)
+            if (enabled) {
+                draft.enableToolkitAgain()
             } else {
-                draft.withToolEnabled(enableToolkit = enabled && draft.enabledToolkitTools.isNotEmpty())
+                draft.withToolEnabled(enableToolkit = false)
             }
         }
+    }
+
+    fun enableToolkitAgain() {
+        _draft.update { it.enableToolkitAgain() }
     }
 
     fun setEnableLivingTree(enabled: Boolean) {

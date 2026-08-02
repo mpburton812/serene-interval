@@ -5,8 +5,8 @@ enum class SanctuaryWalkthroughStep(val title: String) {
     Name("Name your SafeHaven"),
     Appearance("Appearance"),
     Spaces("Your spaces"),
-    QuickStart("Quick Start"),
     Toolkit("Toolkit"),
+    QuickStart("Quick Start"),
     Review("Review"),
     ;
 

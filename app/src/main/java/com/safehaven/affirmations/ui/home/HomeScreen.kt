@@ -107,25 +107,13 @@ fun HomeScreen(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 val name = settings.preferredName.trim()
+                Text(
+                    text = if (name.isNotEmpty()) "${greeting()}," else greeting(),
+                    style = MaterialTheme.typography.displayLarge,
+                )
                 if (name.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "${greeting()},",
-                            style = MaterialTheme.typography.displayLarge,
-                        )
-                        Text(
-                            text = name,
-                            style = MaterialTheme.typography.displayLarge,
-                            textAlign = TextAlign.End,
-                        )
-                    }
-                } else {
                     Text(
-                        text = greeting(),
+                        text = name,
                         style = MaterialTheme.typography.displayLarge,
                     )
                 }

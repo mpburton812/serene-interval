@@ -22,7 +22,7 @@ data class ExperienceSettings(
 
     val hasAnyToolEnabled: Boolean
         get() = enableBreathing || enableTimer || enableAffirmations || enableKatiesLoveList ||
-            enableToolkit || enableVisuals
+            enableToolkit || enableLivingTree || enableVisuals
 
     val displayName: String get() = preferredName.trim().ifBlank { "there" }
 
