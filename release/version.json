@@ -1,8 +1,8 @@
 {
-    "versionCode": 36,
-    "versionName": "2.0.2",
-    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v2.0.2/safehaven.apk",
-    "expectedSha256": "006f4271f0b55731f805af3c8e0c791e6884f25e6473b4a3353636096b1b7e9b",
-    "releaseNotes": "Mood graphs: subtler non-overshooting curves, full-period axes; calendars show historical mood and meditation days.",
+    "versionCode": 37,
+    "versionName": "2.0.3",
+    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v2.0.3/safehaven.apk",
+    "expectedSha256": "6199bfdcabb666a244993febe01f05c8bf44376bdb5f2ed45416d57c91b49311",
+    "releaseNotes": "Mood widget: taps record reliably with bounce feedback like in-app; check-ins show in Recent activity.",
     "minVersionCode": 1
 }
