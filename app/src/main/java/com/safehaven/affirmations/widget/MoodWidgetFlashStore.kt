@@ -7,6 +7,7 @@ data class MoodWidgetFlash(
     val colorArgb: Long,
     val alpha: Float,
     val level: Int = 0,
+    val faceEnlarged: Boolean = false,
 )
 
 object MoodWidgetFlashStore {
@@ -15,7 +16,7 @@ object MoodWidgetFlashStore {
     fun get(appWidgetId: Int): MoodWidgetFlash? = flashes[appWidgetId]
 
     fun set(appWidgetId: Int, flash: MoodWidgetFlash?) {
-        if (flash == null || flash.alpha <= 0f) {
+        if (flash == null) {
             flashes.remove(appWidgetId)
         } else {
             flashes[appWidgetId] = flash.copy(alpha = flash.alpha.coerceIn(0f, 1f))

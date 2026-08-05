@@ -14,6 +14,7 @@ object HomeActivityTimelineBuilder {
         futureSelfMessages: List<TextEntryRow>,
         affirmationReviews: List<TextEntryRow>,
         heartsEntries: List<TextEntryRow> = emptyList(),
+        moodCheckIns: List<TextEntryRow> = emptyList(),
         limit: Int = DEFAULT_LIMIT,
     ): List<HomeActivityItem> {
         val items = buildList {
@@ -51,6 +52,9 @@ object HomeActivityTimelineBuilder {
             }
             heartsEntries.forEach { row ->
                 add(row.toItem(prefix = "hearts", title = row.label))
+            }
+            moodCheckIns.forEach { row ->
+                add(row.toItem(prefix = "mood_check_in", title = row.label))
             }
         }
         return items
