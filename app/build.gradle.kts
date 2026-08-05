@@ -65,8 +65,8 @@ android {
         applicationId = "com.safehaven.affirmations"
         minSdk = 26
         targetSdk = 36
-        versionCode = 36
-        versionName = "2.0.2"
+        versionCode = 37
+        versionName = "2.0.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("Boolean", "UPDATE_CHECK_ENABLED", "true")

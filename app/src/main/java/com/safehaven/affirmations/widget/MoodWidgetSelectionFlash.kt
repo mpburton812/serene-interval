@@ -3,27 +3,35 @@ package com.safehaven.affirmations.widget
 import kotlinx.coroutines.delay
 
 /**
- * Fast fade-in / fade-out of the selected mood color across the whole widget background.
- * Glance cannot run Compose animations, so callers apply each alpha frame via widget updates.
+ * Selection feedback for the home-screen mood widget.
+ *
+ * Glance cannot run Compose animations, so callers apply each frame via widget updates.
+ * Timing mirrors in-app [MoodQuickLogCard]: three enlarge→shrink pulses at ~120ms each.
  */
 object MoodWidgetSelectionFlash {
     const val CYCLES = 3
-    const val FRAME_DELAY_MS = 45L
+    /** Matches in-app tween(120) per enlarge/shrink half-cycle. */
+    const val FRAME_DELAY_MS = 120L
 
-    /** Face scale bump (~1.2x) while flash alpha is near peak — mimics in-app bounce. */
+    /** Face scale bump (~1.2x+) while bouncing — mimics in-app scale(1.2f). */
     const val NORMAL_CIRCLE_DP = 48
-    const val HIGHLIGHT_CIRCLE_DP = 58
+    const val HIGHLIGHT_CIRCLE_DP = 64
     const val NORMAL_ICON_DP = 32
-    const val HIGHLIGHT_ICON_DP = 38
-    const val FACE_ENLARGE_ALPHA_THRESHOLD = 0.7f
+    const val HIGHLIGHT_ICON_DP = 42
 
-    /** One fade-in then fade-out cycle (selected color alpha). */
-    val cycleAlphas: List<Float> = listOf(0.35f, 0.7f, 1f, 0.7f, 0.35f, 0f)
+    /**
+     * One bounce cycle: enlarge at peak color, then shrink with a soft residual tint.
+     * Pair is (backgroundAlpha, enlarged).
+     */
+    val cycleFrames: List<Pair<Float, Boolean>> = listOf(
+        1f to true,
+        0.35f to false,
+    )
 
     fun isFaceEnlarged(flash: MoodWidgetFlash?, level: Int): Boolean =
         flash != null &&
             flash.level == level &&
-            flash.alpha >= FACE_ENLARGE_ALPHA_THRESHOLD
+            flash.enlarged
 
     fun circleSizeDp(enlarged: Boolean): Int =
         if (enlarged) HIGHLIGHT_CIRCLE_DP else NORMAL_CIRCLE_DP
@@ -36,15 +44,15 @@ object MoodWidgetSelectionFlash {
     suspend fun run(
         cycles: Int = CYCLES,
         frameDelayMs: Long = FRAME_DELAY_MS,
-        alphas: List<Float> = cycleAlphas,
-        onFrame: suspend (alpha: Float) -> Unit,
+        frames: List<Pair<Float, Boolean>> = cycleFrames,
+        onFrame: suspend (alpha: Float, enlarged: Boolean) -> Unit,
     ) {
         repeat(cycles) {
-            for (alpha in alphas) {
-                onFrame(alpha)
+            for ((alpha, enlarged) in frames) {
+                onFrame(alpha, enlarged)
                 delay(frameDelayMs)
             }
         }
-        onFrame(0f)
+        onFrame(0f, false)
     }
 }

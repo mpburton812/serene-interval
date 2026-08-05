@@ -164,6 +164,14 @@ class AffirmationReviewSessionRepositoryTest {
 
         override suspend fun getAll(): List<MoodEntryEntity> = entries.toList()
 
+        override fun observeQuickLogs(limit: Int): Flow<List<MoodEntryEntity>> =
+            flow.map { list ->
+                list.filter {
+                    it.source == MoodSource.HOME_SCREEN.dbValue ||
+                        it.source == MoodSource.WIDGET.dbValue
+                }.take(limit)
+            }
+
         override suspend fun clearAll() {
             entries.clear()
             flow.value = emptyList()
