@@ -1,8 +1,11 @@
 package com.safehaven.affirmations.data
 
+import com.safehaven.affirmations.data.local.MoodEntryEntity
 import com.safehaven.affirmations.data.local.SereneDatabase
 import com.safehaven.affirmations.domain.home.HomeActivityItem
 import com.safehaven.affirmations.domain.home.HomeActivityTimelineBuilder
+import com.safehaven.affirmations.domain.mood.MoodScale
+import com.safehaven.affirmations.domain.mood.MoodSource
 import com.safehaven.affirmations.domain.sessions.MeditationSession
 import com.safehaven.affirmations.domain.sessions.SessionType
 import com.safehaven.affirmations.domain.toolkit.ToolkitLogType
@@ -59,6 +62,7 @@ class HomeActivityRepository(
         val futureSelfFlow = database.futureSelfMessageDao().observeAll()
         val affirmationReviewsFlow = database.affirmationReviewSessionDao().observeAllKinds()
         val heartsFlow = database.heartsEntryDao().observeAll()
+        val moodQuickLogsFlow = database.moodEntryDao().observeQuickLogs(limit)
 
         val primaryFlow = combine(
             sessionsFlow,
@@ -76,13 +80,19 @@ class HomeActivityRepository(
             )
         }
 
-        val secondaryFlow = combine(cogFlow, futureSelfFlow, affirmationReviewsFlow, heartsFlow) {
-                cog, futureSelf, reviews, hearts ->
+        val secondaryFlow = combine(
+            cogFlow,
+            futureSelfFlow,
+            affirmationReviewsFlow,
+            heartsFlow,
+            moodQuickLogsFlow,
+        ) { cog, futureSelf, reviews, hearts, moodQuickLogs ->
             TimelineSecondarySnapshot(
                 centerOfGravity = cog,
                 futureSelf = futureSelf,
                 affirmationReviews = reviews,
                 heartsEntries = hearts,
+                moodCheckIns = moodQuickLogs,
             )
         }
 
@@ -97,6 +107,7 @@ class HomeActivityRepository(
                 futureSelfMessages = secondary.futureSelf.map(::futureSelfRow),
                 affirmationReviews = secondary.affirmationReviews.map(::affirmationReviewRow),
                 heartsEntries = secondary.heartsEntries.map(::heartsRow),
+                moodCheckIns = secondary.moodCheckIns.map(::moodCheckInRow),
                 limit = limit,
             )
         }.flowOn(Dispatchers.Default)
@@ -126,7 +137,20 @@ class HomeActivityRepository(
         val futureSelf: List<com.safehaven.affirmations.data.local.FutureSelfMessageEntity>,
         val affirmationReviews: List<com.safehaven.affirmations.data.local.AffirmationReviewSessionEntity>,
         val heartsEntries: List<com.safehaven.affirmations.data.local.HeartsEntryEntity>,
+        val moodCheckIns: List<MoodEntryEntity>,
     )
+
+    private fun moodCheckInRow(entity: MoodEntryEntity) =
+        HomeActivityTimelineBuilder.MoodCheckInRow(
+            id = entity.id,
+            completedAt = entity.recordedAtMillis,
+            moodLevel = entity.moodLevel,
+            subtitle = when (MoodSource.fromDbValue(entity.source)) {
+                MoodSource.WIDGET -> "Widget · ${MoodScale.label(entity.moodLevel)}"
+                MoodSource.HOME_SCREEN -> MoodScale.label(entity.moodLevel)
+                else -> MoodScale.label(entity.moodLevel)
+            },
+        )
 
     private fun reflectionRow(
         entity: com.safehaven.affirmations.data.local.MeditationReflectionEntity,

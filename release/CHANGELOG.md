@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 2.0.3 - 2026-08-05
+
+### Mood Tracker widget
+
+- Widget mood taps reliably record and show a main-thread confirmation toast
+- Selected face bounces three times like in-app quick-log (clear enlarge/shrink pulses)
+- Stale flash state no longer permanently blocks further taps
+
+### Home
+
+- Mood check-ins from the home screen and widget appear in Recent activity
+
 ## 2.0.2 - 2026-08-02
 
 ### Mood graphs

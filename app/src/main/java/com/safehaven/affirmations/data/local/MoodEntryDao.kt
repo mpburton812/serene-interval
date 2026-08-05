@@ -38,6 +38,16 @@ interface MoodEntryDao {
     @Query("SELECT * FROM mood_entries ORDER BY recordedAtMillis DESC")
     suspend fun getAll(): List<MoodEntryEntity>
 
+    @Query(
+        """
+        SELECT * FROM mood_entries
+        WHERE source IN ('HOME_SCREEN', 'WIDGET')
+        ORDER BY recordedAtMillis DESC
+        LIMIT :limit
+        """,
+    )
+    fun observeQuickLogs(limit: Int): Flow<List<MoodEntryEntity>>
+
     @Query("DELETE FROM mood_entries")
     suspend fun clearAll()
 }
