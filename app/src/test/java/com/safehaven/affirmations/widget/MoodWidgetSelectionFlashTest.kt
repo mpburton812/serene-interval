@@ -10,20 +10,18 @@ import org.junit.Test
 
 class MoodWidgetSelectionFlashTest {
     @Test
-    fun run_emitsThreeFadeCyclesThenClears() = runBlocking {
-        val frames = mutableListOf<Float>()
-        MoodWidgetSelectionFlash.run(frameDelayMs = 0L) { alpha ->
-            frames += alpha
+    fun run_emitsThreeBounceCyclesThenClears() = runBlocking {
+        val frames = mutableListOf<MoodWidgetSelectionFlash.Frame>()
+        MoodWidgetSelectionFlash.run(halfCycleMs = 0L) { frame ->
+            frames += frame
         }
 
-        val expectedCycle = MoodWidgetSelectionFlash.cycleAlphas
+        val expected = MoodWidgetSelectionFlash.bounceFrames
         assertEquals(MoodWidgetSelectionFlash.CYCLES, 3)
-        // Three full cycles plus a final clear frame.
-        assertEquals(expectedCycle.size * 3 + 1, frames.size)
-        assertEquals(expectedCycle + expectedCycle + expectedCycle + listOf(0f), frames)
-        assertTrue(expectedCycle.first() > 0f)
-        assertEquals(0f, expectedCycle.last(), 0.001f)
-        assertEquals(1f, expectedCycle.maxOrNull()!!, 0.001f)
+        assertEquals(expected, frames)
+        assertTrue(expected.any { it.faceEnlarged })
+        assertTrue(expected.any { !it.faceEnlarged })
+        assertEquals(0f, expected.last().backgroundAlpha, 0.001f)
     }
 
     @Test
@@ -55,24 +53,33 @@ class MoodWidgetSelectionFlashTest {
     }
 
     @Test
-    fun flashStore_clearsWhenAlphaIsZero() {
+    fun flashStore_keepsZeroAlphaUntilExplicitlyCleared() {
         MoodWidgetFlashStore.set(99, MoodWidgetFlash(MoodScale.COLOR_GREEN, 0.8f, level = 4))
         assertEquals(0.8f, MoodWidgetFlashStore.get(99)?.alpha)
         MoodWidgetFlashStore.set(99, MoodWidgetFlash(MoodScale.COLOR_GREEN, 0f, level = 4))
-        assertNull(MoodWidgetFlashStore.get(99))
+        assertEquals(0f, MoodWidgetFlashStore.get(99)?.alpha)
         MoodWidgetFlashStore.clear(99)
+        assertNull(MoodWidgetFlashStore.get(99))
     }
 
     @Test
-    fun isFaceEnlarged_onlyNearPeakForMatchingLevel() {
-        val peak = MoodWidgetFlash(MoodScale.COLOR_BLUE, alpha = 1f, level = 3)
-        val mid = MoodWidgetFlash(MoodScale.COLOR_BLUE, alpha = 0.7f, level = 3)
-        val low = MoodWidgetFlash(MoodScale.COLOR_BLUE, alpha = 0.35f, level = 3)
+    fun isFaceEnlarged_usesExplicitBounceFlagForMatchingLevel() {
+        val enlarged = MoodWidgetFlash(
+            MoodScale.COLOR_BLUE,
+            alpha = 0.2f,
+            level = 3,
+            faceEnlarged = true,
+        )
+        val resting = MoodWidgetFlash(
+            MoodScale.COLOR_BLUE,
+            alpha = 0.7f,
+            level = 3,
+            faceEnlarged = false,
+        )
 
-        assertTrue(MoodWidgetSelectionFlash.isFaceEnlarged(peak, level = 3))
-        assertTrue(MoodWidgetSelectionFlash.isFaceEnlarged(mid, level = 3))
-        assertTrue(!MoodWidgetSelectionFlash.isFaceEnlarged(low, level = 3))
-        assertTrue(!MoodWidgetSelectionFlash.isFaceEnlarged(peak, level = 1))
+        assertTrue(MoodWidgetSelectionFlash.isFaceEnlarged(enlarged, level = 3))
+        assertTrue(!MoodWidgetSelectionFlash.isFaceEnlarged(resting, level = 3))
+        assertTrue(!MoodWidgetSelectionFlash.isFaceEnlarged(enlarged, level = 1))
         assertEquals(
             MoodWidgetSelectionFlash.HIGHLIGHT_CIRCLE_DP,
             MoodWidgetSelectionFlash.circleSizeDp(enlarged = true),

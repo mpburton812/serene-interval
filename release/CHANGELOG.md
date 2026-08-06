@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 2.0.3 - 2026-08-05
+
+### Mood Tracker widget
+
+- Widget mood taps now bounce the selected face three times (matching in-app quick-log timing) before saving
+- Fixed flash state clearing mid-animation so bounce feedback and tap debouncing work reliably
+- Widget and home quick-log check-ins appear in Recent activity on the Home screen
+
 ## 2.0.2 - 2026-08-02
 
 ### Mood graphs

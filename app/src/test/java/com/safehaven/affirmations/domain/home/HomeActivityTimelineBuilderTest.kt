@@ -150,6 +150,36 @@ class HomeActivityTimelineBuilderTest {
         assertEquals(3, items.first().moodLevel)
     }
 
+    @Test
+    fun build_includesMoodCheckIns() {
+        val items = HomeActivityTimelineBuilder.build(
+            sessions = emptyList(),
+            reflections = emptyList(),
+            thoughtDumps = emptyList(),
+            nvcEntries = emptyList(),
+            refactoringEntries = emptyList(),
+            centerOfGravityEntries = emptyList(),
+            futureSelfMessages = emptyList(),
+            affirmationReviews = emptyList(),
+            moodCheckIns = listOf(
+                HomeActivityTimelineBuilder.TextEntryRow(
+                    id = 5,
+                    completedAt = 8000L,
+                    label = "Mood check-in (widget)",
+                    text = "",
+                    subtitle = "Green",
+                    moodLevel = 4,
+                ),
+            ),
+        )
+
+        assertEquals(1, items.size)
+        assertEquals("Mood check-in (widget)", items.first().title)
+        assertEquals("Green", items.first().subtitle)
+        assertEquals(4, items.first().moodLevel)
+        assertNull(items.first().textEntry)
+    }
+
     private fun session(id: Long, completedAt: Long, title: String) = MeditationSession(
         id = id,
         type = SessionType.TIMER,
