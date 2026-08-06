@@ -3,6 +3,8 @@ package com.safehaven.affirmations.data
 import com.safehaven.affirmations.data.local.SereneDatabase
 import com.safehaven.affirmations.domain.home.HomeActivityItem
 import com.safehaven.affirmations.domain.home.HomeActivityTimelineBuilder
+import com.safehaven.affirmations.domain.mood.MoodScale
+import com.safehaven.affirmations.domain.mood.MoodSource
 import com.safehaven.affirmations.domain.sessions.MeditationSession
 import com.safehaven.affirmations.domain.sessions.SessionType
 import com.safehaven.affirmations.domain.toolkit.ToolkitLogType
@@ -59,6 +61,7 @@ class HomeActivityRepository(
         val futureSelfFlow = database.futureSelfMessageDao().observeAll()
         val affirmationReviewsFlow = database.affirmationReviewSessionDao().observeAllKinds()
         val heartsFlow = database.heartsEntryDao().observeAll()
+        val moodCheckInsFlow = database.moodEntryDao().observeStandalone()
 
         val primaryFlow = combine(
             sessionsFlow,
@@ -86,7 +89,7 @@ class HomeActivityRepository(
             )
         }
 
-        return combine(primaryFlow, secondaryFlow) { primary, secondary ->
+        return combine(primaryFlow, secondaryFlow, moodCheckInsFlow) { primary, secondary, moodCheckIns ->
             HomeActivityTimelineBuilder.build(
                 sessions = primary.sessions,
                 reflections = primary.reflections.map(::reflectionRow),
@@ -97,6 +100,7 @@ class HomeActivityRepository(
                 futureSelfMessages = secondary.futureSelf.map(::futureSelfRow),
                 affirmationReviews = secondary.affirmationReviews.map(::affirmationReviewRow),
                 heartsEntries = secondary.heartsEntries.map(::heartsRow),
+                moodCheckIns = moodCheckIns.map(::moodCheckInRow),
                 limit = limit,
             )
         }.flowOn(Dispatchers.Default)
@@ -235,6 +239,23 @@ class HomeActivityRepository(
         subtitle = "${entity.affirmationCount} affirmations",
         moodLevel = entity.moodLevel,
     )
+
+    private fun moodCheckInRow(
+        entity: com.safehaven.affirmations.data.local.MoodEntryEntity,
+    ) = HomeActivityTimelineBuilder.TextEntryRow(
+        id = entity.id,
+        completedAt = entity.recordedAtMillis,
+        label = moodCheckInLabel(entity.source),
+        text = "",
+        subtitle = MoodScale.label(entity.moodLevel),
+        moodLevel = entity.moodLevel,
+    )
+
+    private fun moodCheckInLabel(source: String): String = when (MoodSource.fromDbValue(source)) {
+        MoodSource.WIDGET -> "Mood check-in (widget)"
+        MoodSource.HOME_SCREEN -> "Mood check-in"
+        else -> "Mood check-in"
+    }
 
     private fun formatMinutes(durationSeconds: Int): String? {
         if (durationSeconds <= 0) return null

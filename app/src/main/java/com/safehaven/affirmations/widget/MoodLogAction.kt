@@ -19,32 +19,29 @@ class MoodLogAction : ActionCallback {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(glanceId)
         if (MoodWidgetFlashStore.isActive(appWidgetId)) return
 
-        MoodWidgetLogHandler.fromContext(context).logLevel(level)
-        Toast.makeText(
-            context.applicationContext,
-            context.getString(R.string.mood_widget_logged_toast),
-            Toast.LENGTH_SHORT,
-        ).show()
-
         val colorArgb = MoodScale.colorArgb(MoodScale.migrateFromLegacy(level))
         val migratedLevel = MoodScale.migrateFromLegacy(level)
         val widget = MoodWidget()
         try {
-            MoodWidgetSelectionFlash.run { alpha ->
+            MoodWidgetSelectionFlash.run { frame ->
                 MoodWidgetFlashStore.set(
                     appWidgetId,
-                    if (alpha > 0f) {
-                        MoodWidgetFlash(
-                            colorArgb = colorArgb,
-                            alpha = alpha,
-                            level = migratedLevel,
-                        )
-                    } else {
-                        null
-                    },
+                    MoodWidgetFlash(
+                        colorArgb = colorArgb,
+                        alpha = frame.backgroundAlpha,
+                        level = migratedLevel,
+                        faceEnlarged = frame.faceEnlarged,
+                    ),
                 )
                 widget.update(context, glanceId)
             }
+
+            MoodWidgetLogHandler.fromContext(context).logLevel(level)
+            Toast.makeText(
+                context.applicationContext,
+                context.getString(R.string.mood_widget_logged_toast),
+                Toast.LENGTH_SHORT,
+            ).show()
         } finally {
             MoodWidgetFlashStore.clear(appWidgetId)
             widget.update(context, glanceId)
