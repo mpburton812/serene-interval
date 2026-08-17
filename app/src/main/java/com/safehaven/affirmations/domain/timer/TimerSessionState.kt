@@ -1,7 +1,6 @@
 package com.safehaven.affirmations.domain.timer
 
 data class TimerSessionState(
-    val displayMode: TimerDisplayMode = TimerDisplayMode.Digital,
     val phase: TimerPhase = TimerPhase.Idle,
     val targetMinutes: Int = TimerPresets.DEFAULT_MINUTES,
     val elapsedMs: Long = 0L,
@@ -36,7 +35,7 @@ data class TimerSessionState(
 
     val statusDescription: String
         get() = when (phase) {
-            TimerPhase.Idle -> "Choose a duration and display mode, then begin."
+            TimerPhase.Idle -> "Choose a duration, then begin."
             TimerPhase.Complete -> "Session complete. Take a moment before returning."
             else -> ""
         }
