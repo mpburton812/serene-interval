@@ -2,6 +2,7 @@ package com.safehaven.affirmations.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
@@ -27,9 +28,10 @@ fun JournalCaptureFields(
     minLines: Int = 8,
     enabled: Boolean = true,
     showMood: Boolean = true,
+    fillAvailableHeight: Boolean = false,
 ) {
     Column(
-        modifier = modifier,
+        modifier = if (fillAvailableHeight) modifier.fillMaxSize() else modifier,
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
     ) {
         instructionText?.let { instruction ->
@@ -57,11 +59,18 @@ fun JournalCaptureFields(
             onValueChange = onTextChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 160.dp, max = 280.dp)
-                .verticalScroll(rememberScrollState()),
+                .then(
+                    if (fillAvailableHeight) {
+                        Modifier.weight(1f)
+                    } else {
+                        Modifier
+                            .heightIn(min = 160.dp, max = 280.dp)
+                            .verticalScroll(rememberScrollState())
+                    }
+                ),
             placeholder = { Text(placeholder) },
-            minLines = minLines,
-            maxLines = 20,
+            minLines = if (fillAvailableHeight) 1 else minLines,
+            maxLines = if (fillAvailableHeight) Int.MAX_VALUE else 20,
             enabled = enabled,
         )
     }

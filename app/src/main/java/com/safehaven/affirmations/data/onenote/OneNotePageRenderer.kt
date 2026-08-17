@@ -189,7 +189,9 @@ object OneNotePageRenderer {
             appendTopMeta(toolName = "Meditation Reflection", createdAtMillis = entry.completedAt)
             appendLine("<p><strong>Duration:</strong> ${entry.durationSeconds / 60} min</p>")
             appendMoodLine(entry.moodLevel)
-            appendParagraph(entry.reflection)
+            if (entry.reflection.isNotBlank()) {
+                appendParagraph(entry.reflection)
+            }
             appendFooter(entry.id)
         }
         return OneNotePageContent(

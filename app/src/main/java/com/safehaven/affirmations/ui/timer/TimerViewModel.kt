@@ -8,7 +8,6 @@ import com.safehaven.affirmations.domain.mood.MoodScale
 import com.safehaven.affirmations.data.local.MeditationReflectionEntity
 import com.safehaven.affirmations.domain.onenote.OneNoteEntryType
 import com.safehaven.affirmations.domain.timer.TimerBellSoundChoice
-import com.safehaven.affirmations.domain.timer.TimerDisplayMode
 import com.safehaven.affirmations.domain.timer.TimerEngine
 import com.safehaven.affirmations.domain.timer.TimerPhase
 import com.safehaven.affirmations.domain.timer.TimerSessionState
@@ -116,7 +115,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setDisplayMode(mode: TimerDisplayMode) = engine.setDisplayMode(mode)
     fun cycleTargetMinutes() = engine.cycleTargetMinutes()
     fun setTargetMinutes(minutes: Int) = engine.setTargetMinutes(minutes)
     fun setSound(sound: TimerSoundOption) = engine.setSound(sound)
@@ -135,24 +133,30 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun saveReflection() {
-        viewModelScope.launch {
-            if (!showReflectionCapture.value) return@launch
-            val state = sessionState.value
-            if (state.phase != TimerPhase.Complete) return@launch
-            val savedId = reflectionRepository.save(
-                reflection = reflectionText.value,
-                durationSeconds = state.targetMinutes * 60,
-                completedAt = System.currentTimeMillis(),
-                moodLevel = reflectionMoodLevel.value,
-            ) ?: return@launch
-            oneNoteSync.enqueueSync(OneNoteEntryType.MEDITATION_REFLECTION, savedId)
-            finishReflectionCapture()
-        }
+        persistReflection(includeText = true)
     }
 
     fun skipReflection() {
-        if (!showReflectionCapture.value) return
-        finishReflectionCapture()
+        persistReflection(includeText = false)
+    }
+
+    private fun persistReflection(includeText: Boolean) {
+        viewModelScope.launch {
+            if (!showReflectionCapture.value) return@launch
+            val state = sessionState.value
+            if (state.phase == TimerPhase.Complete) {
+                val text = if (includeText) reflectionText.value else ""
+                val mood = reflectionMoodLevel.value
+                val savedId = reflectionRepository.save(
+                    reflection = text,
+                    durationSeconds = state.targetMinutes * 60,
+                    completedAt = System.currentTimeMillis(),
+                    moodLevel = mood,
+                )
+                savedId?.let { oneNoteSync.enqueueSync(OneNoteEntryType.MEDITATION_REFLECTION, it) }
+            }
+            finishReflectionCapture()
+        }
     }
 
     fun openReflection(entry: MeditationReflectionEntity) {
@@ -198,7 +202,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun restorePreferences(
-        displayMode: TimerDisplayMode,
         targetMinutes: Int,
         sound: TimerSoundOption,
         bellSound: TimerBellSoundChoice,
@@ -208,7 +211,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         reminderMinute: Int,
     ) {
         engine.restoreFromPreferences(
-            displayMode = displayMode,
             targetMinutes = targetMinutes,
             sound = sound,
             bellSound = bellSound,

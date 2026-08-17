@@ -73,7 +73,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.safehaven.affirmations.audio.TimerAudioPlayer
 import com.safehaven.affirmations.data.TimerPreferences
 import com.safehaven.affirmations.domain.timer.TimerBellSoundChoice
-import com.safehaven.affirmations.domain.timer.TimerDisplayMode
 import com.safehaven.affirmations.domain.timer.TimerPhase
 import com.safehaven.affirmations.domain.timer.TimerPrepareTiming
 import com.safehaven.affirmations.domain.timer.TimerSessionState
@@ -115,16 +114,12 @@ fun TimerScreen(
     val showStatusHeader = state.phase == TimerPhase.Idle ||
         state.phase == TimerPhase.Complete ||
         (controlsVisible && state.phase != TimerPhase.Prepare)
-    val showDisplayCountdown = state.phase == TimerPhase.Running &&
-        (state.displayMode == TimerDisplayMode.Digital ||
-            (state.displayMode == TimerDisplayMode.Blank && controlsVisible && !immersive))
 
     var previousPhase by remember { mutableStateOf(state.phase) }
 
     LaunchedEffect(Unit) {
         val saved = preferences.load()
         viewModel.restorePreferences(
-            displayMode = saved.displayMode,
             targetMinutes = saved.targetMinutes,
             sound = saved.sound,
             bellSound = saved.bellSound,
@@ -136,7 +131,6 @@ fun TimerScreen(
     }
 
     LaunchedEffect(
-        state.displayMode,
         state.targetMinutes,
         state.sound,
         state.bellSound,
@@ -148,7 +142,6 @@ fun TimerScreen(
         if (!state.isRunning) {
             preferences.save(
                 TimerPreferences.TimerPrefsSnapshot(
-                    displayMode = state.displayMode,
                     targetMinutes = state.targetMinutes,
                     sound = state.sound,
                     bellSound = state.bellSound,
@@ -316,7 +309,6 @@ fun TimerScreen(
                     ) {
                         TimerDisplay(
                             state = state,
-                            showCountdown = showDisplayCountdown,
                             modifier = Modifier.fillMaxSize(),
                         )
 
@@ -389,32 +381,6 @@ fun TimerScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
                         )
-                    }
-                }
-
-                ControlSection(
-                    title = "Display Mode",
-                    subtitle = "How time is shown during meditation",
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                    ) {
-                        TimerDisplayMode.entries.forEach { mode ->
-                            FilterChip(
-                                selected = state.displayMode == mode,
-                                onClick = { viewModel.setDisplayMode(mode) },
-                                label = { Text(mode.label, style = MaterialTheme.typography.labelMedium) },
-                                enabled = !state.isRunning,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                                    selectedLabelColor = MaterialTheme.colorScheme.primary,
-                                ),
-                            )
-                        }
                     }
                 }
 
@@ -618,7 +584,7 @@ private fun MeditationReflectionCard(
     onSave: () -> Unit,
     onSkip: () -> Unit,
 ) {
-    val canSave = reflection.isNotBlank()
+    val canSave = reflection.isNotBlank() || reflectionMoodLevel != null
     ControlSection(
         title = "Reflection",
         subtitle = "Jot down what you noticed.",
@@ -658,7 +624,6 @@ private fun MeditationReflectionCard(
 @Composable
 private fun TimerDisplay(
     state: TimerSessionState,
-    showCountdown: Boolean,
     modifier: Modifier = Modifier,
 ) {
     if (state.phase == TimerPhase.Prepare) {
@@ -674,53 +639,24 @@ private fun TimerDisplay(
         return
     }
 
-    when (state.displayMode) {
-        TimerDisplayMode.Digital -> {
-            Box(
-                modifier = modifier.padding(bottom = FabClearance),
-                contentAlignment = Alignment.Center,
-            ) {
-                SereneTextPlate(
-                    cornerRadius = 20.dp,
-                    contentPadding = 20.dp,
-                ) {
-                    Text(
-                        text = state.remainingFormatted,
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 72.sp,
-                            letterSpacing = 2.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.align(Alignment.Center),
-                    )
-                }
-            }
-        }
-        TimerDisplayMode.Blank -> {
-            Box(
-                modifier = modifier.padding(bottom = FabClearance),
-                contentAlignment = Alignment.Center,
-            ) {
-                AnimatedVisibility(
-                    visible = showCountdown,
-                    enter = fadeIn(tween(TextFadeMs)),
-                    exit = fadeOut(tween(TextFadeMs)),
-                ) {
-                    SereneTextPlate(
-                        cornerRadius = 20.dp,
-                        contentPadding = 16.dp,
-                    ) {
-                        Text(
-                            text = state.remainingFormatted,
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.align(Alignment.Center),
-                        )
-                    }
-                }
-            }
+    Box(
+        modifier = modifier.padding(bottom = FabClearance),
+        contentAlignment = Alignment.Center,
+    ) {
+        SereneTextPlate(
+            cornerRadius = 20.dp,
+            contentPadding = 20.dp,
+        ) {
+            Text(
+                text = state.remainingFormatted,
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = 72.sp,
+                    letterSpacing = 2.sp,
+                ),
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center),
+            )
         }
     }
 }
