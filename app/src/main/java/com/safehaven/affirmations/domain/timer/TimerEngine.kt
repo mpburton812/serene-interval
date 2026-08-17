@@ -25,11 +25,6 @@ class TimerEngine {
         const val TICK_MS = 16L
     }
 
-    fun setDisplayMode(mode: TimerDisplayMode) {
-        if (_state.value.isRunning) return
-        _state.update { it.copy(displayMode = mode) }
-    }
-
     fun setTargetMinutes(minutes: Int) {
         if (_state.value.isRunning) return
         _state.update { it.copy(targetMinutes = minutes.coerceIn(1, 120)) }
@@ -124,7 +119,6 @@ class TimerEngine {
         pausedElapsedMs = 0L
         _state.update {
             TimerSessionState(
-                displayMode = it.displayMode,
                 targetMinutes = it.targetMinutes,
                 sound = it.sound,
                 bellSound = it.bellSound,
@@ -137,7 +131,6 @@ class TimerEngine {
     }
 
     fun restoreFromPreferences(
-        displayMode: TimerDisplayMode,
         targetMinutes: Int,
         sound: TimerSoundOption,
         bellSound: TimerBellSoundChoice,
@@ -149,7 +142,6 @@ class TimerEngine {
         if (_state.value.isRunning) return
         _state.update {
             it.copy(
-                displayMode = displayMode,
                 targetMinutes = targetMinutes,
                 sound = sound,
                 bellSound = bellSound,

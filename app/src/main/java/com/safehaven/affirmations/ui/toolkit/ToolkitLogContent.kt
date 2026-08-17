@@ -2,9 +2,13 @@ package com.safehaven.affirmations.ui.toolkit
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -33,6 +37,7 @@ import com.safehaven.affirmations.ui.components.MoodDisplay
 import com.safehaven.affirmations.ui.theme.SereneSpacing
 import java.util.Date
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ToolkitLogContent(
     instructionText: String,
@@ -50,58 +55,88 @@ fun ToolkitLogContent(
     onCloseEntry: () -> Unit,
     showOneNoteSync: Boolean = false,
     onSyncEntryToOneNote: (ThoughtDumpEntity) -> Unit = {},
+    modifier: Modifier = Modifier,
+    fillAvailableHeight: Boolean = false,
 ) {
-    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 24.dp) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
-        ) {
-            JournalCaptureFields(
-                text = text,
-                onTextChange = onTextChange,
-                selectedMoodLevel = selectedMoodLevel,
-                onMoodLevelChange = onMoodLevelChange,
-                instructionText = instructionText,
-            )
+    val imeVisible = WindowInsets.isImeVisible
+    val showHistory = entries.isNotEmpty() && !(fillAvailableHeight && imeVisible)
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        modifier = modifier.then(if (fillAvailableHeight) Modifier.fillMaxSize() else Modifier),
+        verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
+    ) {
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (fillAvailableHeight) Modifier.weight(1f) else Modifier),
+            cornerRadius = 24.dp,
+        ) {
+            Column(
+                modifier = Modifier
+                    .then(if (fillAvailableHeight) Modifier.fillMaxSize() else Modifier)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
             ) {
-                OutlinedButton(onClick = onClear, modifier = Modifier.weight(1f)) {
-                    Text("Clear")
-                }
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier.weight(1f),
-                    enabled = text.isNotBlank(),
+                JournalCaptureFields(
+                    text = text,
+                    onTextChange = onTextChange,
+                    selectedMoodLevel = selectedMoodLevel,
+                    onMoodLevelChange = onMoodLevelChange,
+                    instructionText = instructionText,
+                    modifier = if (fillAvailableHeight) {
+                        Modifier.weight(1f).fillMaxWidth()
+                    } else {
+                        Modifier
+                    },
+                    fillAvailableHeight = fillAvailableHeight,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Save & Close")
+                    OutlinedButton(onClick = onClear, modifier = Modifier.weight(1f)) {
+                        Text("Clear")
+                    }
+                    Button(
+                        onClick = onSave,
+                        modifier = Modifier.weight(1f),
+                        enabled = text.isNotBlank(),
+                    ) {
+                        Text("Save & Close")
+                    }
                 }
             }
         }
-    }
 
-    if (entries.isNotEmpty()) {
-        HistoryGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+        if (showHistory) {
+            HistoryGlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (fillAvailableHeight) Modifier.heightIn(max = 240.dp) else Modifier),
+                cornerRadius = 20.dp,
             ) {
-                Text(
-                    text = "Previous entries",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                entries.forEachIndexed { index, entry ->
-                    if (index > 0) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    }
-                    LogEntryRow(
-                        entry = entry,
-                        onOpen = { onOpenEntry(entry) },
-                        onDelete = { onDeleteEntry(entry) },
+                Column(
+                    modifier = Modifier
+                        .then(if (fillAvailableHeight) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "Previous entries",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
                     )
+                    entries.forEachIndexed { index, entry ->
+                        if (index > 0) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
+                        LogEntryRow(
+                            entry = entry,
+                            onOpen = { onOpenEntry(entry) },
+                            onDelete = { onDeleteEntry(entry) },
+                        )
+                    }
                 }
             }
         }

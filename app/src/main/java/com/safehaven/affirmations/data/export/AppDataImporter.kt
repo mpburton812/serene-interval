@@ -25,7 +25,6 @@ import com.safehaven.affirmations.domain.quickstart.QuickStartLayout
 import com.safehaven.affirmations.domain.settings.ExperienceSettings
 import com.safehaven.affirmations.domain.settings.ThemeMode
 import com.safehaven.affirmations.domain.timer.TimerBellSoundChoice
-import com.safehaven.affirmations.domain.timer.TimerDisplayMode
 import com.safehaven.affirmations.domain.timer.TimerSoundOption
 import com.safehaven.affirmations.domain.toolkit.ToolkitCategory
 import com.safehaven.affirmations.domain.toolkit.ToolkitLane
@@ -298,9 +297,6 @@ class AppDataImporter(
     ): Pair<TimerPreferences.TimerPrefsSnapshot, List<ImportSkip>> {
         val current = TimerPreferences(context).load()
         val skips = mutableListOf<ImportSkip>()
-        val displayMode = TimerDisplayMode.fromStoredName(
-            json.optString("displayMode", current.displayMode.name),
-        )
         val sound = TimerSoundOption.fromStoredName(json.optString("sound", current.sound.name))
         val bellSound = TimerBellSoundChoice.fromStoredName(
             json.optString("bellSound", current.bellSound.name),
@@ -308,7 +304,6 @@ class AppDataImporter(
         val bellSystemUri = json.optString("bellSystemUri").takeIf { it.isNotBlank() }
 
         return TimerPreferences.TimerPrefsSnapshot(
-            displayMode = displayMode,
             targetMinutes = json.optInt("targetMinutes", current.targetMinutes),
             sound = sound,
             bellSound = bellSound,

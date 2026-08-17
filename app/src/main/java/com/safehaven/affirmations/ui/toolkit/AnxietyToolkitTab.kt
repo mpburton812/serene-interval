@@ -11,10 +11,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -499,6 +502,7 @@ private fun ToolkitToolCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ToolDetailScreen(
     tool: ToolkitTool,
@@ -615,13 +619,23 @@ private fun ToolDetailScreen(
 ) {
     val context = LocalContext.current
     val futureSelfSchedulingAvailable = SchedulingPermissions.canScheduleExactAlarms(context)
+    val isExpandableJournalCapture =
+        tool.id == ToolkitToolId.ThoughtDump || tool.id == ToolkitToolId.AnxietyLog
+    val imeVisible = WindowInsets.isImeVisible
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(top = 4.dp),
+        modifier = if (isExpandableJournalCapture) {
+            Modifier
+                .fillMaxSize()
+                .imePadding()
+                .padding(top = 4.dp)
+        } else {
+            Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 4.dp)
+        },
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
     ) {
         TextButton(onClick = onClose) {
@@ -634,11 +648,13 @@ private fun ToolDetailScreen(
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary,
         )
-        Text(
-            text = tool.description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (!isExpandableJournalCapture || !imeVisible) {
+            Text(
+                text = tool.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         when (tool.id) {
             ToolkitToolId.ThoughtDump -> {
@@ -660,6 +676,8 @@ private fun ToolDetailScreen(
                     onSyncEntryToOneNote = { entry ->
                         onSyncEntryToOneNote(OneNoteEntryType.THOUGHT_DUMP, entry.id)
                     },
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    fillAvailableHeight = true,
                 )
             }
             ToolkitToolId.AnxietyLog -> {
@@ -681,6 +699,8 @@ private fun ToolDetailScreen(
                     onSyncEntryToOneNote = { entry ->
                         onSyncEntryToOneNote(OneNoteEntryType.ANXIETY_LOG, entry.id)
                     },
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    fillAvailableHeight = true,
                 )
             }
             ToolkitToolId.FutureSelfMessage -> {

@@ -19,8 +19,8 @@ class MeditationReflectionRepository(
         moodLevel: Int? = null,
     ): Long? {
         val trimmed = reflection.trim()
-        if (trimmed.isEmpty()) return null
         val normalizedMood = MoodScale.normalize(moodLevel)
+        if (trimmed.isEmpty() && normalizedMood == null) return null
         val id = dao.insert(
             MeditationReflectionEntity(
                 reflection = trimmed,
