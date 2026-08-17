@@ -625,9 +625,9 @@ private fun ToolDetailScreen(
 
     Column(
         modifier = if (isExpandableJournalCapture) {
+            // Scaffold already insets for the IME; extra imePadding collapses the field.
             Modifier
                 .fillMaxSize()
-                .imePadding()
                 .padding(top = 4.dp)
         } else {
             Modifier
@@ -640,15 +640,17 @@ private fun ToolDetailScreen(
     ) {
         TextButton(onClick = onClose) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            Text("Back to Toolkit", modifier = Modifier.padding(start = 4.dp))
+            if (!isExpandableJournalCapture || !imeVisible) {
+                Text("Back to Toolkit", modifier = Modifier.padding(start = 4.dp))
+            }
         }
 
-        Text(
-            text = tool.title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
         if (!isExpandableJournalCapture || !imeVisible) {
+            Text(
+                text = tool.title,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
             Text(
                 text = tool.description,
                 style = MaterialTheme.typography.bodyMedium,

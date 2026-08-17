@@ -1,6 +1,7 @@
 package com.safehaven.affirmations.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,49 +30,64 @@ fun JournalCaptureFields(
     enabled: Boolean = true,
     showMood: Boolean = true,
     fillAvailableHeight: Boolean = false,
+    compactChrome: Boolean = false,
 ) {
     Column(
         modifier = if (fillAvailableHeight) modifier.fillMaxSize() else modifier,
         verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
     ) {
-        instructionText?.let { instruction ->
-            Text(
-                text = instruction,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        if (!compactChrome) {
+            instructionText?.let { instruction ->
+                Text(
+                    text = instruction,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            fieldLabel?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            if (showMood) {
+                MoodPicker(
+                    selectedLevel = selectedMoodLevel,
+                    onLevelChange = onMoodLevelChange,
+                )
+            }
         }
-        fieldLabel?.let { label ->
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        if (showMood) {
-            MoodPicker(
-                selectedLevel = selectedMoodLevel,
-                onLevelChange = onMoodLevelChange,
-            )
-        }
-        OutlinedTextField(
-            value = text,
-            onValueChange = onTextChange,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(
                     if (fillAvailableHeight) {
-                        Modifier.weight(1f)
-                    } else {
                         Modifier
-                            .heightIn(min = 160.dp, max = 280.dp)
-                            .verticalScroll(rememberScrollState())
+                            .weight(1f)
+                            .heightIn(min = 128.dp)
+                    } else {
+                        Modifier.heightIn(min = 160.dp, max = 280.dp)
                     }
                 ),
-            placeholder = { Text(placeholder) },
-            minLines = if (fillAvailableHeight) 1 else minLines,
-            maxLines = if (fillAvailableHeight) Int.MAX_VALUE else 20,
-            enabled = enabled,
-        )
+        ) {
+            OutlinedTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (fillAvailableHeight) {
+                            Modifier.fillMaxSize()
+                        } else {
+                            Modifier.verticalScroll(rememberScrollState())
+                        }
+                    ),
+                placeholder = { Text(placeholder) },
+                minLines = if (fillAvailableHeight) 1 else minLines,
+                maxLines = 20,
+                enabled = enabled,
+            )
+        }
     }
 }
