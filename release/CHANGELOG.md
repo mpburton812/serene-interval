@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 2.0.4 - 2026-08-17
+
+### Meditation
+
+- Mood is recorded even when you skip writing a reflection
+- Removed Display Mode; sessions always show the countdown
+
+### Toolkit
+
+- Capture Thought (and Anxiety Log) expands to fill the space above the keyboard
+
 ## 2.0.3 - 2026-08-05
 
 ### Mood Tracker widget

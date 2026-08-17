@@ -116,7 +116,6 @@ class AppDataExporter(
             put("reminderMinute", affirmationPrefs.reminderMinute)
         })
         put("timerPreferences", JSONObject().apply {
-            put("displayMode", timerPrefs.displayMode.name)
             put("targetMinutes", timerPrefs.targetMinutes)
             put("sound", timerPrefs.sound.name)
             put("bellSound", timerPrefs.bellSound.name)

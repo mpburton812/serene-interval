@@ -2,7 +2,6 @@ package com.safehaven.affirmations.data
 
 import android.content.Context
 import com.safehaven.affirmations.domain.timer.TimerBellSoundChoice
-import com.safehaven.affirmations.domain.timer.TimerDisplayMode
 import com.safehaven.affirmations.domain.timer.TimerPresets
 import com.safehaven.affirmations.domain.timer.TimerSoundOption
 
@@ -10,8 +9,6 @@ class TimerPreferences(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun load(): TimerPrefsSnapshot {
-        val displayMode = TimerDisplayMode.fromStoredName(prefs.getString(KEY_DISPLAY_MODE, null))
-
         val soundName = prefs.getString(KEY_SOUND, TimerSoundOption.None.name)
         val sound = TimerSoundOption.fromStoredName(soundName)
 
@@ -20,7 +17,6 @@ class TimerPreferences(context: Context) {
         )
 
         return TimerPrefsSnapshot(
-            displayMode = displayMode,
             targetMinutes = prefs.getInt(KEY_TARGET_MINUTES, TimerPresets.DEFAULT_MINUTES),
             sound = sound,
             bellSound = bellSound,
@@ -33,7 +29,7 @@ class TimerPreferences(context: Context) {
 
     fun save(snapshot: TimerPrefsSnapshot) {
         val editor = prefs.edit()
-            .putString(KEY_DISPLAY_MODE, snapshot.displayMode.name)
+            .remove(KEY_DISPLAY_MODE)
             .putInt(KEY_TARGET_MINUTES, snapshot.targetMinutes)
             .putString(KEY_SOUND, snapshot.sound.name)
             .putString(KEY_BELL_SOUND, snapshot.bellSound.name)
@@ -50,7 +46,6 @@ class TimerPreferences(context: Context) {
     }
 
     data class TimerPrefsSnapshot(
-        val displayMode: TimerDisplayMode,
         val targetMinutes: Int,
         val sound: TimerSoundOption,
         val bellSound: TimerBellSoundChoice = TimerBellSoundChoice.Default,
