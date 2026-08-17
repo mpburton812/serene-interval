@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.0.5 - 2026-08-17
+
+### Toolkit
+
+- Capture Thought and Anxiety Log keep the text field visible when the keyboard opens
+
 ## 2.0.4 - 2026-08-17
 
 ### Meditation

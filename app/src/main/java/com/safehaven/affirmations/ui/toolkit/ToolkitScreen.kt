@@ -40,35 +40,37 @@ fun ToolkitScreen(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
         ) {
-        SereneTabHeader(title = "Toolkit")
+            if (state.selectedTool == null) {
+                SereneTabHeader(title = "Toolkit")
+            }
 
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = SereneSpacing.containerMargin),
-        ) {
-            if (!state.toolkitConfigured) {
-                ToolkitToolSelectionScreen(
-                    proactiveTools = state.selectionProactiveTools,
-                    reactiveTools = state.selectionReactiveTools,
-                    heartsProactiveTools = state.heartsProactiveTools,
-                    heartsReactiveTools = state.heartsReactiveTools,
-                    enabledToolIds = state.enabledToolIds,
-                    onToggleTool = viewModel::toggleToolEnabled,
-                    onContinue = viewModel::saveToolkitConfiguration,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                AnxietyToolkitTab(
-                    onNavigateToBreathe = onNavigateToBreathe,
-                    pendingNavigation = pendingNavigation,
-                    returnToHomeOnComplete = returnToHomeOnComplete,
-                    onPendingNavigationConsumed = onPendingNavigationConsumed,
-                    onReturnToHome = onReturnToHome,
-                    viewModel = viewModel,
-                )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = SereneSpacing.containerMargin),
+            ) {
+                if (!state.toolkitConfigured) {
+                    ToolkitToolSelectionScreen(
+                        proactiveTools = state.selectionProactiveTools,
+                        reactiveTools = state.selectionReactiveTools,
+                        heartsProactiveTools = state.heartsProactiveTools,
+                        heartsReactiveTools = state.heartsReactiveTools,
+                        enabledToolIds = state.enabledToolIds,
+                        onToggleTool = viewModel::toggleToolEnabled,
+                        onContinue = viewModel::saveToolkitConfiguration,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    AnxietyToolkitTab(
+                        onNavigateToBreathe = onNavigateToBreathe,
+                        pendingNavigation = pendingNavigation,
+                        returnToHomeOnComplete = returnToHomeOnComplete,
+                        onPendingNavigationConsumed = onPendingNavigationConsumed,
+                        onReturnToHome = onReturnToHome,
+                        viewModel = viewModel,
+                    )
+                }
             }
         }
-    }
     }
 }
