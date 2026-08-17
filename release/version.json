@@ -1,8 +1,9 @@
-{
-    "versionCode": 37,
-    "versionName": "2.0.3",
-    "apkUrl": "https://github.com/mpburton812/serene-interval/releases/download/v2.0.3/safehaven.apk",
-    "expectedSha256": "6199bfdcabb666a244993febe01f05c8bf44376bdb5f2ed45416d57c91b49311",
-    "releaseNotes": "Widget mood taps record reliably with in-app bounce feedback; check-ins appear in Recent activity.",
-    "minVersionCode": 1
+﻿{
+    "versionCode":  38,
+    "versionName":  "2.0.4",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.4/safehaven.apk",
+    "expectedSha256":  "51bf44ea952c916b74d269297fda5088c7d94b6292036e6325bae486b93451f1",
+    "releaseNotes":  "Meditation mood is saved even without a written reflection; Display Mode removed; Capture Thought fills the space above the keyboard.",
+    "minVersionCode":  1
 }
+
