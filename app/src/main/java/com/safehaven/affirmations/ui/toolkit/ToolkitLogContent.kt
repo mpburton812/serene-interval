@@ -59,7 +59,8 @@ fun ToolkitLogContent(
     fillAvailableHeight: Boolean = false,
 ) {
     val imeVisible = WindowInsets.isImeVisible
-    val showHistory = entries.isNotEmpty() && !(fillAvailableHeight && imeVisible)
+    val compactForKeyboard = fillAvailableHeight && imeVisible
+    val showHistory = entries.isNotEmpty() && !compactForKeyboard
 
     Column(
         modifier = modifier.then(if (fillAvailableHeight) Modifier.fillMaxSize() else Modifier),
@@ -74,7 +75,7 @@ fun ToolkitLogContent(
             Column(
                 modifier = Modifier
                     .then(if (fillAvailableHeight) Modifier.fillMaxSize() else Modifier)
-                    .padding(20.dp),
+                    .padding(if (compactForKeyboard) 12.dp else 20.dp),
                 verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd),
             ) {
                 JournalCaptureFields(
@@ -89,6 +90,7 @@ fun ToolkitLogContent(
                         Modifier
                     },
                     fillAvailableHeight = fillAvailableHeight,
+                    compactChrome = compactForKeyboard,
                 )
 
                 Row(
