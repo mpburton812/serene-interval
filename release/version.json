@@ -1,9 +1,9 @@
 ﻿{
-    "versionCode":  38,
-    "versionName":  "2.0.4",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.4/safehaven.apk",
-    "expectedSha256":  "51bf44ea952c916b74d269297fda5088c7d94b6292036e6325bae486b93451f1",
-    "releaseNotes":  "Meditation mood is saved even without a written reflection; Display Mode removed; Capture Thought fills the space above the keyboard.",
+    "versionCode":  39,
+    "versionName":  "2.0.5",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.5/safehaven.apk",
+    "expectedSha256":  "e8a9ab80b40d26ecd15799dcb87ab5344b1c8a8d9104111704df525e79651017",
+    "releaseNotes":  "Capture Thought and Anxiety Log keep the text field visible when the keyboard opens.",
     "minVersionCode":  1
 }
 
