@@ -1,9 +1,9 @@
 ﻿{
-    "versionCode":  39,
-    "versionName":  "2.0.5",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.5/safehaven.apk",
-    "expectedSha256":  "e8a9ab80b40d26ecd15799dcb87ab5344b1c8a8d9104111704df525e79651017",
-    "releaseNotes":  "Capture Thought and Anxiety Log keep the text field visible when the keyboard opens.",
+    "versionCode":  40,
+    "versionName":  "2.0.6",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.6/safehaven.apk",
+    "expectedSha256":  "ae6746a3568f3b703ae690535f3e4021be37e0470d11b08aa9bed952dcc883af",
+    "releaseNotes":  "Thermometers for stress, mood graphs open on the 7-day view with Score by period, entry popups stay put when you swipe, and Recent activity shows the last 10 items.",
     "minVersionCode":  1
 }
 
