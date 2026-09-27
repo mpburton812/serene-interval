@@ -331,6 +331,7 @@ private fun SpacesStepContent(
             onKatiesLoveListChanged = viewModel::setEnableKatiesLoveList,
             onToolkitChanged = viewModel::setEnableToolkit,
             onLivingTreeChanged = viewModel::setEnableLivingTree,
+            onThermometersChanged = viewModel::setEnableThermometers,
         )
     }
 }
@@ -382,6 +383,7 @@ private fun ReviewStepContent(
         if (settings.enableKatiesLoveList) add("Katie's Love List")
         if (draft.toolkitTabVisible) add("Toolkit (${draft.enabledToolkitTools.size} tools)")
         if (settings.enableLivingTree) add("Living Flower")
+        if (settings.enableThermometers) add("Thermometers")
     }
 
     WalkthroughCard {
@@ -428,7 +430,8 @@ private fun validationMessageFor(
 ): String? = when (step) {
     SanctuaryWalkthroughStep.Spaces -> if (
         !draft.enableBreathing && !draft.enableTimer && !draft.enableAffirmations &&
-        !draft.enableKatiesLoveList && !draft.enableToolkit && !draft.enableLivingTree
+        !draft.enableKatiesLoveList && !draft.enableToolkit && !draft.enableLivingTree &&
+        !draft.enableThermometers
     ) {
         "Enable at least one space to continue."
     } else {

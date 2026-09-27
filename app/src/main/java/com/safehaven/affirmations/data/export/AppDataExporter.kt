@@ -48,6 +48,8 @@ class AppDataExporter(
         val moodEntries = db.moodEntryDao().getAll()
         val heartsEntries = db.heartsEntryDao().getAll()
         val livingTree = AppGraph.livingTree(context)
+        val thermometers = db.thermometerDao().getAll()
+        val thermometerEvents = db.thermometerEventDao().getAll()
 
         JSONObject().apply {
             put("exportVersion", EXPORT_VERSION)
@@ -68,6 +70,34 @@ class AppDataExporter(
                 heartsEntries = heartsEntries,
             ))
             put("livingTree", buildLivingTreeSection(livingTree))
+            put("thermometers", JSONObject().apply {
+                put("items", JSONArray().apply {
+                    thermometers.forEach { item ->
+                        put(JSONObject().apply {
+                            put("id", item.id)
+                            put("name", item.name)
+                            put("sortOrder", item.sortOrder)
+                            put("isArchived", item.isArchived)
+                            put("createdAt", item.createdAt)
+                            put("updatedAt", item.updatedAt)
+                        })
+                    }
+                })
+                put("events", JSONArray().apply {
+                    thermometerEvents.forEach { event ->
+                        put(JSONObject().apply {
+                            put("id", event.id)
+                            put("thermometerId", event.thermometerId)
+                            put("type", event.type)
+                            put("score", event.score)
+                            put("note", event.note)
+                            put("previousName", event.previousName)
+                            put("newName", event.newName)
+                            put("recordedAt", event.recordedAt)
+                        })
+                    }
+                })
+            })
         }.toString(2)
     }
 
@@ -90,6 +120,7 @@ class AppDataExporter(
             put("enableToolkit", settings.enableToolkit)
             put("enableVisuals", settings.enableVisuals)
             put("enableLivingTree", settings.enableLivingTree)
+            put("enableThermometers", settings.enableThermometers)
             put("enabledScenes", JSONArray(settings.enabledScenes.toList()))
             put("meditationRemindersAvailable", settings.meditationRemindersAvailable)
             put("futureSelfSchedulingAvailable", settings.futureSelfSchedulingAvailable)

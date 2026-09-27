@@ -29,6 +29,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         homeActivityRepository.observeTimeline()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    private val _openedActivity = MutableStateFlow<HomeActivityItem?>(null)
+    val openedActivity: StateFlow<HomeActivityItem?> = _openedActivity.asStateFlow()
+
+    private val _showAllActivity = MutableStateFlow(false)
+    val showAllActivity: StateFlow<Boolean> = _showAllActivity.asStateFlow()
+
+    fun openActivity(item: HomeActivityItem) {
+        _openedActivity.value = item
+    }
+
+    fun closeActivity() {
+        _openedActivity.value = null
+    }
+
+    fun openAllActivity() {
+        _showAllActivity.value = true
+    }
+
+    fun closeAllActivity() {
+        _showAllActivity.value = false
+    }
+
     val quickStartTargets: StateFlow<List<QuickStartTarget>> = quickStartPreferences.selectedTargets
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 

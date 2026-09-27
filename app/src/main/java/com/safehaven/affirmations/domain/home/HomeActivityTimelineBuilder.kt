@@ -15,6 +15,7 @@ object HomeActivityTimelineBuilder {
         affirmationReviews: List<TextEntryRow>,
         heartsEntries: List<TextEntryRow> = emptyList(),
         moodCheckIns: List<MoodCheckInRow> = emptyList(),
+        thermometerEvents: List<ThermometerActivityRow> = emptyList(),
         limit: Int = DEFAULT_LIMIT,
     ): List<HomeActivityItem> {
         val items = buildList {
@@ -65,11 +66,30 @@ object HomeActivityTimelineBuilder {
                     ),
                 )
             }
+            thermometerEvents.forEach { row ->
+                add(
+                    HomeActivityItem(
+                        id = "thermometer:${row.id}",
+                        completedAt = row.completedAt,
+                        title = row.title,
+                        subtitle = row.subtitle,
+                        textEntry = row.text.takeIf { it.isNotBlank() },
+                    ),
+                )
+            }
         }
         return items
             .sortedByDescending { it.completedAt }
             .take(limit)
     }
+
+    data class ThermometerActivityRow(
+        val id: Long,
+        val completedAt: Long,
+        val title: String,
+        val subtitle: String,
+        val text: String,
+    )
 
     data class MoodCheckInRow(
         val id: Long,
@@ -111,5 +131,6 @@ object HomeActivityTimelineBuilder {
         SessionType.VISUALIZATION -> "Visualization"
     }
 
-    const val DEFAULT_LIMIT = 50
+    const val HOME_PREVIEW_LIMIT = 10
+    const val DEFAULT_LIMIT = 200
 }

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.safehaven.affirmations.BuildConfig
 import com.safehaven.affirmations.data.local.MeditationReflectionEntity
 import com.safehaven.affirmations.ui.components.HistoryGlassCard
+import com.safehaven.affirmations.ui.components.PersistentEntryDialogProperties
 import com.safehaven.affirmations.ui.components.MoodDisplay
 import com.safehaven.affirmations.ui.components.MoodEntryIcon
 import com.safehaven.affirmations.ui.toolkit.OneNoteEntrySyncButton
@@ -126,7 +127,8 @@ private fun ReflectionDetailDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = { Text(formatReflectionTimestamp(entry.completedAt)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

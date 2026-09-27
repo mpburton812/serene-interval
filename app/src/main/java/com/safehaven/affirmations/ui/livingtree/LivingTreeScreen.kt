@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.animation.core.Animatable
@@ -52,6 +53,7 @@ import com.safehaven.affirmations.data.local.LivingTreeTagEntity
 import com.safehaven.affirmations.domain.livingtree.LivingTreeFilterLogic
 import com.safehaven.affirmations.domain.livingtree.LivingTreeLayout
 import com.safehaven.affirmations.ui.components.GlassCard
+import com.safehaven.affirmations.ui.components.ReportEntryPopup
 import com.safehaven.affirmations.ui.components.SereneTabBackground
 import com.safehaven.affirmations.ui.components.SereneTabHeader
 import com.safehaven.affirmations.ui.theme.SereneSpacing
@@ -66,7 +68,14 @@ fun LivingTreeScreen(
     viewModel: LivingTreeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ReportEntryPopup(
+        id = "living-tree-entry",
+        active = state.selectedPerson != null || state.editingPerson != null,
+    )
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { value -> value != SheetValue.Hidden },
+    )
     val scope = rememberCoroutineScope()
     var displayedPeople by remember { mutableStateOf<List<LivingTreePersonWithTags>>(emptyList()) }
     val nodeAlphas = remember { mutableStateMapOf<Long, Animatable<Float, AnimationVector1D>>() }
@@ -205,12 +214,13 @@ fun LivingTreeScreen(
 
     state.selectedPerson?.let { person ->
         ModalBottomSheet(
-            onDismissRequest = viewModel::dismissPersonDetail,
+            onDismissRequest = {},
             sheetState = sheetState,
         ) {
             PersonDetailSheetContent(
                 person = person,
                 onEdit = { viewModel.startEditPerson(person) },
+                onClose = viewModel::dismissPersonDetail,
                 modifier = Modifier.padding(SereneSpacing.containerMargin),
             )
         }
@@ -361,6 +371,7 @@ fun SplitColorDot(
 private fun PersonDetailSheetContent(
     person: LivingTreePersonWithTags,
     onEdit: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -378,6 +389,9 @@ private fun PersonDetailSheetContent(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f),
             )
+            TextButton(onClick = onClose) {
+                Text("Close")
+            }
             TextButton(onClick = onEdit) {
                 Text("Edit")
             }

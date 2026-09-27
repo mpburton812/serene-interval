@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.safehaven.affirmations.data.local.ThoughtDumpEntity
 import com.safehaven.affirmations.ui.components.GlassCard
 import com.safehaven.affirmations.ui.components.HistoryGlassCard
+import com.safehaven.affirmations.ui.components.PersistentEntryDialogProperties
 import com.safehaven.affirmations.ui.components.JournalCaptureFields
 import com.safehaven.affirmations.ui.components.MoodDisplay
 import com.safehaven.affirmations.ui.theme.SereneSpacing
@@ -196,7 +197,8 @@ private fun LogEntryDetailDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = { Text(formatLogTimestamp(entry.createdAt)) },
         text = {
             Column(

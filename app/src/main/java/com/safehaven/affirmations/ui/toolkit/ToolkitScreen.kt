@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.safehaven.affirmations.navigation.PendingToolkitNavigation
+import com.safehaven.affirmations.ui.components.ReportEntryPopup
 import com.safehaven.affirmations.ui.components.SereneTabBackground
 import com.safehaven.affirmations.ui.components.SereneTabHeader
 import com.safehaven.affirmations.ui.theme.SereneSpacing
@@ -28,6 +29,15 @@ fun ToolkitScreen(
     viewModel: ToolkitViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    ReportEntryPopup(
+        id = "toolkit-entry",
+        active = state.openedLogEntry != null ||
+            state.openedFutureSelfEntry != null ||
+            state.openedRefactoringEntry != null ||
+            state.openedCenterOfGravityEntry != null ||
+            state.openedNvcEntry != null ||
+            state.openedHeartsEntry != null,
+    )
 
     LaunchedEffect(resetSignal) {
         if (resetSignal > 0) {

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.LocalFlorist
+import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.Air
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -25,10 +26,12 @@ import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Landscape
 import androidx.compose.material.icons.outlined.LocalFlorist
+import androidx.compose.material.icons.outlined.DeviceThermostat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +60,8 @@ import com.safehaven.affirmations.data.AppGraph
 import com.safehaven.affirmations.navigation.SereneDestination.ToolkitTab
 import com.safehaven.affirmations.ui.breathing.BreathingScreen
 import com.safehaven.affirmations.ui.components.BottomNavItem
+import com.safehaven.affirmations.ui.components.EntryPopupLock
+import com.safehaven.affirmations.ui.components.LocalEntryPopupLock
 import com.safehaven.affirmations.ui.components.BuildInfoFooter
 import com.safehaven.affirmations.ui.components.SereneAppBanner
 import com.safehaven.affirmations.ui.components.KeepScreenOnEffect
@@ -69,6 +74,7 @@ import com.safehaven.affirmations.ui.sanctuary.SanctuaryWalkthroughScreen
 import com.safehaven.affirmations.ui.sanctuary.SanctuaryWalkthroughViewModel
 import com.safehaven.affirmations.ui.settings.LocalExperienceSettings
 import com.safehaven.affirmations.ui.settings.SettingsScreen
+import com.safehaven.affirmations.ui.thermometer.ThermometersScreen
 import com.safehaven.affirmations.ui.timer.TimerScreen
 import com.safehaven.affirmations.ui.livingtree.LivingTreeScreen
 import com.safehaven.affirmations.ui.livingtree.LivingTreeSetupScreen
@@ -103,6 +109,12 @@ private val allBottomNavItems = listOf(
         Icons.Outlined.LocalFlorist,
         Icons.Default.LocalFlorist,
     ),
+    BottomNavItem(
+        SereneDestination.Thermometers,
+        "Stress",
+        Icons.Outlined.DeviceThermostat,
+        Icons.Default.DeviceThermostat,
+    ),
 )
 
 private val tabBackgroundRoutes = setOf(
@@ -113,6 +125,7 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.KatiesLoveList.route,
     SereneDestination.Toolkit.route,
     SereneDestination.LivingTree.route,
+    SereneDestination.Thermometers.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -140,6 +153,7 @@ fun SereneNavHost(
     var quickStartBreathingPatternId by remember { mutableStateOf<String?>(null) }
     var quickStartToolkitToolId by remember { mutableStateOf<ToolkitToolId?>(null) }
     var quickStartReturnToHome by remember { mutableStateOf(false) }
+    val entryPopupLock = remember { EntryPopupLock() }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -196,6 +210,7 @@ fun SereneNavHost(
         settings.enableKatiesLoveList,
         settings.enableToolkit,
         settings.enableLivingTree,
+        settings.enableThermometers,
     ) {
         allBottomNavItems.filter { item ->
             when (item.destination) {
@@ -206,6 +221,7 @@ fun SereneNavHost(
                 SereneDestination.KatiesLoveList -> settings.enableKatiesLoveList
                 SereneDestination.Toolkit -> settings.enableToolkit
                 SereneDestination.LivingTree -> settings.enableLivingTree
+                SereneDestination.Thermometers -> settings.enableThermometers
                 else -> false
             }
         }
@@ -217,9 +233,6 @@ fun SereneNavHost(
     )
 
     val navigateToTab: (SereneDestination) -> Unit = { destination ->
-        if (destination == SereneDestination.Toolkit) {
-            toolkitResetSignal++
-        }
         if (destination == SereneDestination.Visualizations &&
             currentRoute?.startsWith("visualizations/player") == true
         ) {
@@ -344,6 +357,7 @@ fun SereneNavHost(
         }
     }
 
+    CompositionLocalProvider(LocalEntryPopupLock provides entryPopupLock) {
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
@@ -422,12 +436,13 @@ fun SereneNavHost(
             composable(SereneDestination.KatiesLoveList.route) { }
             composable(SereneDestination.Toolkit.route) { }
             composable(SereneDestination.LivingTree.route) { }
+            composable(SereneDestination.Thermometers.route) { }
             composable(
                 route = SereneDestination.MoodGraph.route,
                 arguments = listOf(
                     navArgument("period") {
                         type = NavType.StringType
-                        defaultValue = com.safehaven.affirmations.domain.mood.MoodGraphPeriod.DAY.name
+                        defaultValue = com.safehaven.affirmations.domain.mood.MoodGraphPeriod.WEEK.name
                     },
                 ),
             ) { entry ->
@@ -477,7 +492,7 @@ fun SereneNavHost(
                 MainTabPager(
                     items = bottomNavItems,
                     pagerState = tabPagerState,
-                    userScrollEnabled = !breathingSessionActive,
+                    userScrollEnabled = !breathingSessionActive && entryPopupLock.sources.isEmpty(),
                 ) { destination ->
                     when (destination) {
                         SereneDestination.Home -> {
@@ -538,12 +553,16 @@ fun SereneNavHost(
                                 onReturnToHome = {
                                     quickStartReturnToHome = false
                                     quickStartToolkitToolId = null
+                                    toolkitResetSignal++
                                     navigateToTab(SereneDestination.Home)
                                 },
                                 onNavigateToBreathe = {
                                     navigateToTab(SereneDestination.Breathe)
                                 },
                             )
+                        }
+                        SereneDestination.Thermometers -> {
+                            ThermometersScreen()
                         }
                         SereneDestination.LivingTree -> {
                             LivingTreeScreen(
@@ -566,5 +585,6 @@ fun SereneNavHost(
                 )
             }
         }
+    }
     }
 }

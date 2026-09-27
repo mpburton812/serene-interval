@@ -2,6 +2,9 @@ package com.safehaven.affirmations.data
 
 import com.safehaven.affirmations.data.local.MoodEntryEntity
 import com.safehaven.affirmations.data.local.SereneDatabase
+import com.safehaven.affirmations.data.local.ThermometerEntity
+import com.safehaven.affirmations.data.local.ThermometerEventEntity
+import com.safehaven.affirmations.data.local.ThermometerEventType
 import com.safehaven.affirmations.domain.home.HomeActivityItem
 import com.safehaven.affirmations.domain.home.HomeActivityTimelineBuilder
 import com.safehaven.affirmations.domain.mood.MoodScale
@@ -96,7 +99,14 @@ class HomeActivityRepository(
             )
         }
 
-        return combine(primaryFlow, secondaryFlow) { primary, secondary ->
+        val thermometerFlow = combine(
+            database.thermometerDao().observeAll(),
+            database.thermometerEventDao().observeAll(),
+        ) { thermometers, events ->
+            thermometerRows(thermometers, events)
+        }
+
+        return combine(primaryFlow, secondaryFlow, thermometerFlow) { primary, secondary, thermometerEvents ->
             HomeActivityTimelineBuilder.build(
                 sessions = primary.sessions,
                 reflections = primary.reflections.map(::reflectionRow),
@@ -108,9 +118,37 @@ class HomeActivityRepository(
                 affirmationReviews = secondary.affirmationReviews.map(::affirmationReviewRow),
                 heartsEntries = secondary.heartsEntries.map(::heartsRow),
                 moodCheckIns = secondary.moodCheckIns.map(::moodCheckInRow),
+                thermometerEvents = thermometerEvents,
                 limit = limit,
             )
         }.flowOn(Dispatchers.Default)
+    }
+
+    private fun thermometerRows(
+        thermometers: List<ThermometerEntity>,
+        events: List<ThermometerEventEntity>,
+    ): List<HomeActivityTimelineBuilder.ThermometerActivityRow> {
+        val names = thermometers.associate { it.id to it.name }
+        return events.map { event ->
+            val name = names[event.thermometerId] ?: "Thermometer"
+            if (event.type == ThermometerEventType.RENAME) {
+                HomeActivityTimelineBuilder.ThermometerActivityRow(
+                    id = event.id,
+                    completedAt = event.recordedAt,
+                    title = name,
+                    subtitle = "Renamed to ${event.newName.orEmpty()}",
+                    text = "",
+                )
+            } else {
+                HomeActivityTimelineBuilder.ThermometerActivityRow(
+                    id = event.id,
+                    completedAt = event.recordedAt,
+                    title = name,
+                    subtitle = "Stress ${event.score ?: "—"}",
+                    text = event.note.orEmpty(),
+                )
+            }
+        }
     }
 
     private fun com.safehaven.affirmations.data.local.SessionEntity.toMeditationSession(): MeditationSession =

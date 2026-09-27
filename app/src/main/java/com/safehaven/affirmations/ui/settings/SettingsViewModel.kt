@@ -160,6 +160,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         preferences.update { it.copy(enableLivingTree = enabled) }
     }
 
+    fun setEnableThermometers(enabled: Boolean) {
+        preferences.update { it.copy(enableThermometers = enabled) }
+    }
+
     fun setEnableVisuals(enabled: Boolean) {
         preferences.update { current ->
             current.withToolToggle { it.copy(enableVisuals = enabled) }

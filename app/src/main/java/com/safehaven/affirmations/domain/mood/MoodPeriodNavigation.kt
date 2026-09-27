@@ -37,6 +37,7 @@ fun periodReferenceMillis(
         MoodGraphPeriod.MONTH,
         MoodGraphPeriod.CALENDAR,
         -> today.plusMonths(offset.toLong())
+        MoodGraphPeriod.YEAR -> today.plusYears(offset.toLong())
     }
     return referenceDate.atStartOfDay(zoneId).plusHours(12).toInstant().toEpochMilli()
 }
@@ -77,6 +78,10 @@ fun moodPeriodTitle(
                     referenceDate.year == today.year -> "This Month"
                 else -> formatter.format(referenceDate.withDayOfMonth(1))
             }
+        }
+        MoodGraphPeriod.YEAR -> when {
+            offset == 0 && referenceDate.year == today.year -> "This Year"
+            else -> referenceDate.year.toString()
         }
     }
 }

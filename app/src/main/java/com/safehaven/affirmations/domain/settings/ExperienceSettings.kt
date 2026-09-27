@@ -14,6 +14,7 @@ data class ExperienceSettings(
     val enableToolkit: Boolean = true,
     val enableVisuals: Boolean = true,
     val enableLivingTree: Boolean = true,
+    val enableThermometers: Boolean = true,
     val enabledScenes: Set<String> = defaultScenes,
     val meditationRemindersAvailable: Boolean = true,
     val futureSelfSchedulingAvailable: Boolean = true,
@@ -22,7 +23,7 @@ data class ExperienceSettings(
 
     val hasAnyToolEnabled: Boolean
         get() = enableBreathing || enableTimer || enableAffirmations || enableKatiesLoveList ||
-            enableToolkit || enableLivingTree || enableVisuals
+            enableToolkit || enableLivingTree || enableThermometers || enableVisuals
 
     val displayName: String get() = preferredName.trim().ifBlank { "there" }
 
