@@ -172,6 +172,9 @@ class AffirmationReviewSessionRepositoryTest {
                 }.take(limit)
             }
 
+        override fun observeStandalone(): Flow<List<MoodEntryEntity>> =
+            flow.map { list -> list.filter { it.legacyTable == null } }
+
         override suspend fun clearAll() {
             entries.clear()
             flow.value = emptyList()

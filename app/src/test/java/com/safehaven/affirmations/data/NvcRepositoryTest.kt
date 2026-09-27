@@ -78,6 +78,9 @@ class NvcRepositoryTest {
             override fun observeQuickLogs(limit: Int): Flow<List<MoodEntryEntity>> =
                 MutableStateFlow(emptyList())
 
+            override fun observeStandalone(): Flow<List<MoodEntryEntity>> =
+                MutableStateFlow(emptyList())
+
             override suspend fun clearAll() = Unit
         },
         thoughtDumpDao = object : com.safehaven.affirmations.data.local.ThoughtDumpDao {

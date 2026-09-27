@@ -46,10 +46,7 @@
 - Widget mood taps reliably record and show a main-thread confirmation toast
 - Selected face bounces three times like in-app quick-log (clear enlarge/shrink pulses)
 - Stale flash state no longer permanently blocks further taps
-
-### Home
-
-- Mood check-ins from the home screen and widget appear in Recent activity
+- Widget and home quick-log check-ins appear in Recent activity on the Home screen
 
 ## 2.0.2 - 2026-08-02
 

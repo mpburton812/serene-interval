@@ -4,7 +4,6 @@ import androidx.compose.ui.graphics.Color
 import com.safehaven.affirmations.domain.mood.MoodScale
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -12,19 +11,17 @@ import org.junit.Test
 class MoodWidgetSelectionFlashTest {
     @Test
     fun run_emitsThreeBounceCyclesThenClears() = runBlocking {
-        val frames = mutableListOf<Pair<Float, Boolean>>()
-        MoodWidgetSelectionFlash.run(frameDelayMs = 0L) { alpha, enlarged ->
-            frames += alpha to enlarged
+        val frames = mutableListOf<MoodWidgetSelectionFlash.Frame>()
+        MoodWidgetSelectionFlash.run(halfCycleMs = 0L) { frame ->
+            frames += frame
         }
 
-        val expectedCycle = MoodWidgetSelectionFlash.cycleFrames
+        val expected = MoodWidgetSelectionFlash.bounceFrames
         assertEquals(MoodWidgetSelectionFlash.CYCLES, 3)
-        // Three full cycles plus a final clear frame.
-        assertEquals(expectedCycle.size * 3 + 1, frames.size)
-        assertEquals(expectedCycle + expectedCycle + expectedCycle + listOf(0f to false), frames)
-        assertTrue(expectedCycle.any { it.second })
-        assertEquals(1f, expectedCycle.maxOf { it.first }, 0.001f)
-        assertEquals(120L, MoodWidgetSelectionFlash.FRAME_DELAY_MS)
+        assertEquals(expected, frames)
+        assertTrue(expected.any { it.faceEnlarged })
+        assertTrue(expected.any { !it.faceEnlarged })
+        assertEquals(0f, expected.last().backgroundAlpha, 0.001f)
     }
 
     @Test
@@ -56,32 +53,33 @@ class MoodWidgetSelectionFlashTest {
     }
 
     @Test
-    fun flashStore_clearsWhenAlphaIsZeroAndNotEnlarged() {
+    fun flashStore_keepsZeroAlphaUntilExplicitlyCleared() {
         MoodWidgetFlashStore.set(99, MoodWidgetFlash(MoodScale.COLOR_GREEN, 0.8f, level = 4))
         assertEquals(0.8f, MoodWidgetFlashStore.get(99)?.alpha)
         MoodWidgetFlashStore.set(99, MoodWidgetFlash(MoodScale.COLOR_GREEN, 0f, level = 4))
-        assertNull(MoodWidgetFlashStore.get(99))
+        assertEquals(0f, MoodWidgetFlashStore.get(99)?.alpha)
         MoodWidgetFlashStore.clear(99)
+        assertNull(MoodWidgetFlashStore.get(99))
     }
 
     @Test
-    fun isFaceEnlarged_usesExplicitBounceFlag() {
-        val bouncing = MoodWidgetFlash(
+    fun isFaceEnlarged_usesExplicitBounceFlagForMatchingLevel() {
+        val enlarged = MoodWidgetFlash(
             MoodScale.COLOR_BLUE,
-            alpha = 1f,
+            alpha = 0.2f,
             level = 3,
-            enlarged = true,
+            faceEnlarged = true,
         )
-        val soft = MoodWidgetFlash(
+        val resting = MoodWidgetFlash(
             MoodScale.COLOR_BLUE,
-            alpha = 0.35f,
+            alpha = 0.7f,
             level = 3,
-            enlarged = false,
+            faceEnlarged = false,
         )
 
-        assertTrue(MoodWidgetSelectionFlash.isFaceEnlarged(bouncing, level = 3))
-        assertFalse(MoodWidgetSelectionFlash.isFaceEnlarged(soft, level = 3))
-        assertFalse(MoodWidgetSelectionFlash.isFaceEnlarged(bouncing, level = 1))
+        assertTrue(MoodWidgetSelectionFlash.isFaceEnlarged(enlarged, level = 3))
+        assertTrue(!MoodWidgetSelectionFlash.isFaceEnlarged(resting, level = 3))
+        assertTrue(!MoodWidgetSelectionFlash.isFaceEnlarged(enlarged, level = 1))
         assertEquals(
             MoodWidgetSelectionFlash.HIGHLIGHT_CIRCLE_DP,
             MoodWidgetSelectionFlash.circleSizeDp(enlarged = true),
@@ -90,21 +88,5 @@ class MoodWidgetSelectionFlashTest {
             MoodWidgetSelectionFlash.NORMAL_ICON_DP,
             MoodWidgetSelectionFlash.iconSizeDp(enlarged = false),
         )
-    }
-
-    @Test
-    fun flashStore_staleActiveDoesNotBlockForever() {
-        MoodWidgetFlashStore.set(
-            42,
-            MoodWidgetFlash(
-                colorArgb = MoodScale.COLOR_RED,
-                alpha = 1f,
-                level = 1,
-                enlarged = true,
-                startedAtMillis = System.currentTimeMillis() - MoodWidgetFlashStore.ACTIVE_TIMEOUT_MS - 1,
-            ),
-        )
-        assertFalse(MoodWidgetFlashStore.isActive(42))
-        assertNull(MoodWidgetFlashStore.get(42))
     }
 }

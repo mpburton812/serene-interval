@@ -48,6 +48,15 @@ interface MoodEntryDao {
     )
     fun observeQuickLogs(limit: Int): Flow<List<MoodEntryEntity>>
 
+    @Query(
+        """
+        SELECT * FROM mood_entries
+        WHERE legacyTable IS NULL
+        ORDER BY recordedAtMillis DESC
+        """,
+    )
+    fun observeStandalone(): Flow<List<MoodEntryEntity>>
+
     @Query("DELETE FROM mood_entries")
     suspend fun clearAll()
 }

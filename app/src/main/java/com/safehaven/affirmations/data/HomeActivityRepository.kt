@@ -65,7 +65,7 @@ class HomeActivityRepository(
         val futureSelfFlow = database.futureSelfMessageDao().observeAll()
         val affirmationReviewsFlow = database.affirmationReviewSessionDao().observeAllKinds()
         val heartsFlow = database.heartsEntryDao().observeAll()
-        val moodQuickLogsFlow = database.moodEntryDao().observeQuickLogs(limit)
+        val moodCheckInsFlow = database.moodEntryDao().observeStandalone()
 
         val primaryFlow = combine(
             sessionsFlow,
@@ -88,14 +88,14 @@ class HomeActivityRepository(
             futureSelfFlow,
             affirmationReviewsFlow,
             heartsFlow,
-            moodQuickLogsFlow,
-        ) { cog, futureSelf, reviews, hearts, moodQuickLogs ->
+            moodCheckInsFlow,
+        ) { cog, futureSelf, reviews, hearts, moodCheckIns ->
             TimelineSecondarySnapshot(
                 centerOfGravity = cog,
                 futureSelf = futureSelf,
                 affirmationReviews = reviews,
                 heartsEntries = hearts,
-                moodCheckIns = moodQuickLogs,
+                moodCheckIns = moodCheckIns,
             )
         }
 
