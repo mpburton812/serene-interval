@@ -41,6 +41,16 @@ interface MoodEntryDao {
     @Query(
         """
         SELECT * FROM mood_entries
+        WHERE source IN ('HOME_SCREEN', 'WIDGET')
+        ORDER BY recordedAtMillis DESC
+        LIMIT :limit
+        """,
+    )
+    fun observeQuickLogs(limit: Int): Flow<List<MoodEntryEntity>>
+
+    @Query(
+        """
+        SELECT * FROM mood_entries
         WHERE legacyTable IS NULL
         ORDER BY recordedAtMillis DESC
         """,

@@ -151,7 +151,7 @@ class HomeActivityTimelineBuilderTest {
     }
 
     @Test
-    fun build_includesMoodCheckIns() {
+    fun build_includesMoodCheckInsFromWidgetAndHome() {
         val items = HomeActivityTimelineBuilder.build(
             sessions = emptyList(),
             reflections = emptyList(),
@@ -162,22 +162,77 @@ class HomeActivityTimelineBuilderTest {
             futureSelfMessages = emptyList(),
             affirmationReviews = emptyList(),
             moodCheckIns = listOf(
-                HomeActivityTimelineBuilder.TextEntryRow(
+                HomeActivityTimelineBuilder.MoodCheckInRow(
                     id = 5,
                     completedAt = 8000L,
-                    label = "Mood check-in (widget)",
-                    text = "",
-                    subtitle = "Green",
                     moodLevel = 4,
+                    subtitle = "Widget · Green",
                 ),
             ),
         )
 
         assertEquals(1, items.size)
-        assertEquals("Mood check-in (widget)", items.first().title)
-        assertEquals("Green", items.first().subtitle)
+        assertEquals("mood:5", items.first().id)
+        assertEquals("Mood check-in", items.first().title)
+        assertEquals("Widget · Green", items.first().subtitle)
         assertEquals(4, items.first().moodLevel)
         assertNull(items.first().textEntry)
+    }
+
+    @Test
+    fun build_includesThermometerReadingsAndRenames() {
+        val items = HomeActivityTimelineBuilder.build(
+            sessions = emptyList(),
+            reflections = emptyList(),
+            thoughtDumps = emptyList(),
+            nvcEntries = emptyList(),
+            refactoringEntries = emptyList(),
+            centerOfGravityEntries = emptyList(),
+            futureSelfMessages = emptyList(),
+            affirmationReviews = emptyList(),
+            thermometerEvents = listOf(
+                HomeActivityTimelineBuilder.ThermometerActivityRow(
+                    id = 3,
+                    completedAt = 4000L,
+                    title = "Work stress",
+                    subtitle = "Stress 70",
+                    text = "Deadline moved up",
+                ),
+                HomeActivityTimelineBuilder.ThermometerActivityRow(
+                    id = 4,
+                    completedAt = 5000L,
+                    title = "Work stress",
+                    subtitle = "Renamed to Work stress",
+                    text = "",
+                ),
+            ),
+        )
+
+        assertEquals(listOf("thermometer:4", "thermometer:3"), items.map { it.id })
+        assertEquals("Deadline moved up", items[1].textEntry)
+        assertNull(items[0].textEntry)
+    }
+
+    @Test
+    fun homePreview_isTheNewestTen() {
+        val sessions = (1..12).map { index ->
+            session(id = index.toLong(), completedAt = index * 1000L, title = "Session $index")
+        }
+        val items = HomeActivityTimelineBuilder.build(
+            sessions = sessions,
+            reflections = emptyList(),
+            thoughtDumps = emptyList(),
+            nvcEntries = emptyList(),
+            refactoringEntries = emptyList(),
+            centerOfGravityEntries = emptyList(),
+            futureSelfMessages = emptyList(),
+            affirmationReviews = emptyList(),
+        )
+        val preview = items.take(HomeActivityTimelineBuilder.HOME_PREVIEW_LIMIT)
+        assertEquals(12, items.size)
+        assertEquals(10, preview.size)
+        assertEquals("Session 12", preview.first().title)
+        assertEquals("Session 3", preview.last().title)
     }
 
     private fun session(id: Long, completedAt: Long, title: String) = MeditationSession(

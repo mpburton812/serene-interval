@@ -36,6 +36,7 @@ object MoodGraphAxisFormatter {
             MoodGraphPeriod.MONTH,
             MoodGraphPeriod.CALENDAR,
             -> monthTicks(startMillis, rangeMillis, zoneId, locale)
+            MoodGraphPeriod.YEAR -> yearTicks(startMillis, rangeMillis, zoneId, locale)
         }
     }
 
@@ -93,6 +94,24 @@ object MoodGraphAxisFormatter {
         val tickDays = listOf(1, 8, 15, 22, 29).filter { it <= monthLength }
         return tickDays.map { dayOfMonth ->
             val tickDate = monthStart.withDayOfMonth(dayOfMonth)
+            val tickMillis = tickDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+            MoodGraphAxisTick(
+                positionFraction = ((tickMillis - startMillis).toFloat() / rangeMillis).coerceIn(0f, 1f),
+                label = formatter.format(tickDate),
+            )
+        }
+    }
+
+    private fun yearTicks(
+        startMillis: Long,
+        rangeMillis: Long,
+        zoneId: ZoneId,
+        locale: Locale,
+    ): List<MoodGraphAxisTick> {
+        val formatter = DateTimeFormatter.ofPattern("MMM", locale)
+        val yearStart = Instant.ofEpochMilli(startMillis).atZone(zoneId).toLocalDate().withDayOfYear(1)
+        return (1..12 step 2).map { month ->
+            val tickDate = yearStart.withMonth(month).withDayOfMonth(1)
             val tickMillis = tickDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
             MoodGraphAxisTick(
                 positionFraction = ((tickMillis - startMillis).toFloat() / rangeMillis).coerceIn(0f, 1f),

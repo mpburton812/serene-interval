@@ -53,6 +53,7 @@ import com.safehaven.affirmations.data.local.FutureSelfMessageEntity
 import com.safehaven.affirmations.permissions.SchedulingPermissions
 import com.safehaven.affirmations.ui.components.GlassCard
 import com.safehaven.affirmations.ui.components.HistoryGlassCard
+import com.safehaven.affirmations.ui.components.PersistentEntryDialogProperties
 import com.safehaven.affirmations.ui.components.JournalCaptureFields
 import com.safehaven.affirmations.ui.components.MoodDisplay
 import com.safehaven.affirmations.ui.theme.SereneSpacing
@@ -400,7 +401,8 @@ private fun FutureSelfEntryDetailDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = { Text(formatFutureSelfTimestamp(entry.scheduledAtMillis)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

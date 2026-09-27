@@ -10,6 +10,7 @@ enum class MoodGraphPeriod {
     DAY,
     WEEK,
     MONTH,
+    YEAR,
     CALENDAR,
 }
 
@@ -36,6 +37,7 @@ fun moodPeriodBounds(
         MoodGraphPeriod.MONTH,
         MoodGraphPeriod.CALENDAR,
         -> referenceDate.withDayOfMonth(1)
+        MoodGraphPeriod.YEAR -> referenceDate.withDayOfYear(1)
     }
     val endDate = when (period) {
         MoodGraphPeriod.DAY -> startDate.plusDays(1)
@@ -43,6 +45,7 @@ fun moodPeriodBounds(
         MoodGraphPeriod.MONTH,
         MoodGraphPeriod.CALENDAR,
         -> startDate.plusMonths(1)
+        MoodGraphPeriod.YEAR -> startDate.plusYears(1)
     }
     return MoodPeriodBounds(
         startMillis = startDate.atStartOfDay(zoneId).toInstant().toEpochMilli(),

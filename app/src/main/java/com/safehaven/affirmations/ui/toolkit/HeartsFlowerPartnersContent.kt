@@ -37,6 +37,7 @@ import com.safehaven.affirmations.domain.toolkit.HeartsToolConfig
 import com.safehaven.affirmations.domain.toolkit.ToolkitTool
 import com.safehaven.affirmations.ui.components.GlassCard
 import com.safehaven.affirmations.ui.components.HistoryGlassCard
+import com.safehaven.affirmations.ui.components.PersistentEntryDialogProperties
 import com.safehaven.affirmations.ui.components.MoodDisplay
 import com.safehaven.affirmations.ui.components.MoodPicker
 import com.safehaven.affirmations.ui.theme.SereneSpacing
@@ -207,7 +208,8 @@ fun HeartsToolkitContent(
 
     openedEntry?.let { entry ->
         AlertDialog(
-            onDismissRequest = onCloseEntry,
+            onDismissRequest = {},
+            properties = PersistentEntryDialogProperties,
             title = { Text(tool.title) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

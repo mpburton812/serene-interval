@@ -66,6 +66,8 @@ import com.safehaven.affirmations.domain.affirmations.AffirmationListKind
 import com.safehaven.affirmations.domain.affirmations.AffirmationReviewLogic
 import com.safehaven.affirmations.domain.timer.TimerBellSoundChoice
 import com.safehaven.affirmations.ui.components.GlassCard
+import com.safehaven.affirmations.ui.components.PersistentEntryDialogProperties
+import com.safehaven.affirmations.ui.components.ReportEntryPopup
 import com.safehaven.affirmations.ui.components.JournalCaptureFields
 import com.safehaven.affirmations.ui.components.SereneTabHeader
 import com.safehaven.affirmations.ui.theme.SerenePrimary
@@ -86,6 +88,11 @@ fun AffirmationsTab(
     )
     val state by viewModel.uiState.collectAsState()
     val affirmationCalendar by viewModel.affirmationCalendar.collectAsState()
+    ReportEntryPopup(
+        id = "affirmations-${listKind.name}",
+        active = state.showReview || state.showReviewAssessment ||
+            state.showAddDialog || state.showBulkImportDialog,
+    )
     val audioPlayer = remember { TimerAudioPlayer(context) }
 
     DisposableEffect(audioPlayer) {
@@ -509,7 +516,8 @@ private fun AffirmationReviewAssessmentDialog(
     val canSave = AffirmationReviewLogic.canSaveAssessment(moodLevel, notes)
 
     AlertDialog(
-        onDismissRequest = onSkip,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = { Text("Session assessment") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -555,7 +563,8 @@ private fun BulkImportDialog(
     val parsedCount = remember(text) { parseAffirmationLines(text).size }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = { Text("Bulk Import") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -612,7 +621,8 @@ private fun AffirmationEditorDialog(
     var text by remember(initialText) { mutableStateOf(initialText) }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = { Text(title) },
         text = {
             OutlinedTextField(

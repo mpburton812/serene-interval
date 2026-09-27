@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.safehaven.affirmations.data.local.LivingTreePersonWithTags
+import com.safehaven.affirmations.ui.components.PersistentEntryDialogProperties
 import com.safehaven.affirmations.data.local.LivingTreeTagEntity
 import com.safehaven.affirmations.domain.livingtree.LivingTreePersonNames
 
@@ -48,7 +49,8 @@ fun LivingTreePersonEditorDialog(
     val notesEnabled = !isBulkAdd
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = {
             Text(
                 when {

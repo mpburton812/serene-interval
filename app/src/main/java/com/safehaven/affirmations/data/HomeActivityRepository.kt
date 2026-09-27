@@ -1,6 +1,10 @@
 package com.safehaven.affirmations.data
 
+import com.safehaven.affirmations.data.local.MoodEntryEntity
 import com.safehaven.affirmations.data.local.SereneDatabase
+import com.safehaven.affirmations.data.local.ThermometerEntity
+import com.safehaven.affirmations.data.local.ThermometerEventEntity
+import com.safehaven.affirmations.data.local.ThermometerEventType
 import com.safehaven.affirmations.domain.home.HomeActivityItem
 import com.safehaven.affirmations.domain.home.HomeActivityTimelineBuilder
 import com.safehaven.affirmations.domain.mood.MoodScale
@@ -79,17 +83,30 @@ class HomeActivityRepository(
             )
         }
 
-        val secondaryFlow = combine(cogFlow, futureSelfFlow, affirmationReviewsFlow, heartsFlow) {
-                cog, futureSelf, reviews, hearts ->
+        val secondaryFlow = combine(
+            cogFlow,
+            futureSelfFlow,
+            affirmationReviewsFlow,
+            heartsFlow,
+            moodCheckInsFlow,
+        ) { cog, futureSelf, reviews, hearts, moodCheckIns ->
             TimelineSecondarySnapshot(
                 centerOfGravity = cog,
                 futureSelf = futureSelf,
                 affirmationReviews = reviews,
                 heartsEntries = hearts,
+                moodCheckIns = moodCheckIns,
             )
         }
 
-        return combine(primaryFlow, secondaryFlow, moodCheckInsFlow) { primary, secondary, moodCheckIns ->
+        val thermometerFlow = combine(
+            database.thermometerDao().observeAll(),
+            database.thermometerEventDao().observeAll(),
+        ) { thermometers, events ->
+            thermometerRows(thermometers, events)
+        }
+
+        return combine(primaryFlow, secondaryFlow, thermometerFlow) { primary, secondary, thermometerEvents ->
             HomeActivityTimelineBuilder.build(
                 sessions = primary.sessions,
                 reflections = primary.reflections.map(::reflectionRow),
@@ -100,10 +117,38 @@ class HomeActivityRepository(
                 futureSelfMessages = secondary.futureSelf.map(::futureSelfRow),
                 affirmationReviews = secondary.affirmationReviews.map(::affirmationReviewRow),
                 heartsEntries = secondary.heartsEntries.map(::heartsRow),
-                moodCheckIns = moodCheckIns.map(::moodCheckInRow),
+                moodCheckIns = secondary.moodCheckIns.map(::moodCheckInRow),
+                thermometerEvents = thermometerEvents,
                 limit = limit,
             )
         }.flowOn(Dispatchers.Default)
+    }
+
+    private fun thermometerRows(
+        thermometers: List<ThermometerEntity>,
+        events: List<ThermometerEventEntity>,
+    ): List<HomeActivityTimelineBuilder.ThermometerActivityRow> {
+        val names = thermometers.associate { it.id to it.name }
+        return events.map { event ->
+            val name = names[event.thermometerId] ?: "Thermometer"
+            if (event.type == ThermometerEventType.RENAME) {
+                HomeActivityTimelineBuilder.ThermometerActivityRow(
+                    id = event.id,
+                    completedAt = event.recordedAt,
+                    title = name,
+                    subtitle = "Renamed to ${event.newName.orEmpty()}",
+                    text = "",
+                )
+            } else {
+                HomeActivityTimelineBuilder.ThermometerActivityRow(
+                    id = event.id,
+                    completedAt = event.recordedAt,
+                    title = name,
+                    subtitle = "Stress ${event.score ?: "—"}",
+                    text = event.note.orEmpty(),
+                )
+            }
+        }
     }
 
     private fun com.safehaven.affirmations.data.local.SessionEntity.toMeditationSession(): MeditationSession =
@@ -130,7 +175,20 @@ class HomeActivityRepository(
         val futureSelf: List<com.safehaven.affirmations.data.local.FutureSelfMessageEntity>,
         val affirmationReviews: List<com.safehaven.affirmations.data.local.AffirmationReviewSessionEntity>,
         val heartsEntries: List<com.safehaven.affirmations.data.local.HeartsEntryEntity>,
+        val moodCheckIns: List<MoodEntryEntity>,
     )
+
+    private fun moodCheckInRow(entity: MoodEntryEntity) =
+        HomeActivityTimelineBuilder.MoodCheckInRow(
+            id = entity.id,
+            completedAt = entity.recordedAtMillis,
+            moodLevel = entity.moodLevel,
+            subtitle = when (MoodSource.fromDbValue(entity.source)) {
+                MoodSource.WIDGET -> "Widget · ${MoodScale.label(entity.moodLevel)}"
+                MoodSource.HOME_SCREEN -> MoodScale.label(entity.moodLevel)
+                else -> MoodScale.label(entity.moodLevel)
+            },
+        )
 
     private fun reflectionRow(
         entity: com.safehaven.affirmations.data.local.MeditationReflectionEntity,
@@ -239,23 +297,6 @@ class HomeActivityRepository(
         subtitle = "${entity.affirmationCount} affirmations",
         moodLevel = entity.moodLevel,
     )
-
-    private fun moodCheckInRow(
-        entity: com.safehaven.affirmations.data.local.MoodEntryEntity,
-    ) = HomeActivityTimelineBuilder.TextEntryRow(
-        id = entity.id,
-        completedAt = entity.recordedAtMillis,
-        label = moodCheckInLabel(entity.source),
-        text = "",
-        subtitle = MoodScale.label(entity.moodLevel),
-        moodLevel = entity.moodLevel,
-    )
-
-    private fun moodCheckInLabel(source: String): String = when (MoodSource.fromDbValue(source)) {
-        MoodSource.WIDGET -> "Mood check-in (widget)"
-        MoodSource.HOME_SCREEN -> "Mood check-in"
-        else -> "Mood check-in"
-    }
 
     private fun formatMinutes(durationSeconds: Int): String? {
         if (durationSeconds <= 0) return null

@@ -75,6 +75,9 @@ class NvcRepositoryTest {
 
             override suspend fun getAll(): List<MoodEntryEntity> = emptyList()
 
+            override fun observeQuickLogs(limit: Int): Flow<List<MoodEntryEntity>> =
+                MutableStateFlow(emptyList())
+
             override fun observeStandalone(): Flow<List<MoodEntryEntity>> =
                 MutableStateFlow(emptyList())
 

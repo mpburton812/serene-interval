@@ -14,7 +14,8 @@ object HomeActivityTimelineBuilder {
         futureSelfMessages: List<TextEntryRow>,
         affirmationReviews: List<TextEntryRow>,
         heartsEntries: List<TextEntryRow> = emptyList(),
-        moodCheckIns: List<TextEntryRow> = emptyList(),
+        moodCheckIns: List<MoodCheckInRow> = emptyList(),
+        thermometerEvents: List<ThermometerActivityRow> = emptyList(),
         limit: Int = DEFAULT_LIMIT,
     ): List<HomeActivityItem> {
         val items = buildList {
@@ -54,13 +55,48 @@ object HomeActivityTimelineBuilder {
                 add(row.toItem(prefix = "hearts", title = row.label))
             }
             moodCheckIns.forEach { row ->
-                add(row.toItem(prefix = "mood_check_in", title = row.label))
+                add(
+                    HomeActivityItem(
+                        id = "mood:${row.id}",
+                        completedAt = row.completedAt,
+                        title = "Mood check-in",
+                        subtitle = row.subtitle,
+                        textEntry = null,
+                        moodLevel = row.moodLevel,
+                    ),
+                )
+            }
+            thermometerEvents.forEach { row ->
+                add(
+                    HomeActivityItem(
+                        id = "thermometer:${row.id}",
+                        completedAt = row.completedAt,
+                        title = row.title,
+                        subtitle = row.subtitle,
+                        textEntry = row.text.takeIf { it.isNotBlank() },
+                    ),
+                )
             }
         }
         return items
             .sortedByDescending { it.completedAt }
             .take(limit)
     }
+
+    data class ThermometerActivityRow(
+        val id: Long,
+        val completedAt: Long,
+        val title: String,
+        val subtitle: String,
+        val text: String,
+    )
+
+    data class MoodCheckInRow(
+        val id: Long,
+        val completedAt: Long,
+        val moodLevel: Int,
+        val subtitle: String? = null,
+    )
 
     data class TextEntryRow(
         val id: Long,
@@ -95,5 +131,6 @@ object HomeActivityTimelineBuilder {
         SessionType.VISUALIZATION -> "Visualization"
     }
 
-    const val DEFAULT_LIMIT = 50
+    const val HOME_PREVIEW_LIMIT = 10
+    const val DEFAULT_LIMIT = 200
 }

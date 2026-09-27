@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 2.0.6 - 2026-09-27
+
+### Home
+
+- Entry popups stay open while you swipe between tabs; close them with Save, Skip, or Close
+- Recent activity shows the last 10 items, with See all activity for the rest
+- Thermometer readings and renames appear in Recent activity
+
+### Mood
+
+- Mood graphs open on the 7-day week view
+- Year summary added beside Day, Week, and Month
+- Score by Day, Week, Month, or Year lists the average for each hour, day, or month that has data
+
+### Thermometers
+
+- New Thermometers space for up to five stress thermometers, blue at 0 through red at 100
+- Record a temperature with an optional note, rename (kept in history), view the graph and past readings, archive, or delete
+- Turn Thermometers on or off during setup and in Settings
+
 ## 2.0.5 - 2026-08-17
 
 ### Toolkit
@@ -23,8 +43,9 @@
 
 ### Mood Tracker widget
 
-- Widget mood taps now bounce the selected face three times (matching in-app quick-log timing) before saving
-- Fixed flash state clearing mid-animation so bounce feedback and tap debouncing work reliably
+- Widget mood taps reliably record and show a main-thread confirmation toast
+- Selected face bounces three times like in-app quick-log (clear enlarge/shrink pulses)
+- Stale flash state no longer permanently blocks further taps
 - Widget and home quick-log check-ins appear in Recent activity on the Home screen
 
 ## 2.0.2 - 2026-08-02

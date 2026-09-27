@@ -38,6 +38,24 @@ object MoodGraphSeriesBuilder {
             }
             .sortedBy { it.xMillis }
 
+    /** One point per calendar month (mid-month) using that month's average mood. */
+    fun monthlyAverageSeries(
+        entries: List<MoodEntryEntity>,
+        zoneId: ZoneId = ZoneId.systemDefault(),
+    ): List<MoodGraphPoint> =
+        entries
+            .groupBy { entry ->
+                Instant.ofEpochMilli(entry.recordedAtMillis).atZone(zoneId).toLocalDate().withDayOfMonth(1)
+            }
+            .map { (month, monthEntries) ->
+                val midMonth = month.withDayOfMonth((month.lengthOfMonth() / 2).coerceAtLeast(1))
+                MoodGraphPoint(
+                    xMillis = midMonth.atStartOfDay(zoneId).plusHours(12).toInstant().toEpochMilli(),
+                    yLevel = monthEntries.map { it.moodLevel.toDouble() }.average(),
+                )
+            }
+            .sortedBy { it.xMillis }
+
     fun dataSpanMillis(points: List<MoodGraphPoint>): Pair<Long, Long>? {
         if (points.isEmpty()) return null
         if (points.size == 1) {

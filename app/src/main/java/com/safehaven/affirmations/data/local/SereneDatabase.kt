@@ -23,8 +23,10 @@ import androidx.room.RoomDatabase
         LivingTreeTagEntity::class,
         LivingTreePersonEntity::class,
         LivingTreePersonTagCrossRef::class,
+        ThermometerEntity::class,
+        ThermometerEventEntity::class,
     ],
-    version = 24,
+    version = 25,
     exportSchema = false,
 )
 abstract class SereneDatabase : RoomDatabase() {
@@ -43,6 +45,8 @@ abstract class SereneDatabase : RoomDatabase() {
     abstract fun livingTreeTagDao(): LivingTreeTagDao
     abstract fun livingTreePersonDao(): LivingTreePersonDao
     abstract fun livingTreePersonTagDao(): LivingTreePersonTagDao
+    abstract fun thermometerDao(): ThermometerDao
+    abstract fun thermometerEventDao(): ThermometerEventDao
 
     companion object {
         @Volatile
