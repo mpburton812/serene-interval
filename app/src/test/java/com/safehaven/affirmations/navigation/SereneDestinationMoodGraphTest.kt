@@ -15,8 +15,8 @@ class SereneDestinationMoodGraphTest {
 
     @Test
     fun moodGraph_parsePeriod_defaultsToDayForInvalidArg() {
-        assertEquals(MoodGraphPeriod.DAY, SereneDestination.MoodGraph.parsePeriod(null))
-        assertEquals(MoodGraphPeriod.DAY, SereneDestination.MoodGraph.parsePeriod("invalid"))
+        assertEquals(MoodGraphPeriod.WEEK, SereneDestination.MoodGraph.parsePeriod(null))
+        assertEquals(MoodGraphPeriod.WEEK, SereneDestination.MoodGraph.parsePeriod("invalid"))
         assertEquals(MoodGraphPeriod.WEEK, SereneDestination.MoodGraph.parsePeriod("WEEK"))
     }
 }

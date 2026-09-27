@@ -17,6 +17,8 @@ import com.safehaven.affirmations.data.local.MoodEntryEntity
 import com.safehaven.affirmations.data.local.NvcEntryEntity
 import com.safehaven.affirmations.data.local.RefactoringEntryEntity
 import com.safehaven.affirmations.data.local.SereneDatabase
+import com.safehaven.affirmations.data.local.ThermometerEntity
+import com.safehaven.affirmations.data.local.ThermometerEventEntity
 import com.safehaven.affirmations.data.local.ThoughtDumpEntity
 import com.safehaven.affirmations.domain.mood.MoodScale
 import com.safehaven.affirmations.domain.mood.MoodSource
@@ -69,6 +71,9 @@ class AppDataImporter(
 
         root.optJSONObject("livingTree")?.let { livingTree ->
             counts = importLivingTree(livingTree, counts, skips)
+        }
+        root.optJSONObject("thermometers")?.let { thermometers ->
+            counts = importThermometers(thermometers, counts, skips)
         }
 
         ImportResult(counts = counts, skips = skips, warnings = warnings)
@@ -200,6 +205,7 @@ class AppDataImporter(
             enableToolkit = json.optBoolean("enableToolkit", current.enableToolkit),
             enableVisuals = json.optBoolean("enableVisuals", current.enableVisuals),
             enableLivingTree = json.optBoolean("enableLivingTree", current.enableLivingTree),
+            enableThermometers = json.optBoolean("enableThermometers", current.enableThermometers),
             enabledScenes = enabledScenes.ifEmpty { ExperienceSettings.defaultScenes },
             meditationRemindersAvailable = json.optBoolean(
                 "meditationRemindersAvailable",
@@ -480,6 +486,60 @@ class AppDataImporter(
             livingTreeTags = tags.size,
             livingTreePeople = people.size,
         )
+    }
+
+    private suspend fun importThermometers(
+        json: JSONObject,
+        counts: ImportCounts,
+        skips: MutableList<ImportSkip>,
+    ): ImportCounts {
+        val items = json.optJSONArray("items") ?: JSONArray()
+        val events = json.optJSONArray("events") ?: JSONArray()
+        val thermometers = buildList {
+            for (index in 0 until items.length()) {
+                val item = items.optJSONObject(index) ?: continue
+                val name = item.optString("name").trim()
+                if (name.isEmpty()) continue
+                add(
+                    ThermometerEntity(
+                        id = item.optLong("id"),
+                        name = name,
+                        sortOrder = item.optInt("sortOrder"),
+                        isArchived = item.optBoolean("isArchived"),
+                        createdAt = item.optLong("createdAt"),
+                        updatedAt = item.optLong("updatedAt"),
+                    ),
+                )
+            }
+        }
+        val eventRows = buildList {
+            for (index in 0 until events.length()) {
+                val item = events.optJSONObject(index) ?: continue
+                add(
+                    ThermometerEventEntity(
+                        id = item.optLong("id"),
+                        thermometerId = item.optLong("thermometerId"),
+                        type = item.optString("type"),
+                        score = if (item.isNull("score")) null else item.optInt("score"),
+                        note = item.optString("note").takeIf { it.isNotEmpty() && !item.isNull("note") },
+                        previousName = item.optString("previousName").takeIf { !item.isNull("previousName") },
+                        newName = item.optString("newName").takeIf { !item.isNull("newName") },
+                        recordedAt = item.optLong("recordedAt"),
+                    ),
+                )
+            }
+        }
+        runCatching {
+            AppGraph.thermometers(context).replaceAllFromExport(thermometers, eventRows)
+        }.onFailure { error ->
+            skips += ImportSkip(
+                category = "thermometers",
+                reason = "import failed",
+                detail = error.message,
+            )
+            return counts
+        }
+        return counts.copy(thermometers = thermometers.size)
     }
 
     private suspend fun importAffirmations(

@@ -13,6 +13,7 @@ sealed class SereneDestination(val route: String) {
         fun playerRoute(vizId: String) = "visualizations/player/$vizId"
     }
     data object LivingTree : SereneDestination("living_tree")
+    data object Thermometers : SereneDestination("thermometers")
     data object LivingTreeSetup : SereneDestination("living_tree/setup")
     data object Settings : SereneDestination("settings")
     data object Onboarding : SereneDestination("onboarding")
@@ -23,7 +24,7 @@ sealed class SereneDestination(val route: String) {
 
         fun parsePeriod(periodArg: String?): MoodGraphPeriod =
             runCatching { MoodGraphPeriod.valueOf(periodArg ?: "") }
-                .getOrDefault(MoodGraphPeriod.DAY)
+                .getOrDefault(MoodGraphPeriod.WEEK)
     }
 
     object ToolkitTab {
@@ -41,6 +42,7 @@ sealed class SereneDestination(val route: String) {
             KatiesLoveList,
             Toolkit,
             LivingTree,
+            Thermometers,
             Visualizations,
         )
     }

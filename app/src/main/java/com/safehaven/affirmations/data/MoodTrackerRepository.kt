@@ -67,12 +67,14 @@ class MoodTrackerRepository(
         val dayBounds = moodPeriodBounds(MoodGraphPeriod.DAY, zoneId = zoneId)
         val weekBounds = moodPeriodBounds(MoodGraphPeriod.WEEK, zoneId = zoneId)
         val monthBounds = moodPeriodBounds(MoodGraphPeriod.MONTH, zoneId = zoneId)
+        val yearBounds = moodPeriodBounds(MoodGraphPeriod.YEAR, zoneId = zoneId)
         return combine(
             moodEntryDao.averageInRange(dayBounds.startMillis, dayBounds.endMillis),
             moodEntryDao.averageInRange(weekBounds.startMillis, weekBounds.endMillis),
             moodEntryDao.averageInRange(monthBounds.startMillis, monthBounds.endMillis),
-        ) { day, week, month ->
-            MoodPeriodAverages(day = day, week = week, month = month)
+            moodEntryDao.averageInRange(yearBounds.startMillis, yearBounds.endMillis),
+        ) { day, week, month, year ->
+            MoodPeriodAverages(day = day, week = week, month = month, year = year)
         }
     }
 

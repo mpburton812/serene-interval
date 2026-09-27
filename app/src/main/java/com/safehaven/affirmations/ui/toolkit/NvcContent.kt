@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.safehaven.affirmations.data.local.NvcEntryEntity
 import com.safehaven.affirmations.ui.components.GlassCard
 import com.safehaven.affirmations.ui.components.HistoryGlassCard
+import com.safehaven.affirmations.ui.components.PersistentEntryDialogProperties
 import com.safehaven.affirmations.ui.components.MoodDisplay
 import com.safehaven.affirmations.ui.components.MoodPicker
 import com.safehaven.affirmations.ui.theme.SereneSpacing
@@ -272,7 +273,8 @@ private fun NvcEntryDetailDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = { Text(formatNvcTimestamp(entry.createdAt)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {

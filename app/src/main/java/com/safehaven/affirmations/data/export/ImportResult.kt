@@ -23,11 +23,12 @@ data class ImportCounts(
     val moodEntries: Int = 0,
     val livingTreeTags: Int = 0,
     val livingTreePeople: Int = 0,
+    val thermometers: Int = 0,
 ) {
     val totalEntries: Int
         get() = affirmations + thoughtDumps + anxietyLogs + futureSelfMessages +
             refactoringEntries + centerOfGravityEntries + nvcEntries + meditationReflections +
-            heartsEntries + moodEntries + livingTreePeople
+            heartsEntries + moodEntries + livingTreePeople + thermometers
 }
 
 data class ImportResult(
@@ -93,6 +94,11 @@ data class ImportResult(
                 add(
                     "${counts.livingTreePeople} living tree person" +
                         counts.livingTreePeople.pluralSuffix(),
+                )
+            }
+            if (counts.thermometers > 0) {
+                add(
+                    "${counts.thermometers} thermometer" + counts.thermometers.pluralSuffix(),
                 )
             }
             if (counts.livingTreeTags > 0) {

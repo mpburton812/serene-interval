@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.safehaven.affirmations.domain.mood.MoodGraphPeriod
 import com.safehaven.affirmations.domain.mood.MoodMonthGraphMode
+import com.safehaven.affirmations.domain.mood.MoodScoreBreakdown
+import com.safehaven.affirmations.ui.components.MoodEntryIcon
 import com.safehaven.affirmations.ui.components.GlassCard
 import com.safehaven.affirmations.ui.theme.SereneSpacing
 import java.util.Locale
@@ -114,6 +117,11 @@ fun MoodGraphScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            MoodScoreBySection(
+                period = period,
+                entries = state.entries,
+            )
+
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 MoodLineGraph(
                     entries = state.entries,
@@ -148,7 +156,48 @@ private fun MoodGraphPeriod.screenTitle(): String = when (this) {
     MoodGraphPeriod.DAY -> "Day"
     MoodGraphPeriod.WEEK -> "Week"
     MoodGraphPeriod.MONTH -> "Month"
+    MoodGraphPeriod.YEAR -> "Year"
     MoodGraphPeriod.CALENDAR -> "Calendar"
+}
+
+@Composable
+private fun MoodScoreBySection(
+    period: MoodGraphPeriod,
+    entries: List<com.safehaven.affirmations.data.local.MoodEntryEntity>,
+) {
+    val buckets = MoodScoreBreakdown.buckets(period, entries)
+    if (buckets.isEmpty() || period == MoodGraphPeriod.CALENDAR) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = MoodScoreBreakdown.heading(period),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        buckets.forEach { bucket ->
+            val level = com.safehaven.affirmations.domain.mood.MoodScale.averageToLevel(bucket.average)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = bucket.label,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = String.format(Locale.getDefault(), "%.1f", round(bucket.average * 10) / 10.0),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (level != null) {
+                        MoodEntryIcon(moodLevel = level)
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun MoodGraphUiState.subtitle(): String {

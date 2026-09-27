@@ -18,6 +18,7 @@ data class OnboardingDraft(
     val enableKatiesLoveList: Boolean = false,
     val enableToolkit: Boolean = true,
     val enableLivingTree: Boolean = true,
+    val enableThermometers: Boolean = true,
     val enableVisuals: Boolean = true,
     val enabledScenes: Set<String> = ExperienceSettings.defaultScenes,
     val enabledToolkitTools: Set<ToolkitToolId> = ToolkitLayout.defaultEnabledTools(),
@@ -29,7 +30,8 @@ data class OnboardingDraft(
         get() {
             val settings = previewExperienceSettings()
             val hasExperienceTool = enableBreathing || enableTimer || enableAffirmations ||
-                enableKatiesLoveList || enableToolkit || enableLivingTree || enableVisuals
+                enableKatiesLoveList || enableToolkit || enableLivingTree ||
+                enableThermometers || enableVisuals
             val quickStartReady = QuickStartLayout.hasValidSelection(
                 quickStartTargets,
                 settings,
@@ -55,6 +57,7 @@ data class OnboardingDraft(
         enableKatiesLoveList = enableKatiesLoveList,
         enableToolkit = toolkitTabVisible,
         enableLivingTree = enableLivingTree,
+        enableThermometers = enableThermometers,
         enableVisuals = enableVisuals,
         enabledScenes = enabledScenes,
         meditationRemindersAvailable = meditationRemindersAvailable,
@@ -84,6 +87,7 @@ data class OnboardingDraft(
                 enableKatiesLoveList = settings.enableKatiesLoveList,
                 enableToolkit = toolkitOn,
                 enableLivingTree = settings.enableLivingTree,
+                enableThermometers = settings.enableThermometers,
                 enableVisuals = settings.enableVisuals,
                 enabledScenes = settings.enabledScenes,
                 enabledToolkitTools = enabledToolkitTools,
@@ -169,6 +173,7 @@ fun OnboardingDraft.withToolEnabled(
     enableKatiesLoveList: Boolean = this.enableKatiesLoveList,
     enableToolkit: Boolean = this.enableToolkit,
     enableLivingTree: Boolean = this.enableLivingTree,
+    enableThermometers: Boolean = this.enableThermometers,
     enableVisuals: Boolean = this.enableVisuals,
 ): OnboardingDraft {
     val tools = when {
@@ -182,6 +187,7 @@ fun OnboardingDraft.withToolEnabled(
         enableKatiesLoveList = enableKatiesLoveList,
         enableToolkit = enableToolkit && tools.isNotEmpty(),
         enableLivingTree = enableLivingTree,
+        enableThermometers = enableThermometers,
         enableVisuals = enableVisuals,
         enabledToolkitTools = tools,
     )

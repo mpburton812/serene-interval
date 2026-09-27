@@ -82,6 +82,7 @@ import com.safehaven.affirmations.reminder.MeditationReminderScheduler
 import com.safehaven.affirmations.ui.components.GlassCard
 import com.safehaven.affirmations.ui.components.SereneTabBackground
 import com.safehaven.affirmations.ui.components.SereneTabHeader
+import com.safehaven.affirmations.ui.components.ReportEntryPopup
 import com.safehaven.affirmations.ui.components.SereneTextPlate
 import com.safehaven.affirmations.ui.theme.SereneSpacing
 
@@ -102,6 +103,10 @@ fun TimerScreen(
     val showReflectionCapture by viewModel.showReflectionCapture.collectAsState()
     val reflections by viewModel.reflections.collectAsState()
     val openedReflection by viewModel.openedReflection.collectAsState()
+    ReportEntryPopup(
+        id = "timer-entry",
+        active = showReflectionCapture || openedReflection != null,
+    )
     val meditationCalendar by viewModel.meditationCalendar.collectAsState()
     val context = LocalContext.current
     val remindersAvailable = SchedulingPermissions.canScheduleExactAlarms(context)

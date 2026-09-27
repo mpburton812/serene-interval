@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.safehaven.affirmations.domain.home.HomeActivityItem
 import com.safehaven.affirmations.ui.components.GlassCard
+import com.safehaven.affirmations.ui.components.PersistentEntryDialogProperties
 import com.safehaven.affirmations.ui.components.MoodEntryIcon
 import com.safehaven.affirmations.ui.theme.SereneSpacing
 
@@ -26,9 +30,12 @@ import com.safehaven.affirmations.ui.theme.SereneSpacing
 fun HomeActivityTimelineSection(
     activities: List<HomeActivityItem>,
     onOpenTextEntry: (HomeActivityItem) -> Unit,
+    onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
+    previewLimit: Int = com.safehaven.affirmations.domain.home.HomeActivityTimelineBuilder.HOME_PREVIEW_LIMIT,
 ) {
     if (activities.isEmpty()) return
+    val preview = activities.take(previewLimit)
 
     Column(
         modifier = modifier,
@@ -40,13 +47,51 @@ fun HomeActivityTimelineSection(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
         )
-        activities.forEach { activity ->
+        preview.forEach { activity ->
             HomeActivityRow(
                 activity = activity,
                 onOpenTextEntry = onOpenTextEntry,
             )
         }
+        if (activities.size > preview.size) {
+            TextButton(onClick = onSeeAll) {
+                Text("See all activity")
+            }
+        }
     }
+}
+
+@Composable
+fun HomeActivityListDialog(
+    activities: List<HomeActivityItem>,
+    onOpenTextEntry: (HomeActivityItem) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
+        title = { Text("Recent activity") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .height(420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackSm),
+            ) {
+                activities.forEach { activity ->
+                    HomeActivityRow(
+                        activity = activity,
+                        onOpenTextEntry = onOpenTextEntry,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+    )
 }
 
 @Composable
@@ -113,7 +158,8 @@ fun HomeActivityTextDialog(
 ) {
     val text = activity.textEntry ?: return
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
+        properties = PersistentEntryDialogProperties,
         title = { Text(activity.title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

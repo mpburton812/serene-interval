@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Handyman
@@ -228,6 +229,7 @@ fun ExperienceSection(
     onKatiesLoveListChanged: (Boolean) -> Unit,
     onToolkitChanged: (Boolean) -> Unit,
     onLivingTreeChanged: (Boolean) -> Unit,
+    onThermometersChanged: (Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SereneSpacing.stackMd)) {
         Text(
@@ -282,6 +284,13 @@ fun ExperienceSection(
             icon = Icons.Default.AccountTree,
             checked = settings.enableLivingTree,
             onCheckedChange = onLivingTreeChanged,
+        )
+        SettingsToggleRow(
+            label = "Thermometers",
+            description = "Up to five stress thermometers, from calm blue to hot red.",
+            icon = Icons.Default.DeviceThermostat,
+            checked = settings.enableThermometers,
+            onCheckedChange = onThermometersChanged,
         )
     }
 }

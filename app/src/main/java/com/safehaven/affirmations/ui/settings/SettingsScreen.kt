@@ -189,6 +189,7 @@ fun SettingsScreen(
                 onKatiesLoveListChanged = viewModel::setEnableKatiesLoveList,
                 onToolkitChanged = viewModel::setEnableToolkit,
                 onLivingTreeChanged = viewModel::setEnableLivingTree,
+                onThermometersChanged = viewModel::setEnableThermometers,
             )
 
             QuickStartSelectionSection(

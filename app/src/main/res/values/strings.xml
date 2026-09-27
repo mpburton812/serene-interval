@@ -12,4 +12,5 @@
     <string name="mood_widget_configure_cancel">Cancel</string>
     <string name="mood_widget_button_description">Log mood %1$s</string>
     <string name="mood_widget_logged_toast">Mood logged</string>
+    <string name="mood_widget_log_failed_toast">Couldn\'t log mood</string>
 </resources>

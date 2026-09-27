@@ -80,6 +80,10 @@ class SanctuaryWalkthroughViewModel(application: Application) : AndroidViewModel
         _draft.update { it.copy(enableLivingTree = enabled) }
     }
 
+    fun setEnableThermometers(enabled: Boolean) {
+        _draft.update { it.copy(enableThermometers = enabled) }
+    }
+
     fun toggleToolkitTool(id: ToolkitToolId) {
         _draft.update { it.toggleToolkitTool(id) }
     }
@@ -120,7 +124,7 @@ class SanctuaryWalkthroughViewModel(application: Application) : AndroidViewModel
         SanctuaryWalkthroughStep.Appearance -> true
         SanctuaryWalkthroughStep.Spaces -> draft.enableBreathing || draft.enableTimer ||
             draft.enableAffirmations || draft.enableKatiesLoveList || draft.enableToolkit ||
-            draft.enableLivingTree
+            draft.enableLivingTree || draft.enableThermometers
         SanctuaryWalkthroughStep.QuickStart -> draft.quickStartTargets.size >= 4
         SanctuaryWalkthroughStep.Toolkit -> true
         SanctuaryWalkthroughStep.Review -> draft.canComplete

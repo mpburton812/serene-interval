@@ -568,6 +568,41 @@ private class Migration23To24 : Migration(23, 24) {
     }
 }
 
+private class Migration24To25 : Migration(24, 25) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS thermometers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                sortOrder INTEGER NOT NULL,
+                isArchived INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS thermometer_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                thermometerId INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                score INTEGER,
+                note TEXT,
+                previousName TEXT,
+                newName TEXT,
+                recordedAt INTEGER NOT NULL,
+                FOREIGN KEY(thermometerId) REFERENCES thermometers(id) ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_thermometer_events_thermometerId ON thermometer_events(thermometerId)",
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -592,4 +627,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration21To22(),
     Migration22To23(),
     Migration23To24(),
+    Migration24To25(),
 )

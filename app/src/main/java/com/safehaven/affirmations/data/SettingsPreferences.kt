@@ -45,6 +45,7 @@ class SettingsPreferences(context: Context) {
             enableToolkit = prefs.getBoolean(KEY_ENABLE_TOOLKIT, true),
             enableVisuals = prefs.getBoolean(KEY_ENABLE_VISUALS, true),
             enableLivingTree = prefs.getBoolean(KEY_ENABLE_LIVING_TREE, true),
+            enableThermometers = prefs.getBoolean(KEY_ENABLE_THERMOMETERS, true),
             enabledScenes = scenes,
             meditationRemindersAvailable = prefs.getBoolean(KEY_MEDITATION_REMINDERS_AVAILABLE, true),
             futureSelfSchedulingAvailable = prefs.getBoolean(KEY_FUTURE_SELF_SCHEDULING_AVAILABLE, true),
@@ -64,6 +65,7 @@ class SettingsPreferences(context: Context) {
             .putBoolean(KEY_ENABLE_TOOLKIT, settings.enableToolkit)
             .putBoolean(KEY_ENABLE_VISUALS, settings.enableVisuals)
             .putBoolean(KEY_ENABLE_LIVING_TREE, settings.enableLivingTree)
+            .putBoolean(KEY_ENABLE_THERMOMETERS, settings.enableThermometers)
             .putStringSet(KEY_ENABLED_SCENES, settings.enabledScenes)
             .putBoolean(KEY_MEDITATION_REMINDERS_AVAILABLE, settings.meditationRemindersAvailable)
             .putBoolean(KEY_FUTURE_SELF_SCHEDULING_AVAILABLE, settings.futureSelfSchedulingAvailable)
@@ -88,6 +90,7 @@ class SettingsPreferences(context: Context) {
         private const val KEY_ENABLE_TOOLKIT = "enable_toolkit"
         private const val KEY_ENABLE_VISUALS = "enable_visuals"
         private const val KEY_ENABLE_LIVING_TREE = "enable_living_tree"
+        private const val KEY_ENABLE_THERMOMETERS = "enable_thermometers"
         private const val KEY_ENABLED_SCENES = "enabled_scenes"
         private const val KEY_MEDITATION_REMINDERS_AVAILABLE = "meditation_reminders_available"
         private const val KEY_FUTURE_SELF_SCHEDULING_AVAILABLE = "future_self_scheduling_available"

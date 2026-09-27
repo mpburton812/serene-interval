@@ -66,6 +66,11 @@ fun MoodSummariesSection(
                     average = averages.month,
                     onClick = { onPeriodClick(MoodGraphPeriod.MONTH) },
                 )
+                MoodSummaryFace(
+                    label = "Year",
+                    average = averages.year,
+                    onClick = { onPeriodClick(MoodGraphPeriod.YEAR) },
+                )
                 MoodSummaryCalendar(
                     onClick = { onPeriodClick(MoodGraphPeriod.CALENDAR) },
                 )

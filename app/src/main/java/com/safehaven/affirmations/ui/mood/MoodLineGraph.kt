@@ -55,8 +55,10 @@ fun MoodLineGraph(
         monthGraphMode == MoodMonthGraphMode.ROLLING_7_DAY
     val useMonthDailyAverage = period == MoodGraphPeriod.MONTH &&
         monthGraphMode == MoodMonthGraphMode.TOTAL_AVERAGE
+    val useYearMonthlyAverage = period == MoodGraphPeriod.YEAR
     val graphPoints = remember(sorted, period, monthGraphMode, startMillis, endMillis, graphEndMillis, zoneId) {
         when {
+            useYearMonthlyAverage -> MoodGraphSeriesBuilder.monthlyAverageSeries(sorted, zoneId)
             useMonthRolling -> MoodGraphSeriesBuilder.monthRollingAverageSeries(
                 entries = sorted,
                 startMillis = startMillis,

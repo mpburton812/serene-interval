@@ -46,6 +46,7 @@ import com.safehaven.affirmations.domain.settings.ExperienceSettings
 import com.safehaven.affirmations.domain.quickstart.QuickStartTarget
 import com.safehaven.affirmations.navigation.SereneDestination
 import com.safehaven.affirmations.ui.components.GlassCard
+import com.safehaven.affirmations.ui.components.ReportEntryPopup
 import com.safehaven.affirmations.ui.components.SereneTabBackground
 import com.safehaven.affirmations.ui.mood.MoodQuickLogCard
 import com.safehaven.affirmations.ui.mood.MoodSummariesSection
@@ -67,8 +68,13 @@ fun HomeScreen(
     val dailyAffirmation by viewModel.dailyAffirmation.collectAsState()
     val quickStartTargets by viewModel.quickStartTargets.collectAsState()
     val activityTimeline by viewModel.activityTimeline.collectAsState()
+    val openedActivity by viewModel.openedActivity.collectAsState()
+    val showAllActivity by viewModel.showAllActivity.collectAsState()
     val moodAverages by moodTrackerViewModel.averages.collectAsState()
-    var openedActivity by remember { mutableStateOf<HomeActivityItem?>(null) }
+    ReportEntryPopup(
+        id = "home-activity",
+        active = openedActivity != null || showAllActivity,
+    )
     val settings = LocalExperienceSettings.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -213,13 +219,22 @@ fun HomeScreen(
 
         HomeActivityTimelineSection(
             activities = activityTimeline,
-            onOpenTextEntry = { openedActivity = it },
+            onOpenTextEntry = viewModel::openActivity,
+            onSeeAll = viewModel::openAllActivity,
         )
+
+        if (showAllActivity) {
+            HomeActivityListDialog(
+                activities = activityTimeline,
+                onOpenTextEntry = viewModel::openActivity,
+                onDismiss = viewModel::closeAllActivity,
+            )
+        }
 
         openedActivity?.let { activity ->
             HomeActivityTextDialog(
                 activity = activity,
-                onDismiss = { openedActivity = null },
+                onDismiss = viewModel::closeActivity,
             )
         }
 

@@ -73,6 +73,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _draft.update { it.copy(enableLivingTree = enabled) }
     }
 
+    fun setEnableThermometers(enabled: Boolean) {
+        _draft.update { it.copy(enableThermometers = enabled) }
+    }
+
     fun toggleToolkitTool(id: ToolkitToolId) {
         _draft.update { it.toggleToolkitTool(id) }
     }

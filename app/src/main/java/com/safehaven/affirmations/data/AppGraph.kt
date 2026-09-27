@@ -70,6 +70,8 @@ object AppGraph {
 
     @Volatile
     private var homeActivityRepository: HomeActivityRepository? = null
+    @Volatile
+    private var thermometerRepository: ThermometerRepository? = null
 
     @Volatile
     private var autoBackupPreferences: AutoBackupPreferences? = null
@@ -100,6 +102,14 @@ object AppGraph {
             autoBackupScheduler ?: AutoBackupScheduler(
                 context.applicationContext,
             ).also { autoBackupScheduler = it }
+        }
+
+    fun thermometers(context: Context): ThermometerRepository =
+        thermometerRepository ?: synchronized(this) {
+            thermometerRepository ?: ThermometerRepository(
+                SereneDatabase.getInstance(context.applicationContext).thermometerDao(),
+                SereneDatabase.getInstance(context.applicationContext).thermometerEventDao(),
+            ).also { thermometerRepository = it }
         }
 
     fun homeActivity(context: Context): HomeActivityRepository =
