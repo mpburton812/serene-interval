@@ -1,9 +1,9 @@
 ﻿{
-    "versionCode":  40,
-    "versionName":  "2.0.6",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.6/safehaven.apk",
-    "expectedSha256":  "ae6746a3568f3b703ae690535f3e4021be37e0470d11b08aa9bed952dcc883af",
-    "releaseNotes":  "Thermometers for stress, mood graphs open on the 7-day view with Score by period, entry popups stay put when you swipe, and Recent activity shows the last 10 items.",
+    "versionCode":  41,
+    "versionName":  "2.0.7",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.7/safehaven.apk",
+    "expectedSha256":  "0d4c1f95c694d56f3bbb91b356591f733f02014e20ad0f3a72619c637b2fbb06",
+    "releaseNotes":  "Choose a red or blue thermometer liquid. Closing saves the reading, the stress graph shows dates, and Recent activity records the change plus how you can lower the stress.",
     "minVersionCode":  1
 }
 
