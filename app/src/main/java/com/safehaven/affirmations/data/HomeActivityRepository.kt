@@ -5,6 +5,8 @@ import com.safehaven.affirmations.data.local.SereneDatabase
 import com.safehaven.affirmations.data.local.ThermometerEntity
 import com.safehaven.affirmations.data.local.ThermometerEventEntity
 import com.safehaven.affirmations.data.local.ThermometerEventType
+import com.safehaven.affirmations.domain.thermometer.ThermometerChangeText
+import com.safehaven.affirmations.domain.thermometer.ThermometerReadingRef
 import com.safehaven.affirmations.domain.home.HomeActivityItem
 import com.safehaven.affirmations.domain.home.HomeActivityTimelineBuilder
 import com.safehaven.affirmations.domain.mood.MoodScale
@@ -129,23 +131,47 @@ class HomeActivityRepository(
         events: List<ThermometerEventEntity>,
     ): List<HomeActivityTimelineBuilder.ThermometerActivityRow> {
         val names = thermometers.associate { it.id to it.name }
+        val previous = ThermometerChangeText.previousScores(
+            events.mapNotNull { event ->
+                val score = event.score ?: return@mapNotNull null
+                if (event.type != ThermometerEventType.READING) return@mapNotNull null
+                ThermometerReadingRef(
+                    id = event.id,
+                    thermometerId = event.thermometerId,
+                    score = score,
+                    recordedAt = event.recordedAt,
+                )
+            },
+        )
         return events.map { event ->
             val name = names[event.thermometerId] ?: "Thermometer"
             if (event.type == ThermometerEventType.RENAME) {
+                val previousName = event.previousName?.takeIf { it.isNotBlank() }
+                val subtitle = if (previousName == null) {
+                    "$name - created"
+                } else {
+                    "$name - renamed from $previousName to ${event.newName.orEmpty()}"
+                }
                 HomeActivityTimelineBuilder.ThermometerActivityRow(
                     id = event.id,
                     completedAt = event.recordedAt,
-                    title = name,
-                    subtitle = "Renamed to ${event.newName.orEmpty()}",
+                    title = ThermometerChangeText.ACTIVITY_TITLE,
+                    subtitle = subtitle,
                     text = "",
                 )
             } else {
                 HomeActivityTimelineBuilder.ThermometerActivityRow(
                     id = event.id,
                     completedAt = event.recordedAt,
-                    title = name,
-                    subtitle = "Stress ${event.score ?: "—"}",
-                    text = event.note.orEmpty(),
+                    title = ThermometerChangeText.ACTIVITY_TITLE,
+                    subtitle = ThermometerChangeText.activitySubtitle(
+                        name = name,
+                        fromScore = previous[event.id],
+                        toScore = event.score ?: 0,
+                        reason = event.note,
+                        lowerPlan = event.reliefNote,
+                    ),
+                    text = ThermometerChangeText.entryText(event.note, event.reliefNote),
                 )
             }
         }

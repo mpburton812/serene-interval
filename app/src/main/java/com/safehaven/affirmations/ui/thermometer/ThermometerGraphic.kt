@@ -10,23 +10,21 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.safehaven.affirmations.domain.thermometer.ThermometerLiquid
 import com.safehaven.affirmations.domain.thermometer.ThermometerRules
 
-fun thermometerColor(score: Int): Color {
-    val t = ThermometerRules.clampScore(score) / ThermometerRules.MAX_SCORE.toFloat()
-    return Color(
-        red = 0.15f + 0.85f * t,
-        green = 0.35f * (1f - t),
-        blue = 0.95f * (1f - t),
-    )
+fun thermometerMercuryColor(liquid: ThermometerLiquid): Color = when (liquid) {
+    ThermometerLiquid.RED -> Color(0xFFD32F2F)
+    ThermometerLiquid.BLUE -> Color(0xFF1565C0)
 }
 
 @Composable
 fun ThermometerGraphic(
     score: Int?,
+    liquid: ThermometerLiquid,
     modifier: Modifier = Modifier,
 ) {
-    val fill = score?.let(::thermometerColor) ?: Color(0xFFB0BEC5)
+    val fill = if (score == null) Color(0xFFB0BEC5) else thermometerMercuryColor(liquid)
     Canvas(
         modifier = modifier
             .width(56.dp)

@@ -5,6 +5,7 @@ import com.safehaven.affirmations.data.local.ThermometerEntity
 import com.safehaven.affirmations.data.local.ThermometerEventDao
 import com.safehaven.affirmations.data.local.ThermometerEventEntity
 import com.safehaven.affirmations.data.local.ThermometerEventType
+import com.safehaven.affirmations.domain.thermometer.ThermometerLiquid
 import com.safehaven.affirmations.domain.thermometer.ThermometerRules
 import kotlinx.coroutines.flow.Flow
 
@@ -19,13 +20,18 @@ class ThermometerRepository(
     fun observeEvents(thermometerId: Long): Flow<List<ThermometerEventEntity>> =
         eventDao.observeForThermometer(thermometerId)
 
-    suspend fun create(name: String, nowMillis: Long = System.currentTimeMillis()): Long? {
+    suspend fun create(
+        name: String,
+        liquid: ThermometerLiquid = ThermometerLiquid.RED,
+        nowMillis: Long = System.currentTimeMillis(),
+    ): Long? {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return null
         if (!ThermometerRules.canCreate(thermometerDao.activeCount())) return null
         val id = thermometerDao.insert(
             ThermometerEntity(
                 name = trimmed,
+                liquidColor = liquid.name,
                 sortOrder = thermometerDao.maxSortOrder() + 1,
                 isArchived = false,
                 createdAt = nowMillis,
@@ -60,10 +66,21 @@ class ThermometerRepository(
         )
     }
 
+    suspend fun setLiquidColor(
+        id: Long,
+        liquid: ThermometerLiquid,
+        nowMillis: Long = System.currentTimeMillis(),
+    ) {
+        val existing = thermometerDao.getById(id) ?: return
+        if (existing.liquidColor == liquid.name) return
+        thermometerDao.update(existing.copy(liquidColor = liquid.name, updatedAt = nowMillis))
+    }
+
     suspend fun record(
         id: Long,
         score: Int,
         note: String,
+        reliefNote: String = "",
         nowMillis: Long = System.currentTimeMillis(),
     ) {
         if (thermometerDao.getById(id) == null) return
@@ -73,6 +90,7 @@ class ThermometerRepository(
                 type = ThermometerEventType.READING,
                 score = ThermometerRules.clampScore(score),
                 note = note.trim().ifEmpty { null },
+                reliefNote = reliefNote.trim().ifEmpty { null },
                 recordedAt = nowMillis,
             ),
         )

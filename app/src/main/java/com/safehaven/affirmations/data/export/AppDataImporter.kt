@@ -504,6 +504,9 @@ class AppDataImporter(
                     ThermometerEntity(
                         id = item.optLong("id"),
                         name = name,
+                        liquidColor = com.safehaven.affirmations.domain.thermometer.ThermometerLiquid
+                            .fromStored(item.optString("liquidColor"))
+                            .name,
                         sortOrder = item.optInt("sortOrder"),
                         isArchived = item.optBoolean("isArchived"),
                         createdAt = item.optLong("createdAt"),
@@ -522,6 +525,7 @@ class AppDataImporter(
                         type = item.optString("type"),
                         score = if (item.isNull("score")) null else item.optInt("score"),
                         note = item.optString("note").takeIf { it.isNotEmpty() && !item.isNull("note") },
+                        reliefNote = item.optString("reliefNote").takeIf { it.isNotEmpty() && !item.isNull("reliefNote") },
                         previousName = item.optString("previousName").takeIf { !item.isNull("previousName") },
                         newName = item.optString("newName").takeIf { !item.isNull("newName") },
                         recordedAt = item.optLong("recordedAt"),
