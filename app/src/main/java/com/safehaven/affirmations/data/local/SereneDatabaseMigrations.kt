@@ -603,6 +603,17 @@ private class Migration24To25 : Migration(24, 25) {
     }
 }
 
+private class Migration25To26 : Migration(25, 26) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE thermometers ADD COLUMN liquidColor TEXT NOT NULL DEFAULT 'RED'",
+        )
+        db.execSQL(
+            "ALTER TABLE thermometer_events ADD COLUMN reliefNote TEXT",
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -628,4 +639,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration22To23(),
     Migration23To24(),
     Migration24To25(),
+    Migration25To26(),
 )
