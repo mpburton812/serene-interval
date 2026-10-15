@@ -76,6 +76,7 @@ class AppDataExporter(
                         put(JSONObject().apply {
                             put("id", item.id)
                             put("name", item.name)
+                            put("liquidColor", item.liquidColor)
                             put("sortOrder", item.sortOrder)
                             put("isArchived", item.isArchived)
                             put("createdAt", item.createdAt)
@@ -91,6 +92,7 @@ class AppDataExporter(
                             put("type", event.type)
                             put("score", event.score)
                             put("note", event.note)
+                            put("reliefNote", event.reliefNote ?: org.json.JSONObject.NULL)
                             put("previousName", event.previousName)
                             put("newName", event.newName)
                             put("recordedAt", event.recordedAt)

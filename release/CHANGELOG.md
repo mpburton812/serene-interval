@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 2.0.7 - 2026-10-15
+
+### Thermometers
+
+- Each thermometer uses a solid red or blue liquid, chosen in the editor
+- Closing the thermometer saves the reading; Record temperature is gone
+- Archive and Delete sit next to Close, and Delete asks before removing history
+- Recent activity reads Thermometer: then the name, stress from the old level to the new one, the optional reason, and how you can lower it
+- The stress graph stamps each reading with a date
+- Press and hold a thermometer and slide to change its level; closing the note popup saves that reading
+- After "Why did it change?" the editor and the slide popup ask "How can you lower this stress?"
+
 ## 2.0.6 - 2026-09-27
 
 ### Home

@@ -24,6 +24,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -166,6 +167,7 @@ private fun MoodScoreBySection(
     entries: List<com.safehaven.affirmations.data.local.MoodEntryEntity>,
 ) {
     val buckets = MoodScoreBreakdown.buckets(period, entries)
+    val locale = remember { Locale.getDefault() }
     if (buckets.isEmpty() || period == MoodGraphPeriod.CALENDAR) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -188,7 +190,7 @@ private fun MoodScoreBySection(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = String.format(Locale.getDefault(), "%.1f", round(bucket.average * 10) / 10.0),
+                        text = String.format(locale, "%.1f", round(bucket.average * 10) / 10.0),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     if (level != null) {
