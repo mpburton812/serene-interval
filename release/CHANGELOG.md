@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 2.0.8 - 2026-10-16
+
+### Backups
+
+- Restored journals keep their mood scores attached to the right entries
+- Backups include meditation sessions, affirmation reviews, and Katie's Love List reminders
+
+### Visualizations
+
+- Visualizations is available again from the tab bar when the tool is turned on
+
+### Sound
+
+- Ambient loops are smaller, so the app downloads and installs faster
+
 ## 2.0.7 - 2026-10-15
 
 ### Thermometers

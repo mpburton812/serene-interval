@@ -27,7 +27,7 @@ import androidx.room.RoomDatabase
         ThermometerEventEntity::class,
     ],
     version = 26,
-    exportSchema = false,
+    exportSchema = true,
 )
 abstract class SereneDatabase : RoomDatabase() {
     abstract fun affirmationDao(): AffirmationDao

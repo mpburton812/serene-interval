@@ -242,13 +242,22 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun prepareExport() {
         if (_uiState.value.isExporting) return
         viewModelScope.launch {
-            _uiState.value = SettingsUiState(isExporting = true)
+            _uiState.value = _uiState.value.copy(
+                isExporting = true,
+                exportError = null,
+                exportMessage = null,
+                pendingExportJson = null,
+            )
             runCatching {
                 exporter.buildExportJson()
             }.onSuccess { json ->
-                _uiState.value = SettingsUiState(pendingExportJson = json)
+                _uiState.value = _uiState.value.copy(
+                    isExporting = false,
+                    pendingExportJson = json,
+                )
             }.onFailure { error ->
-                _uiState.value = SettingsUiState(
+                _uiState.value = _uiState.value.copy(
+                    isExporting = false,
                     exportError = error.message ?: "Could not prepare export.",
                 )
             }
@@ -260,7 +269,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun onExportFinished(success: Boolean, message: String? = null) {
-        _uiState.value = SettingsUiState(
+        _uiState.value = _uiState.value.copy(
+            isExporting = false,
+            pendingExportJson = null,
             exportMessage = if (success) {
                 message ?: "Export saved."
             } else {

@@ -20,6 +20,9 @@ data class ImportCounts(
     val nvcEntries: Int = 0,
     val meditationReflections: Int = 0,
     val heartsEntries: Int = 0,
+    val sessions: Int = 0,
+    val affirmationReviewSessions: Int = 0,
+    val katieLoveListPreferences: Int = 0,
     val moodEntries: Int = 0,
     val livingTreeTags: Int = 0,
     val livingTreePeople: Int = 0,
@@ -28,7 +31,8 @@ data class ImportCounts(
     val totalEntries: Int
         get() = affirmations + thoughtDumps + anxietyLogs + futureSelfMessages +
             refactoringEntries + centerOfGravityEntries + nvcEntries + meditationReflections +
-            heartsEntries + moodEntries + livingTreePeople + thermometers
+            heartsEntries + moodEntries + sessions + affirmationReviewSessions +
+            livingTreePeople + thermometers
 }
 
 data class ImportResult(
@@ -41,6 +45,7 @@ data class ImportResult(
             if (counts.experienceSettings > 0) add("experience settings")
             if (counts.toolkitPreferences > 0) add("toolkit preferences")
             if (counts.affirmationPreferences > 0) add("affirmation preferences")
+            if (counts.katieLoveListPreferences > 0) add("Katie love list preferences")
             if (counts.timerPreferences > 0) add("timer preferences")
             if (counts.affirmations > 0) {
                 add("${counts.affirmations} affirmation${counts.affirmations.pluralSuffix()}")
@@ -85,6 +90,15 @@ data class ImportResult(
                 add(
                     "${counts.heartsEntries} HEARTS entr" +
                         if (counts.heartsEntries == 1) "y" else "ies",
+                )
+            }
+            if (counts.sessions > 0) {
+                add("${counts.sessions} session${counts.sessions.pluralSuffix()}")
+            }
+            if (counts.affirmationReviewSessions > 0) {
+                add(
+                    "${counts.affirmationReviewSessions} affirmation review" +
+                        counts.affirmationReviewSessions.pluralSuffix(),
                 )
             }
             if (counts.moodEntries > 0) {

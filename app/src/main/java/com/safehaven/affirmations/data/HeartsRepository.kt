@@ -2,7 +2,7 @@ package com.safehaven.affirmations.data
 
 import com.safehaven.affirmations.data.local.HeartsEntryDao
 import com.safehaven.affirmations.data.local.HeartsEntryEntity
-import com.safehaven.affirmations.domain.mood.MoodScale
+import com.safehaven.affirmations.data.onenote.OneNoteSyncRepository
 import com.safehaven.affirmations.domain.mood.MoodSource
 import com.safehaven.affirmations.domain.toolkit.HeartsToolConfig
 import com.safehaven.affirmations.domain.toolkit.ToolkitToolId
@@ -10,8 +10,10 @@ import kotlinx.coroutines.flow.Flow
 
 class HeartsRepository(
     private val dao: HeartsEntryDao,
-    private val moodTracker: MoodTrackerRepository,
+    moodTracker: MoodTrackerRepository,
+    oneNoteSync: OneNoteSyncRepository? = null,
 ) {
+    private val writer = JournalEntryWriter(moodTracker, oneNoteSync)
     fun observeAll(): Flow<List<HeartsEntryEntity>> = dao.observeAll()
 
     fun observeByTool(toolId: ToolkitToolId): Flow<List<HeartsEntryEntity>> =
@@ -37,17 +39,14 @@ class HeartsRepository(
         val hasContent = entry.stepValues().any { it.isNotBlank() } ||
             entry.personName.isNotBlank()
         if (!hasContent) return null
-        val id = dao.insert(entry)
-        MoodScale.normalize(moodLevel)?.let { level ->
-            moodTracker.record(
-                source = MoodSource.HEARTS_JOURNAL,
-                level = level,
-                atMillis = entry.createdAt,
-                legacyTable = MoodTrackerRepository.TABLE_HEARTS_ENTRIES,
-                legacyRowId = id,
-            )
-        }
-        return id
+        return writer.save(
+            isValid = true,
+            moodLevel = moodLevel,
+            atMillis = entry.createdAt,
+            source = MoodSource.HEARTS_JOURNAL,
+            legacyTable = MoodTrackerRepository.TABLE_HEARTS_ENTRIES,
+            insert = { dao.insert(entry) },
+        )
     }
 
     suspend fun deleteEntry(id: Long) {

@@ -141,5 +141,23 @@ class AppDataImportTest {
     fun legacyMoodLevelFiveNormalizesToFour() {
         assertEquals(4, MoodScale.normalize(5))
     }
+
+    @Test
+    fun remapLegacyLink_usesNewRowId() {
+        val idMap = mapOf("thought_dumps" to 4L to 91L)
+
+        val (table, rowId) = remapLegacyLink("thought_dumps", 4L, idMap)
+
+        assertEquals("thought_dumps", table)
+        assertEquals(91L, rowId)
+    }
+
+    @Test
+    fun remapLegacyLink_dropsUnresolvedLegacyIds() {
+        val (table, rowId) = remapLegacyLink("nvc_entries", 3L, emptyMap())
+
+        assertEquals(null, table)
+        assertEquals(null, rowId)
+    }
 }
 

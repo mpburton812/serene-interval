@@ -84,36 +84,55 @@ import com.safehaven.affirmations.ui.mood.MoodGraphScreen
 import com.safehaven.affirmations.ui.toolkit.AffirmationsScreen
 import com.safehaven.affirmations.ui.toolkit.ToolkitScreen
 import com.safehaven.affirmations.ui.update.UpdateViewModel
+import com.safehaven.affirmations.ui.visualizations.VisualizationPlayerScreen
 import com.safehaven.affirmations.ui.visualizations.VisualizationsScreen
+import androidx.compose.ui.res.stringResource
+import com.safehaven.affirmations.R
 
-private val allBottomNavItems = listOf(
-    BottomNavItem(SereneDestination.Home, "Home", Icons.Outlined.Home, Icons.Default.Home),
-    BottomNavItem(SereneDestination.Breathe, "Breathe", Icons.Outlined.Air, Icons.Default.Air),
-    BottomNavItem(SereneDestination.Timer, "Meditation", Icons.Outlined.Timer, Icons.Default.Timer),
+private fun buildBottomNavItems(
+    home: String,
+    breathe: String,
+    meditation: String,
+    affirmations: String,
+    katiesLoveList: String,
+    toolkit: String,
+    flower: String,
+    stress: String,
+    visuals: String,
+) = listOf(
+    BottomNavItem(SereneDestination.Home, home, Icons.Outlined.Home, Icons.Default.Home),
+    BottomNavItem(SereneDestination.Breathe, breathe, Icons.Outlined.Air, Icons.Default.Air),
+    BottomNavItem(SereneDestination.Timer, meditation, Icons.Outlined.Timer, Icons.Default.Timer),
     BottomNavItem(
         SereneDestination.Affirmations,
-        AffirmationListKind.Affirmations.shortNavLabel,
+        affirmations,
         Icons.Outlined.FormatQuote,
         Icons.Default.FormatQuote,
     ),
     BottomNavItem(
         SereneDestination.KatiesLoveList,
-        AffirmationListKind.KatiesLoveList.shortNavLabel,
+        katiesLoveList,
         Icons.Outlined.FavoriteBorder,
         Icons.Default.Favorite,
     ),
-    BottomNavItem(SereneDestination.Toolkit, "Toolkit", Icons.Outlined.Handyman, Icons.Default.Handyman),
+    BottomNavItem(SereneDestination.Toolkit, toolkit, Icons.Outlined.Handyman, Icons.Default.Handyman),
     BottomNavItem(
         SereneDestination.LivingTree,
-        "Flower",
+        flower,
         Icons.Outlined.LocalFlorist,
         Icons.Default.LocalFlorist,
     ),
     BottomNavItem(
         SereneDestination.Thermometers,
-        "Stress",
+        stress,
         Icons.Outlined.DeviceThermostat,
         Icons.Default.DeviceThermostat,
+    ),
+    BottomNavItem(
+        SereneDestination.Visualizations,
+        visuals,
+        Icons.Outlined.Landscape,
+        Icons.Default.Landscape,
     ),
 )
 
@@ -126,6 +145,7 @@ private val tabBackgroundRoutes = setOf(
     SereneDestination.Toolkit.route,
     SereneDestination.LivingTree.route,
     SereneDestination.Thermometers.route,
+    SereneDestination.Visualizations.route,
 )
 
 private fun isTabBackgroundRoute(route: String?): Boolean = route in tabBackgroundRoutes
@@ -203,7 +223,25 @@ fun SereneNavHost(
         active = breathingSessionActive || timerSessionActive,
     )
 
+    val navHome = stringResource(R.string.nav_home)
+    val navBreathe = stringResource(R.string.nav_breathe)
+    val navMeditation = stringResource(R.string.nav_meditation)
+    val navAffirmations = AffirmationListKind.Affirmations.shortNavLabel
+    val navKatie = AffirmationListKind.KatiesLoveList.shortNavLabel
+    val navToolkit = stringResource(R.string.nav_toolkit)
+    val navFlower = stringResource(R.string.nav_flower)
+    val navStress = stringResource(R.string.nav_stress)
+    val navVisuals = stringResource(R.string.nav_visuals)
     val bottomNavItems = remember(
+        navHome,
+        navBreathe,
+        navMeditation,
+        navAffirmations,
+        navKatie,
+        navToolkit,
+        navFlower,
+        navStress,
+        navVisuals,
         settings.enableBreathing,
         settings.enableTimer,
         settings.enableAffirmations,
@@ -211,8 +249,19 @@ fun SereneNavHost(
         settings.enableToolkit,
         settings.enableLivingTree,
         settings.enableThermometers,
+        settings.enableVisuals,
     ) {
-        allBottomNavItems.filter { item ->
+        buildBottomNavItems(
+            home = navHome,
+            breathe = navBreathe,
+            meditation = navMeditation,
+            affirmations = navAffirmations,
+            katiesLoveList = navKatie,
+            toolkit = navToolkit,
+            flower = navFlower,
+            stress = navStress,
+            visuals = navVisuals,
+        ).filter { item ->
             when (item.destination) {
                 SereneDestination.Home -> true
                 SereneDestination.Breathe -> settings.enableBreathing
@@ -222,6 +271,7 @@ fun SereneNavHost(
                 SereneDestination.Toolkit -> settings.enableToolkit
                 SereneDestination.LivingTree -> settings.enableLivingTree
                 SereneDestination.Thermometers -> settings.enableThermometers
+                SereneDestination.Visualizations -> settings.enableVisuals
                 else -> false
             }
         }
@@ -437,6 +487,27 @@ fun SereneNavHost(
             composable(SereneDestination.Toolkit.route) { }
             composable(SereneDestination.LivingTree.route) { }
             composable(SereneDestination.Thermometers.route) { }
+            composable(SereneDestination.Visualizations.route) { }
+            composable(
+                route = "visualizations/player/{vizId}",
+                arguments = listOf(
+                    navArgument("vizId") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                val visualization = CalmingVisualizationCatalog.byRouteName(
+                    entry.arguments?.getString("vizId").orEmpty(),
+                )
+                if (visualization == null) {
+                    LaunchedEffect(Unit) {
+                        navController.popBackStack()
+                    }
+                } else {
+                    VisualizationPlayerScreen(
+                        visualization = visualization,
+                        onClose = { navController.popBackStack() },
+                    )
+                }
+            }
             composable(
                 route = SereneDestination.MoodGraph.route,
                 arguments = listOf(
@@ -570,6 +641,15 @@ fun SereneNavHost(
                                     navController.navigate(SereneDestination.LivingTreeSetup.route) {
                                         launchSingleTop = true
                                     }
+                                },
+                            )
+                        }
+                        SereneDestination.Visualizations -> {
+                            VisualizationsScreen(
+                                onOpenVisualization = { id ->
+                                    navController.navigate(
+                                        SereneDestination.Visualizations.playerRoute(id.name),
+                                    )
                                 },
                             )
                         }
