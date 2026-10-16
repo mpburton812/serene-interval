@@ -1,9 +1,9 @@
 ﻿{
-    "versionCode":  41,
-    "versionName":  "2.0.7",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.7/safehaven.apk",
-    "expectedSha256":  "0d4c1f95c694d56f3bbb91b356591f733f02014e20ad0f3a72619c637b2fbb06",
-    "releaseNotes":  "Choose a red or blue thermometer liquid. Closing saves the reading, the stress graph shows dates, and Recent activity records the change plus how you can lower the stress.",
+    "versionCode":  42,
+    "versionName":  "2.0.8",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.8/safehaven.apk",
+    "expectedSha256":  "94067e69de49f3c5008be25838fb36e6c753ba0c0ebb4a9f62527b08b17a5c02",
+    "releaseNotes":  "Restored journals keep their mood scores. Backups include sessions, affirmation reviews, and Katie reminders. Visualizations is back on the tab bar, and ambient sounds are smaller.",
     "minVersionCode":  1
 }
 
