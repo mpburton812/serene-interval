@@ -6,6 +6,7 @@ import com.safehaven.affirmations.data.AffirmationPreferences
 import com.safehaven.affirmations.data.AppGraph
 import com.safehaven.affirmations.data.TimerPreferences
 import com.safehaven.affirmations.data.local.AffirmationEntity
+import com.safehaven.affirmations.data.local.AffirmationReviewSessionEntity
 import com.safehaven.affirmations.data.local.CenterOfGravityEntryEntity
 import com.safehaven.affirmations.data.local.HeartsEntryEntity
 import com.safehaven.affirmations.data.local.FutureSelfMessageEntity
@@ -15,8 +16,10 @@ import com.safehaven.affirmations.data.local.LivingTreeTagEntity
 import com.safehaven.affirmations.data.local.MeditationReflectionEntity
 import com.safehaven.affirmations.data.local.MoodEntryEntity
 import com.safehaven.affirmations.data.local.NvcEntryEntity
+import com.safehaven.affirmations.domain.affirmations.AffirmationListKind
 import com.safehaven.affirmations.domain.mood.MoodScale
 import com.safehaven.affirmations.data.local.RefactoringEntryEntity
+import com.safehaven.affirmations.data.local.SessionEntity
 import com.safehaven.affirmations.data.local.SereneDatabase
 import com.safehaven.affirmations.data.local.ThoughtDumpEntity
 import com.safehaven.affirmations.domain.settings.ExperienceSettings
@@ -35,8 +38,10 @@ class AppDataExporter(
         val settings = AppGraph.settings(context).load()
         val toolkit = AppGraph.toolkit(context).load(settings.onboardingCompleted)
         val quickStartTargets = AppGraph.quickStart(context).load(settings)
-        val affirmationPrefs = AffirmationPreferences(context).load()
-        val timerPrefs = TimerPreferences(context).load()
+        val userPreferences = AppGraph.userPreferences(context)
+        val affirmationPrefs = userPreferences.affirmations().load()
+        val katiePrefs = userPreferences.affirmations(AffirmationListKind.KatiesLoveList).load()
+        val timerPrefs = userPreferences.timer.load()
 
         val thoughtDumps = db.thoughtDumpDao().getAll()
         val affirmations = db.affirmationDao().getAllKinds()
@@ -47,6 +52,8 @@ class AppDataExporter(
         val meditationReflections = db.meditationReflectionDao().getAll()
         val moodEntries = db.moodEntryDao().getAll()
         val heartsEntries = db.heartsEntryDao().getAll()
+        val sessions = db.sessionDao().getAll()
+        val affirmationReviews = db.affirmationReviewSessionDao().getAllKinds()
         val livingTree = AppGraph.livingTree(context)
         val thermometers = db.thermometerDao().getAll()
         val thermometerEvents = db.thermometerEventDao().getAll()
@@ -57,7 +64,17 @@ class AppDataExporter(
             put("exportedAt", Instant.now().toString())
             put("appVersionName", BuildConfig.VERSION_NAME)
             put("appVersionCode", BuildConfig.VERSION_CODE)
-            put("configuration", buildConfiguration(settings, toolkit, quickStartTargets, affirmationPrefs, timerPrefs))
+            put(
+                "configuration",
+                buildConfiguration(
+                    settings,
+                    toolkit,
+                    quickStartTargets,
+                    affirmationPrefs,
+                    katiePrefs,
+                    timerPrefs,
+                ),
+            )
             put("entries", buildEntries(
                 affirmations = affirmations,
                 thoughtDumps = thoughtDumps,
@@ -68,6 +85,8 @@ class AppDataExporter(
                 meditationReflections = meditationReflections,
                 moodEntries = moodEntries,
                 heartsEntries = heartsEntries,
+                sessions = sessions,
+                affirmationReviews = affirmationReviews,
             ))
             put("livingTree", buildLivingTreeSection(livingTree))
             put("thermometers", JSONObject().apply {
@@ -108,6 +127,7 @@ class AppDataExporter(
         toolkit: com.safehaven.affirmations.data.ToolkitPrefsSnapshot,
         quickStartTargets: List<com.safehaven.affirmations.domain.quickstart.QuickStartTarget>,
         affirmationPrefs: AffirmationPreferences.AffirmationPrefsSnapshot,
+        katiePrefs: AffirmationPreferences.AffirmationPrefsSnapshot,
         timerPrefs: TimerPreferences.TimerPrefsSnapshot,
     ): JSONObject = JSONObject().apply {
         put("experienceSettings", JSONObject().apply {
@@ -148,6 +168,11 @@ class AppDataExporter(
             put("reminderHour", affirmationPrefs.reminderHour)
             put("reminderMinute", affirmationPrefs.reminderMinute)
         })
+        put("katieLoveListPreferences", JSONObject().apply {
+            put("reminderEnabled", katiePrefs.reminderEnabled)
+            put("reminderHour", katiePrefs.reminderHour)
+            put("reminderMinute", katiePrefs.reminderMinute)
+        })
         put("timerPreferences", JSONObject().apply {
             put("targetMinutes", timerPrefs.targetMinutes)
             put("sound", timerPrefs.sound.name)
@@ -169,6 +194,8 @@ class AppDataExporter(
         meditationReflections: List<MeditationReflectionEntity>,
         moodEntries: List<MoodEntryEntity>,
         heartsEntries: List<HeartsEntryEntity>,
+        sessions: List<SessionEntity>,
+        affirmationReviews: List<AffirmationReviewSessionEntity>,
     ): JSONObject = JSONObject().apply {
         put("affirmations", JSONArray().apply {
             affirmations.forEach { put(it.toJson()) }
@@ -203,6 +230,12 @@ class AppDataExporter(
         })
         put("heartsEntries", JSONArray().apply {
             heartsEntries.forEach { put(it.toJson()) }
+        })
+        put("sessions", JSONArray().apply {
+            sessions.forEach { put(it.toJson()) }
+        })
+        put("affirmationReviewSessions", JSONArray().apply {
+            affirmationReviews.forEach { put(it.toJson()) }
         })
     }
 
@@ -283,6 +316,24 @@ class AppDataExporter(
         put("createdAt", createdAt)
     }
 
+    private fun SessionEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("type", type)
+        put("title", title)
+        detail?.let { put("detail", it) }
+        put("durationSeconds", durationSeconds)
+        put("completedAt", completedAt)
+    }
+
+    private fun AffirmationReviewSessionEntity.toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("notes", notes)
+        moodLevel?.let { put("moodLevel", it) }
+        put("affirmationCount", affirmationCount)
+        put("completedAt", completedAt)
+        put("listKind", listKind)
+    }
+
     private fun MoodEntryEntity.toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("moodLevel", moodLevel)
@@ -338,7 +389,7 @@ class AppDataExporter(
     }
 
     companion object {
-        const val EXPORT_VERSION = 5
+        const val EXPORT_VERSION = 6
         const val DEFAULT_FILENAME = "serene-interval-export.json"
     }
 }

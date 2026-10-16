@@ -10,6 +10,9 @@ interface SessionDao {
     @Insert
     suspend fun insert(session: SessionEntity): Long
 
+    @Query("SELECT * FROM sessions ORDER BY completedAt DESC")
+    suspend fun getAll(): List<SessionEntity>
+
     @Query("SELECT * FROM sessions ORDER BY completedAt DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<SessionEntity>>
 

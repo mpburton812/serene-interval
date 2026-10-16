@@ -13,4 +13,18 @@
     <string name="mood_widget_button_description">Log mood %1$s</string>
     <string name="mood_widget_logged_toast">Mood logged</string>
     <string name="mood_widget_log_failed_toast">Couldn\'t log mood</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_breathe">Breathe</string>
+    <string name="nav_meditation">Meditation</string>
+    <string name="nav_toolkit">Toolkit</string>
+    <string name="nav_flower">Flower</string>
+    <string name="nav_stress">Stress</string>
+    <string name="nav_visuals">Visuals</string>
+    <string name="back_to_toolkit">Back to Toolkit</string>
+    <string name="calendar_meditation_title">Meditation calendar</string>
+    <string name="calendar_affirmation_title">Affirmation calendar</string>
+    <string name="calendar_meditated">Meditated</string>
+    <string name="calendar_no_session">No session</string>
+    <string name="calendar_reviewed">Reviewed</string>
+    <string name="calendar_no_review">No review</string>
 </resources>

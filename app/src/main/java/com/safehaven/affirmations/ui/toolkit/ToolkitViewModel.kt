@@ -95,18 +95,35 @@ data class ToolkitUiState(
         get() = selectedTool != null && stepIndex >= (selectedTool.steps.size - 1)
 }
 
-class ToolkitViewModel(application: Application) : AndroidViewModel(application) {
-    private val logRepository = AppGraph.thoughtDumps(application)
-    private val futureSelfRepository = AppGraph.futureSelfMessages(application)
-    private val refactoringRepository = AppGraph.refactoringEntries(application)
-    private val centerOfGravityRepository = AppGraph.centerOfGravityEntries(application)
-    private val nvcRepository = AppGraph.nvcEntries(application)
-    private val heartsRepository = AppGraph.heartsEntries(application)
-    private val livingTreeRepository = AppGraph.livingTree(application)
-    private val toolkitPreferences = AppGraph.toolkit(application)
-    private val settingsPreferences = AppGraph.settings(application)
-    private val oneNotePreferences = AppGraph.oneNotePreferences(application)
-    private val oneNoteSync = AppGraph.oneNoteSync(application)
+class ToolkitViewModel(
+    application: Application,
+    private val logRepository: com.safehaven.affirmations.data.ThoughtDumpRepository,
+    private val futureSelfRepository: com.safehaven.affirmations.data.FutureSelfMessageRepository,
+    private val refactoringRepository: com.safehaven.affirmations.data.RefactoringRepository,
+    private val centerOfGravityRepository: com.safehaven.affirmations.data.CenterOfGravityRepository,
+    private val nvcRepository: com.safehaven.affirmations.data.NvcRepository,
+    private val heartsRepository: com.safehaven.affirmations.data.HeartsRepository,
+    private val livingTreeRepository: com.safehaven.affirmations.data.LivingTreeRepository,
+    private val toolkitPreferences: com.safehaven.affirmations.data.ToolkitPreferences,
+    private val settingsPreferences: com.safehaven.affirmations.data.SettingsPreferences,
+    private val oneNotePreferences: com.safehaven.affirmations.data.onenote.OneNotePreferences,
+    private val oneNoteSync: com.safehaven.affirmations.data.onenote.OneNoteSyncRepository,
+) : AndroidViewModel(application) {
+    constructor(application: Application) : this(
+        application = application,
+        logRepository = AppGraph.thoughtDumps(application),
+        futureSelfRepository = AppGraph.futureSelfMessages(application),
+        refactoringRepository = AppGraph.refactoringEntries(application),
+        centerOfGravityRepository = AppGraph.centerOfGravityEntries(application),
+        nvcRepository = AppGraph.nvcEntries(application),
+        heartsRepository = AppGraph.heartsEntries(application),
+        livingTreeRepository = AppGraph.livingTree(application),
+        toolkitPreferences = AppGraph.toolkit(application),
+        settingsPreferences = AppGraph.settings(application),
+        oneNotePreferences = AppGraph.oneNotePreferences(application),
+        oneNoteSync = AppGraph.oneNoteSync(application),
+    )
+
     private val appContext = application.applicationContext
     private var heartsEntriesJob: Job? = null
     private var heartsPartnersJob: Job? = null
@@ -463,7 +480,7 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     fun saveRefactoringEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val state = _uiState.value
-            val entryId = refactoringRepository.save(
+            refactoringRepository.save(
                 RefactoringEntryEntity(
                     interpretation = state.refactoringInterpretation.trim(),
                     actualFacts = state.refactoringActualFacts.trim(),
@@ -473,7 +490,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                     moodLevel = state.draftMoodLevel,
                 ),
             )
-            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.REFACTORING, it) }
             _uiState.update {
                 it.copy(
                     refactoringStepIndex = 0,
@@ -542,14 +558,13 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     fun saveCenterOfGravityEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val state = _uiState.value
-            val entryId = centerOfGravityRepository.save(
+            centerOfGravityRepository.save(
                 CenterOfGravityEntryEntity(
                     thoughtsAndFeelings = state.centerOfGravityThoughtsAndFeelings.trim(),
                     bodyAndNeeds = state.centerOfGravityBodyAndNeeds.trim(),
                     moodLevel = state.draftMoodLevel,
                 ),
             )
-            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.CENTER_OF_GRAVITY, it) }
             _uiState.update {
                 it.copy(
                     centerOfGravityStepIndex = 0,
@@ -624,39 +639,14 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     fun saveNvcEntry(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val state = _uiState.value
-            val entryId = nvcRepository.save(
-                NvcEntryEntity(
-                    observation = state.nvcObservation.trim(),
-                    feeling = state.nvcFeeling.trim(),
-                    need = state.nvcNeed.trim(),
-                    request = state.nvcRequest.trim(),
-                    moodLevel = state.draftMoodLevel,
-                ),
-            )
-            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.NVC, it) }
-            _uiState.update {
-                it.copy(
-                    nvcStepIndex = 0,
-                    nvcObservation = "",
-                    nvcFeeling = "",
-                    nvcNeed = "",
-                    nvcRequest = "",
-                )
-            }
+            nvcRepository.save(state.toNvcEntry())
+            _uiState.update { it.clearedNvcDraft() }
             onComplete()
         }
     }
 
     fun clearNvcDraft() {
-        _uiState.update {
-            it.copy(
-                nvcStepIndex = 0,
-                nvcObservation = "",
-                nvcFeeling = "",
-                nvcNeed = "",
-                nvcRequest = "",
-            )
-        }
+        _uiState.update { it.clearedNvcDraft() }
     }
 
     fun openNvcEntry(entry: NvcEntryEntity) {
@@ -702,12 +692,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun saveThoughtDump(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            val entryId = logRepository.save(
+            logRepository.save(
                 type = ToolkitLogType.THOUGHT_DUMP,
                 content = _uiState.value.thoughtDumpText,
                 moodLevel = _uiState.value.draftMoodLevel,
             )
-            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.THOUGHT_DUMP, it) }
             _uiState.update { it.copy(thoughtDumpText = "", draftMoodLevel = null) }
             onComplete()
         }
@@ -715,12 +704,11 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
 
     fun saveAnxietyLog(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            val entryId = logRepository.save(
+            logRepository.save(
                 type = ToolkitLogType.ANXIETY_LOG,
                 content = _uiState.value.anxietyLogText,
                 moodLevel = _uiState.value.draftMoodLevel,
             )
-            entryId?.let { enqueueOneNoteSync(OneNoteEntryType.ANXIETY_LOG, it) }
             _uiState.update { it.copy(anxietyLogText = "", draftMoodLevel = null) }
             onComplete()
         }
@@ -745,7 +733,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
                 savedId,
                 state.futureSelfScheduledAtMillis,
             )
-            enqueueOneNoteSync(OneNoteEntryType.FUTURE_SELF, savedId)
             closeTool()
             onComplete()
         }
@@ -992,12 +979,6 @@ class ToolkitViewModel(application: Application) : AndroidViewModel(application)
     fun syncEntryToOneNote(entryType: OneNoteEntryType, localEntryId: Long) {
         viewModelScope.launch {
             oneNoteSync.enqueueSync(entryType, localEntryId, manual = true)
-        }
-    }
-
-    private fun enqueueOneNoteSync(entryType: OneNoteEntryType, localEntryId: Long) {
-        viewModelScope.launch {
-            oneNoteSync.enqueueSync(entryType, localEntryId)
         }
     }
 }
