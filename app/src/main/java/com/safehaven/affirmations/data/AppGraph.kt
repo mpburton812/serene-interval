@@ -22,6 +22,8 @@ object AppGraph {
     @Volatile
     private var settingsPreferences: SettingsPreferences? = null
     @Volatile
+    private var userPreferencesStore: UserPreferences? = null
+    @Volatile
     private var toolkitPreferences: ToolkitPreferences? = null
 
     @Volatile
@@ -147,6 +149,7 @@ object AppGraph {
                     dao = SereneDatabase.getInstance(context.applicationContext).affirmationReviewSessionDao(),
                     moodTracker = moodTracker(context),
                     listKind = listKind,
+                    oneNoteSync = oneNoteSync(context),
                 )
             }
         }
@@ -156,6 +159,7 @@ object AppGraph {
             thoughtDumpRepository ?: ThoughtDumpRepository(
                 dao = SereneDatabase.getInstance(context.applicationContext).thoughtDumpDao(),
                 moodTracker = moodTracker(context),
+                oneNoteSync = oneNoteSync(context),
             ).also { thoughtDumpRepository = it }
         }
 
@@ -163,6 +167,12 @@ object AppGraph {
         settingsPreferences ?: synchronized(this) {
             settingsPreferences ?: SettingsPreferences(context.applicationContext)
                 .also { settingsPreferences = it }
+        }
+
+    fun userPreferences(context: Context): UserPreferences =
+        userPreferencesStore ?: synchronized(this) {
+            userPreferencesStore ?: UserPreferences(context.applicationContext)
+                .also { userPreferencesStore = it }
         }
 
     fun toolkit(context: Context): ToolkitPreferences =
@@ -189,6 +199,7 @@ object AppGraph {
             meditationReflectionRepository ?: MeditationReflectionRepository(
                 dao = SereneDatabase.getInstance(context.applicationContext).meditationReflectionDao(),
                 moodTracker = moodTracker(context),
+                oneNoteSync = oneNoteSync(context),
             ).also { meditationReflectionRepository = it }
         }
 
@@ -197,6 +208,7 @@ object AppGraph {
             futureSelfMessageRepository ?: FutureSelfMessageRepository(
                 dao = SereneDatabase.getInstance(context.applicationContext).futureSelfMessageDao(),
                 moodTracker = moodTracker(context),
+                oneNoteSync = oneNoteSync(context),
             ).also { futureSelfMessageRepository = it }
         }
 
@@ -205,6 +217,7 @@ object AppGraph {
             refactoringRepository ?: RefactoringRepository(
                 dao = SereneDatabase.getInstance(context.applicationContext).refactoringEntryDao(),
                 moodTracker = moodTracker(context),
+                oneNoteSync = oneNoteSync(context),
             ).also { refactoringRepository = it }
         }
 
@@ -213,6 +226,7 @@ object AppGraph {
             centerOfGravityRepository ?: CenterOfGravityRepository(
                 dao = SereneDatabase.getInstance(context.applicationContext).centerOfGravityEntryDao(),
                 moodTracker = moodTracker(context),
+                oneNoteSync = oneNoteSync(context),
             ).also { centerOfGravityRepository = it }
         }
 
@@ -221,6 +235,7 @@ object AppGraph {
             nvcRepository ?: NvcRepository(
                 dao = SereneDatabase.getInstance(context.applicationContext).nvcEntryDao(),
                 moodTracker = moodTracker(context),
+                oneNoteSync = oneNoteSync(context),
             ).also { nvcRepository = it }
         }
 
@@ -229,6 +244,7 @@ object AppGraph {
             heartsRepository ?: HeartsRepository(
                 dao = SereneDatabase.getInstance(context.applicationContext).heartsEntryDao(),
                 moodTracker = moodTracker(context),
+                oneNoteSync = oneNoteSync(context),
             ).also { heartsRepository = it }
         }
 

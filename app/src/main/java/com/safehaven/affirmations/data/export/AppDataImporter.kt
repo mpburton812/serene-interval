@@ -6,6 +6,7 @@ import com.safehaven.affirmations.data.AppGraph
 import com.safehaven.affirmations.data.TimerPreferences
 import com.safehaven.affirmations.data.local.AffirmationEntity
 import com.safehaven.affirmations.domain.affirmations.AffirmationListKind
+import com.safehaven.affirmations.data.local.AffirmationReviewSessionEntity
 import com.safehaven.affirmations.data.local.CenterOfGravityEntryEntity
 import com.safehaven.affirmations.data.local.HeartsEntryEntity
 import com.safehaven.affirmations.data.local.FutureSelfMessageEntity
@@ -14,9 +15,11 @@ import com.safehaven.affirmations.data.local.LivingTreePersonTagCrossRef
 import com.safehaven.affirmations.data.local.LivingTreeTagEntity
 import com.safehaven.affirmations.data.local.MeditationReflectionEntity
 import com.safehaven.affirmations.data.local.MoodEntryEntity
+import com.safehaven.affirmations.data.MoodTrackerRepository
 import com.safehaven.affirmations.data.local.NvcEntryEntity
 import com.safehaven.affirmations.data.local.RefactoringEntryEntity
 import com.safehaven.affirmations.data.local.SereneDatabase
+import com.safehaven.affirmations.data.local.SessionEntity
 import com.safehaven.affirmations.data.local.ThermometerEntity
 import com.safehaven.affirmations.data.local.ThermometerEventEntity
 import com.safehaven.affirmations.data.local.ThoughtDumpEntity
@@ -153,7 +156,7 @@ class AppDataImporter(
         configuration.optJSONObject("affirmationPreferences")?.let { affirmationPrefs ->
             runCatching { importAffirmationPreferences(affirmationPrefs) }
                 .onSuccess {
-                    AffirmationPreferences(context).save(it)
+                    AppGraph.userPreferences(context).affirmations().save(it)
                     updated = updated.copy(affirmationPreferences = 1)
                 }
                 .onFailure { error ->
@@ -165,10 +168,25 @@ class AppDataImporter(
                 }
         }
 
+        configuration.optJSONObject("katieLoveListPreferences")?.let { katiePrefs ->
+            runCatching { importAffirmationPreferences(katiePrefs, AffirmationListKind.KatiesLoveList) }
+                .onSuccess {
+                    AppGraph.userPreferences(context).affirmations(AffirmationListKind.KatiesLoveList).save(it)
+                    updated = updated.copy(katieLoveListPreferences = 1)
+                }
+                .onFailure { error ->
+                    skips += ImportSkip(
+                        category = "Katie love list preferences",
+                        reason = "invalid values",
+                        detail = error.message,
+                    )
+                }
+        }
+
         configuration.optJSONObject("timerPreferences")?.let { timerPrefs ->
             runCatching { importTimerPreferences(timerPrefs, warnings) }
                 .onSuccess { (snapshot, timerSkips) ->
-                    TimerPreferences(context).save(snapshot)
+                    AppGraph.userPreferences(context).timer.save(snapshot)
                     skips += timerSkips
                     updated = updated.copy(timerPreferences = 1)
                 }
@@ -288,8 +306,11 @@ class AppDataImporter(
         AppGraph.quickStart(context).saveSelection(selection, settings)
     }
 
-    private fun importAffirmationPreferences(json: JSONObject): AffirmationPreferences.AffirmationPrefsSnapshot {
-        val current = AffirmationPreferences(context).load()
+    private fun importAffirmationPreferences(
+        json: JSONObject,
+        listKind: AffirmationListKind = AffirmationListKind.Affirmations,
+    ): AffirmationPreferences.AffirmationPrefsSnapshot {
+        val current = AppGraph.userPreferences(context).affirmations(listKind).load()
         return AffirmationPreferences.AffirmationPrefsSnapshot(
             reminderEnabled = json.optBoolean("reminderEnabled", current.reminderEnabled),
             reminderHour = json.optInt("reminderHour", current.reminderHour),
@@ -301,7 +322,7 @@ class AppDataImporter(
         json: JSONObject,
         warnings: MutableList<String>,
     ): Pair<TimerPreferences.TimerPrefsSnapshot, List<ImportSkip>> {
-        val current = TimerPreferences(context).load()
+        val current = AppGraph.userPreferences(context).timer.load()
         val skips = mutableListOf<ImportSkip>()
         val sound = TimerSoundOption.fromStoredName(json.optString("sound", current.sound.name))
         val bellSound = TimerBellSoundChoice.fromStoredName(
@@ -327,6 +348,7 @@ class AppDataImporter(
         warnings: MutableList<String>,
     ): ImportCounts {
         val db = SereneDatabase.getInstance(context)
+        val legacyIds = mutableMapOf<Pair<String, Long>, Long>()
         var updated = counts
 
         updated = updated.copy(
@@ -342,6 +364,7 @@ class AppDataImporter(
                 logType = ToolkitLogType.THOUGHT_DUMP,
                 dao = db.thoughtDumpDao(),
                 skips = skips,
+                legacyIds = legacyIds,
             ),
         )
         updated = updated.copy(
@@ -350,6 +373,7 @@ class AppDataImporter(
                 logType = ToolkitLogType.ANXIETY_LOG,
                 dao = db.thoughtDumpDao(),
                 skips = skips,
+                legacyIds = legacyIds,
             ),
         )
         updated = updated.copy(
@@ -358,6 +382,7 @@ class AppDataImporter(
                 dao = db.futureSelfMessageDao(),
                 skips = skips,
                 warnings = warnings,
+                legacyIds = legacyIds,
             ),
         )
         updated = updated.copy(
@@ -365,6 +390,7 @@ class AppDataImporter(
                 array = entries.optJSONArray("refactoringEntries"),
                 dao = db.refactoringEntryDao(),
                 skips = skips,
+                legacyIds = legacyIds,
             ),
         )
         updated = updated.copy(
@@ -372,6 +398,7 @@ class AppDataImporter(
                 array = entries.optJSONArray("centerOfGravityEntries"),
                 dao = db.centerOfGravityEntryDao(),
                 skips = skips,
+                legacyIds = legacyIds,
             ),
         )
         updated = updated.copy(
@@ -379,6 +406,7 @@ class AppDataImporter(
                 array = entries.optJSONArray("nvcEntries"),
                 dao = db.nvcEntryDao(),
                 skips = skips,
+                legacyIds = legacyIds,
             ),
         )
         updated = updated.copy(
@@ -386,6 +414,7 @@ class AppDataImporter(
                 array = entries.optJSONArray("meditationReflections"),
                 dao = db.meditationReflectionDao(),
                 skips = skips,
+                legacyIds = legacyIds,
             ),
         )
         updated = updated.copy(
@@ -393,6 +422,22 @@ class AppDataImporter(
                 array = entries.optJSONArray("heartsEntries"),
                 dao = db.heartsEntryDao(),
                 skips = skips,
+                legacyIds = legacyIds,
+            ),
+        )
+        updated = updated.copy(
+            sessions = importSessions(
+                array = entries.optJSONArray("sessions"),
+                dao = db.sessionDao(),
+                skips = skips,
+            ),
+        )
+        updated = updated.copy(
+            affirmationReviewSessions = importAffirmationReviewSessions(
+                array = entries.optJSONArray("affirmationReviewSessions"),
+                dao = db.affirmationReviewSessionDao(),
+                skips = skips,
+                legacyIds = legacyIds,
             ),
         )
         updated = updated.copy(
@@ -400,6 +445,7 @@ class AppDataImporter(
                 array = entries.optJSONArray("moodEntries"),
                 dao = db.moodEntryDao(),
                 skips = skips,
+                legacyIds = legacyIds,
             ),
         )
 
@@ -588,6 +634,7 @@ class AppDataImporter(
         logType: ToolkitLogType,
         dao: com.safehaven.affirmations.data.local.ThoughtDumpDao,
         skips: MutableList<ImportSkip>,
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
     ): Int {
         if (array == null || array.length() == 0) return 0
         val existing = dao.getAll().filter { it.logType == logType.name }
@@ -606,12 +653,14 @@ class AppDataImporter(
             }
             val createdAt = item.optLong("createdAt", System.currentTimeMillis())
             if (existing.any { it.content == content && it.createdAt == createdAt }) {
+                val match = existing.first { it.content == content && it.createdAt == createdAt }
+                rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_THOUGHT_DUMPS, item, match.id)
                 skips += ImportSkip(categoryLabel, "duplicate", detail = content.take(40))
                 continue
             }
 
             val moodLevel = item.optionalMoodLevel()
-            dao.insert(
+            val newId = dao.insert(
                 ThoughtDumpEntity(
                     content = content,
                     logType = logType.name,
@@ -619,6 +668,7 @@ class AppDataImporter(
                     createdAt = createdAt,
                 ),
             )
+            rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_THOUGHT_DUMPS, item, newId)
             imported++
         }
         return imported
@@ -629,6 +679,7 @@ class AppDataImporter(
         dao: com.safehaven.affirmations.data.local.FutureSelfMessageDao,
         skips: MutableList<ImportSkip>,
         warnings: MutableList<String>,
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
     ): Int {
         if (array == null || array.length() == 0) return 0
         val existing = dao.getAll()
@@ -651,6 +702,8 @@ class AppDataImporter(
 
             val createdAtMillis = item.optLong("createdAtMillis", scheduledAtMillis)
             if (existing.any { it.content == content && it.scheduledAtMillis == scheduledAtMillis }) {
+                val match = existing.first { it.content == content && it.scheduledAtMillis == scheduledAtMillis }
+                rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_FUTURE_SELF_MESSAGES, item, match.id)
                 skips += ImportSkip("future self message", "duplicate", detail = content.take(40))
                 continue
             }
@@ -678,6 +731,7 @@ class AppDataImporter(
                 }
             }
 
+            rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_FUTURE_SELF_MESSAGES, item, newId)
             imported++
         }
         return imported
@@ -687,6 +741,7 @@ class AppDataImporter(
         array: JSONArray?,
         dao: com.safehaven.affirmations.data.local.RefactoringEntryDao,
         skips: MutableList<ImportSkip>,
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
     ): Int {
         if (array == null || array.length() == 0) return 0
         val existing = dao.getAll()
@@ -707,11 +762,17 @@ class AppDataImporter(
                         it.createdAt == createdAt
                 }
             ) {
+                val match = existing.first {
+                    it.interpretation == interpretation &&
+                        it.actualFacts == actualFacts &&
+                        it.createdAt == createdAt
+                }
+                rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_REFACTORING_ENTRIES, item, match.id)
                 skips += ImportSkip("refactoring entry", "duplicate")
                 continue
             }
 
-            dao.insert(
+            val newId = dao.insert(
                 RefactoringEntryEntity(
                     interpretation = interpretation,
                     actualFacts = actualFacts,
@@ -722,6 +783,7 @@ class AppDataImporter(
                     createdAt = createdAt,
                 ),
             )
+            rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_REFACTORING_ENTRIES, item, newId)
             imported++
         }
         return imported
@@ -731,6 +793,7 @@ class AppDataImporter(
         array: JSONArray?,
         dao: com.safehaven.affirmations.data.local.CenterOfGravityEntryDao,
         skips: MutableList<ImportSkip>,
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
     ): Int {
         if (array == null || array.length() == 0) return 0
         val existing = dao.getAll()
@@ -751,17 +814,34 @@ class AppDataImporter(
                         it.createdAt == createdAt
                 }
             ) {
+                val match = existing.first {
+                    it.thoughtsAndFeelings == thoughtsAndFeelings &&
+                        it.bodyAndNeeds == bodyAndNeeds &&
+                        it.createdAt == createdAt
+                }
+                rememberLegacy(
+                    legacyIds,
+                    MoodTrackerRepository.TABLE_CENTER_OF_GRAVITY_ENTRIES,
+                    item,
+                    match.id,
+                )
                 skips += ImportSkip("center of gravity entry", "duplicate")
                 continue
             }
 
-            dao.insert(
+            val newId = dao.insert(
                 CenterOfGravityEntryEntity(
                     thoughtsAndFeelings = thoughtsAndFeelings,
                     bodyAndNeeds = bodyAndNeeds,
                     moodLevel = item.optionalMoodLevel(),
                     createdAt = createdAt,
                 ),
+            )
+            rememberLegacy(
+                legacyIds,
+                MoodTrackerRepository.TABLE_CENTER_OF_GRAVITY_ENTRIES,
+                item,
+                newId,
             )
             imported++
         }
@@ -772,6 +852,7 @@ class AppDataImporter(
         array: JSONArray?,
         dao: com.safehaven.affirmations.data.local.MeditationReflectionDao,
         skips: MutableList<ImportSkip>,
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
     ): Int {
         if (array == null || array.length() == 0) return 0
         val existing = dao.getAll()
@@ -787,11 +868,13 @@ class AppDataImporter(
             val completedAt = item.optLong("completedAt", System.currentTimeMillis())
             val durationSeconds = item.optInt("durationSeconds", 0).coerceAtLeast(0)
             if (existing.any { it.reflection == reflection && it.completedAt == completedAt }) {
+                val match = existing.first { it.reflection == reflection && it.completedAt == completedAt }
+                rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_MEDITATION_REFLECTIONS, item, match.id)
                 skips += ImportSkip("meditation reflection", "duplicate", detail = reflection.take(40))
                 continue
             }
 
-            dao.insert(
+            val newId = dao.insert(
                 MeditationReflectionEntity(
                     reflection = reflection,
                     moodLevel = item.optionalMoodLevel(),
@@ -799,6 +882,7 @@ class AppDataImporter(
                     completedAt = completedAt,
                 ),
             )
+            rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_MEDITATION_REFLECTIONS, item, newId)
             imported++
         }
         return imported
@@ -808,6 +892,7 @@ class AppDataImporter(
         array: JSONArray?,
         dao: com.safehaven.affirmations.data.local.NvcEntryDao,
         skips: MutableList<ImportSkip>,
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
     ): Int {
         if (array == null || array.length() == 0) return 0
         val existing = dao.getAll()
@@ -832,11 +917,19 @@ class AppDataImporter(
                         it.createdAt == createdAt
                 }
             ) {
+                val match = existing.first {
+                    it.observation == observation &&
+                        it.feeling == feeling &&
+                        it.need == need &&
+                        it.request == request &&
+                        it.createdAt == createdAt
+                }
+                rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_NVC_ENTRIES, item, match.id)
                 skips += ImportSkip("NVC entry", "duplicate")
                 continue
             }
 
-            dao.insert(
+            val newId = dao.insert(
                 NvcEntryEntity(
                     observation = observation,
                     feeling = feeling,
@@ -846,6 +939,7 @@ class AppDataImporter(
                     createdAt = createdAt,
                 ),
             )
+            rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_NVC_ENTRIES, item, newId)
             imported++
         }
         return imported
@@ -855,6 +949,7 @@ class AppDataImporter(
         array: JSONArray?,
         dao: com.safehaven.affirmations.data.local.HeartsEntryDao,
         skips: MutableList<ImportSkip>,
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
     ): Int {
         if (array == null || array.length() == 0) return 0
         val existing = dao.getAll()
@@ -887,11 +982,18 @@ class AppDataImporter(
                         it.personName == personName
                 }
             ) {
+                val match = existing.first {
+                    it.toolId == toolId &&
+                        it.createdAt == createdAt &&
+                        it.stepValues() == steps &&
+                        it.personName == personName
+                }
+                rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_HEARTS_ENTRIES, item, match.id)
                 skips += ImportSkip("HEARTS entry", "duplicate")
                 continue
             }
 
-            dao.insert(
+            val newId = dao.insert(
                 HeartsEntryEntity(
                     toolId = toolId,
                     personId = item.optLong("personId").takeIf { item.has("personId") },
@@ -905,15 +1007,126 @@ class AppDataImporter(
                     createdAt = createdAt,
                 ),
             )
+            rememberLegacy(legacyIds, MoodTrackerRepository.TABLE_HEARTS_ENTRIES, item, newId)
             imported++
         }
         return imported
+    }
+
+    private suspend fun importSessions(
+        array: JSONArray?,
+        dao: com.safehaven.affirmations.data.local.SessionDao,
+        skips: MutableList<ImportSkip>,
+    ): Int {
+        if (array == null || array.length() == 0) return 0
+        val existing = dao.getAll()
+        var imported = 0
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val type = item.optString("type", "").trim()
+            val title = item.optString("title", "").trim()
+            if (type.isEmpty() || title.isEmpty()) {
+                skips += ImportSkip("session", "missing content")
+                continue
+            }
+            val completedAt = item.optLong("completedAt", -1L)
+            val durationSeconds = item.optInt("durationSeconds", 0).coerceAtLeast(0)
+            if (completedAt <= 0L) {
+                skips += ImportSkip("session", "invalid timestamp")
+                continue
+            }
+            if (existing.any {
+                    it.type == type && it.title == title && it.completedAt == completedAt &&
+                        it.durationSeconds == durationSeconds
+                }
+            ) {
+                skips += ImportSkip("session", "duplicate", detail = title.take(40))
+                continue
+            }
+            dao.insert(
+                SessionEntity(
+                    type = type,
+                    title = title,
+                    detail = item.optString("detail").takeIf { item.has("detail") && !item.isNull("detail") },
+                    durationSeconds = durationSeconds,
+                    completedAt = completedAt,
+                ),
+            )
+            imported++
+        }
+        return imported
+    }
+
+    private suspend fun importAffirmationReviewSessions(
+        array: JSONArray?,
+        dao: com.safehaven.affirmations.data.local.AffirmationReviewSessionDao,
+        skips: MutableList<ImportSkip>,
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
+    ): Int {
+        if (array == null || array.length() == 0) return 0
+        val existing = dao.getAllKinds()
+        var imported = 0
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val completedAt = item.optLong("completedAt", -1L)
+            val affirmationCount = item.optInt("affirmationCount", -1)
+            if (completedAt <= 0L || affirmationCount < 0) {
+                skips += ImportSkip("affirmation review", "invalid values")
+                continue
+            }
+            val notes = item.optString("notes", "")
+            val listKind = item.optString("listKind", AffirmationListKind.Affirmations.name)
+            val match = existing.firstOrNull {
+                it.completedAt == completedAt &&
+                    it.affirmationCount == affirmationCount &&
+                    it.listKind == listKind &&
+                    it.notes == notes
+            }
+            if (match != null) {
+                rememberLegacy(
+                    legacyIds,
+                    MoodTrackerRepository.TABLE_AFFIRMATION_REVIEW_SESSIONS,
+                    item,
+                    match.id,
+                )
+                skips += ImportSkip("affirmation review", "duplicate")
+                continue
+            }
+            val newId = dao.insert(
+                AffirmationReviewSessionEntity(
+                    notes = notes,
+                    moodLevel = item.optionalMoodLevel(),
+                    affirmationCount = affirmationCount,
+                    completedAt = completedAt,
+                    listKind = listKind,
+                ),
+            )
+            rememberLegacy(
+                legacyIds,
+                MoodTrackerRepository.TABLE_AFFIRMATION_REVIEW_SESSIONS,
+                item,
+                newId,
+            )
+            imported++
+        }
+        return imported
+    }
+
+    private fun rememberLegacy(
+        legacyIds: MutableMap<Pair<String, Long>, Long>,
+        table: String,
+        item: JSONObject,
+        storedId: Long,
+    ) {
+        val exportedId = if (item.has("id") && !item.isNull("id")) item.optLong("id") else null
+        legacyIds.rememberExportedId(table, exportedId, storedId)
     }
 
     private suspend fun importMoodEntries(
         array: JSONArray?,
         dao: com.safehaven.affirmations.data.local.MoodEntryDao,
         skips: MutableList<ImportSkip>,
+        legacyIds: Map<Pair<String, Long>, Long>,
     ): Int {
         if (array == null || array.length() == 0) return 0
         dao.clearAll()
@@ -938,19 +1151,24 @@ class AppDataImporter(
                 continue
             }
             val legacyTable = item.optString("legacyTable").takeIf { it.isNotBlank() }
-            val legacyRowId = if (item.has("legacyRowId") && !item.isNull("legacyRowId")) {
+            val exportedLegacyRowId = if (item.has("legacyRowId") && !item.isNull("legacyRowId")) {
                 item.optLong("legacyRowId")
             } else {
                 null
             }
+            val (resolvedTable, resolvedRowId) = remapLegacyLink(
+                legacyTable,
+                exportedLegacyRowId,
+                legacyIds,
+            )
 
             dao.insert(
                 MoodEntryEntity(
                     moodLevel = moodLevel,
                     recordedAtMillis = recordedAtMillis,
                     source = source.dbValue,
-                    legacyTable = legacyTable,
-                    legacyRowId = legacyRowId,
+                    legacyTable = resolvedTable,
+                    legacyRowId = resolvedRowId,
                 ),
             )
             imported++

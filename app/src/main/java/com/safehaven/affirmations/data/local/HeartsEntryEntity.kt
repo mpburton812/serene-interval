@@ -1,10 +1,14 @@
 package com.safehaven.affirmations.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.safehaven.affirmations.domain.toolkit.ToolkitToolId
 
-@Entity(tableName = "hearts_entries")
+@Entity(
+    tableName = "hearts_entries",
+    indices = [Index("personId")],
+)
 data class HeartsEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val toolId: String,

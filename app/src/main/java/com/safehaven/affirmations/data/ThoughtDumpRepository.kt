@@ -2,15 +2,19 @@ package com.safehaven.affirmations.data
 
 import com.safehaven.affirmations.data.local.ThoughtDumpDao
 import com.safehaven.affirmations.data.local.ThoughtDumpEntity
+import com.safehaven.affirmations.data.onenote.OneNoteSyncRepository
 import com.safehaven.affirmations.domain.mood.MoodScale
 import com.safehaven.affirmations.domain.mood.MoodSource
+import com.safehaven.affirmations.domain.onenote.OneNoteEntryType
 import com.safehaven.affirmations.domain.toolkit.ToolkitLogType
 import kotlinx.coroutines.flow.Flow
 
 class ThoughtDumpRepository(
     private val dao: ThoughtDumpDao,
-    private val moodTracker: MoodTrackerRepository,
+    moodTracker: MoodTrackerRepository,
+    oneNoteSync: OneNoteSyncRepository? = null,
 ) {
+    private val writer = JournalEntryWriter(moodTracker, oneNoteSync)
     fun observeEntries(type: ToolkitLogType): Flow<List<ThoughtDumpEntity>> =
         dao.observeByType(type.name)
 
@@ -28,21 +32,21 @@ class ThoughtDumpRepository(
             logType = type.name,
             moodLevel = MoodScale.normalize(moodLevel),
         )
-        val id = dao.insert(entity)
-        entity.moodLevel?.let { level ->
-            val source = when (type) {
+        return writer.save(
+            isValid = true,
+            moodLevel = entity.moodLevel,
+            atMillis = entity.createdAt,
+            source = when (type) {
                 ToolkitLogType.ANXIETY_LOG -> MoodSource.ANXIETY_LOG
                 else -> MoodSource.THOUGHT_DUMP
-            }
-            moodTracker.record(
-                source = source,
-                level = level,
-                atMillis = entity.createdAt,
-                legacyTable = MoodTrackerRepository.TABLE_THOUGHT_DUMPS,
-                legacyRowId = id,
-            )
-        }
-        return id
+            },
+            legacyTable = MoodTrackerRepository.TABLE_THOUGHT_DUMPS,
+            oneNoteType = when (type) {
+                ToolkitLogType.ANXIETY_LOG -> OneNoteEntryType.ANXIETY_LOG
+                else -> OneNoteEntryType.THOUGHT_DUMP
+            },
+            insert = { dao.insert(entity) },
+        )
     }
 
     suspend fun deleteEntry(id: Long) {

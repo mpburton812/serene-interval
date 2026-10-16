@@ -2,14 +2,18 @@ package com.safehaven.affirmations.data
 
 import com.safehaven.affirmations.data.local.FutureSelfMessageDao
 import com.safehaven.affirmations.data.local.FutureSelfMessageEntity
+import com.safehaven.affirmations.data.onenote.OneNoteSyncRepository
 import com.safehaven.affirmations.domain.mood.MoodScale
 import com.safehaven.affirmations.domain.mood.MoodSource
+import com.safehaven.affirmations.domain.onenote.OneNoteEntryType
 import kotlinx.coroutines.flow.Flow
 
 class FutureSelfMessageRepository(
     private val dao: FutureSelfMessageDao,
-    private val moodTracker: MoodTrackerRepository,
+    moodTracker: MoodTrackerRepository,
+    oneNoteSync: OneNoteSyncRepository? = null,
 ) {
+    private val writer = JournalEntryWriter(moodTracker, oneNoteSync)
     fun observeAll(): Flow<List<FutureSelfMessageEntity>> = dao.observeAll()
 
     suspend fun getById(id: Long): FutureSelfMessageEntity? = dao.getById(id)
@@ -36,15 +40,14 @@ class FutureSelfMessageRepository(
                 scheduledAtMillis = scheduledAtMillis,
             )
             val newId = dao.insert(entity)
-            normalizedMood?.let { level ->
-                moodTracker.record(
-                    source = MoodSource.FUTURE_SELF,
-                    level = level,
-                    atMillis = entity.createdAtMillis,
-                    legacyTable = MoodTrackerRepository.TABLE_FUTURE_SELF_MESSAGES,
-                    legacyRowId = newId,
-                )
-            }
+            writer.recordMood(
+                moodLevel = normalizedMood,
+                atMillis = entity.createdAtMillis,
+                source = MoodSource.FUTURE_SELF,
+                legacyTable = MoodTrackerRepository.TABLE_FUTURE_SELF_MESSAGES,
+                legacyRowId = newId,
+            )
+            writer.enqueue(OneNoteEntryType.FUTURE_SELF, newId)
             return newId
         }
         val existing = dao.getById(id) ?: return null
@@ -56,15 +59,14 @@ class FutureSelfMessageRepository(
                 delivered = false,
             ),
         )
-        normalizedMood?.let { level ->
-            moodTracker.record(
-                source = MoodSource.FUTURE_SELF,
-                level = level,
-                atMillis = existing.createdAtMillis,
-                legacyTable = MoodTrackerRepository.TABLE_FUTURE_SELF_MESSAGES,
-                legacyRowId = id,
-            )
-        }
+        writer.recordMood(
+            moodLevel = normalizedMood,
+            atMillis = existing.createdAtMillis,
+            source = MoodSource.FUTURE_SELF,
+            legacyTable = MoodTrackerRepository.TABLE_FUTURE_SELF_MESSAGES,
+            legacyRowId = id,
+        )
+        writer.enqueue(OneNoteEntryType.FUTURE_SELF, id)
         return id
     }
 

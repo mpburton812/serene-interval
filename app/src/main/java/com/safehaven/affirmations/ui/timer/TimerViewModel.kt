@@ -147,13 +147,12 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             if (state.phase == TimerPhase.Complete) {
                 val text = if (includeText) reflectionText.value else ""
                 val mood = reflectionMoodLevel.value
-                val savedId = reflectionRepository.save(
+                reflectionRepository.save(
                     reflection = text,
                     durationSeconds = state.targetMinutes * 60,
                     completedAt = System.currentTimeMillis(),
                     moodLevel = mood,
                 )
-                savedId?.let { oneNoteSync.enqueueSync(OneNoteEntryType.MEDITATION_REFLECTION, it) }
             }
             finishReflectionCapture()
         }

@@ -253,13 +253,12 @@ class AffirmationsViewModel(
 
         viewModelScope.launch {
             val completedAt = System.currentTimeMillis()
-            val savedId = reviewSessionRepository.save(
+            reviewSessionRepository.save(
                 notes = state.reviewAssessmentNotes,
                 affirmationCount = state.completedReviewAffirmationCount,
                 completedAt = completedAt,
                 moodLevel = state.reviewAssessmentMoodLevel,
             )
-            oneNoteSync.enqueueSync(OneNoteEntryType.AFFIRMATION_REVIEW, savedId)
             dismissReviewAssessment()
         }
     }
