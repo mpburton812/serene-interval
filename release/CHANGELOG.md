@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.0.10 - 2026-10-19
+
+### Updates
+
+- Updating from an earlier version no longer closes the app on launch
+
 ## 2.0.9 - 2026-10-19
 
 ### Maintenance
