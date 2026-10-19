@@ -9,9 +9,6 @@ sealed class SereneDestination(val route: String) {
     data object Affirmations : SereneDestination("affirmations")
     data object KatiesLoveList : SereneDestination("katies_love_list")
     data object Toolkit : SereneDestination("toolkit")
-    data object Visualizations : SereneDestination("visualizations") {
-        fun playerRoute(vizId: String) = "visualizations/player/$vizId"
-    }
     data object LivingTree : SereneDestination("living_tree")
     data object Thermometers : SereneDestination("thermometers")
     data object LivingTreeSetup : SereneDestination("living_tree/setup")
@@ -43,7 +40,6 @@ sealed class SereneDestination(val route: String) {
             Toolkit,
             LivingTree,
             Thermometers,
-            Visualizations,
         )
     }
 }

@@ -64,7 +64,6 @@ fun SereneBottomBar(
                     SereneDestination.Toolkit -> currentRoute == SereneDestination.Toolkit.route
                     SereneDestination.Affirmations -> currentRoute == SereneDestination.Affirmations.route
                     SereneDestination.KatiesLoveList -> currentRoute == SereneDestination.KatiesLoveList.route
-                    SereneDestination.Visualizations -> currentRoute?.startsWith("visualizations") == true
                     SereneDestination.LivingTree -> currentRoute == SereneDestination.LivingTree.route
                     else -> currentRoute == item.destination.route
                 }
