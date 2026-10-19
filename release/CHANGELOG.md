@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.0.9 - 2026-10-19
+
+### Maintenance
+
+- Build tools updated to Android Gradle Plugin 9.2.1
+
 ## 2.0.8 - 2026-10-16
 
 ### Backups
