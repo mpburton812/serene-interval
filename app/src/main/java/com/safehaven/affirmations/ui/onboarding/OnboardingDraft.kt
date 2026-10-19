@@ -31,7 +31,7 @@ data class OnboardingDraft(
             val settings = previewExperienceSettings()
             val hasExperienceTool = enableBreathing || enableTimer || enableAffirmations ||
                 enableKatiesLoveList || enableToolkit || enableLivingTree ||
-                enableThermometers || enableVisuals
+                enableThermometers
             val quickStartReady = QuickStartLayout.hasValidSelection(
                 quickStartTargets,
                 settings,

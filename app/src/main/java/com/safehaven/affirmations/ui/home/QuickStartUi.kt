@@ -3,9 +3,10 @@ package com.safehaven.affirmations.ui.home
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Handyman
-import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -89,6 +90,18 @@ private fun quickStartPresentation(
         iconTint = scheme.tertiary,
         iconBackground = scheme.tertiaryContainer.copy(alpha = 0.3f),
     )
+    QuickStartTarget.LivingTree -> QuickStartPresentation(
+        label = "Living Flower",
+        icon = Icons.Default.LocalFlorist,
+        iconTint = scheme.primary,
+        iconBackground = scheme.primaryContainer.copy(alpha = 0.4f),
+    )
+    QuickStartTarget.Thermometers -> QuickStartPresentation(
+        label = "Thermometers",
+        icon = Icons.Default.DeviceThermostat,
+        iconTint = scheme.tertiary,
+        iconBackground = scheme.tertiaryContainer.copy(alpha = 0.25f),
+    )
     is QuickStartTarget.Toolkit -> {
         val title = ToolkitCatalog.byId(target.toolId)?.title ?: "Toolkit"
         QuickStartPresentation(
@@ -98,10 +111,4 @@ private fun quickStartPresentation(
             iconBackground = scheme.surfaceContainerHigh,
         )
     }
-    QuickStartTarget.Visuals -> QuickStartPresentation(
-        label = "Visualizations",
-        icon = Icons.Default.Landscape,
-        iconTint = scheme.tertiary,
-        iconBackground = scheme.tertiaryContainer.copy(alpha = 0.25f),
-    )
 }
