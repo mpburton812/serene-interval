@@ -1,9 +1,9 @@
 ﻿{
-    "versionCode":  44,
-    "versionName":  "2.0.10",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.10/safehaven.apk",
-    "expectedSha256":  "0f16d524d93d99e96eae3bee6a4a3290eaa379588d40c27c3273c999ca3a5806",
-    "releaseNotes":  "Updating from an earlier version no longer closes the app on launch.",
+    "versionCode":  45,
+    "versionName":  "2.1.0",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.1.0/safehaven.apk",
+    "expectedSha256":  "0322ea38f879772928d2e1371f093f6523b318db8e233d4010ef8a01d6fe0e64",
+    "releaseNotes":  "The Visuals tab is gone. Living Flower and Thermometers can be Quick Start shortcuts.",
     "minVersionCode":  1
 }
 
