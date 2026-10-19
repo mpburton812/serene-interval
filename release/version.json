@@ -1,9 +1,9 @@
 ﻿{
-    "versionCode":  42,
-    "versionName":  "2.0.8",
-    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.8/safehaven.apk",
-    "expectedSha256":  "94067e69de49f3c5008be25838fb36e6c753ba0c0ebb4a9f62527b08b17a5c02",
-    "releaseNotes":  "Restored journals keep their mood scores. Backups include sessions, affirmation reviews, and Katie reminders. Visualizations is back on the tab bar, and ambient sounds are smaller.",
+    "versionCode":  43,
+    "versionName":  "2.0.9",
+    "apkUrl":  "https://github.com/mpburton812/serene-interval/releases/download/v2.0.9/safehaven.apk",
+    "expectedSha256":  "ed4428705186d2acd71d9e64102ebb9abd55c10ad251c3208a100ebb8afa7905",
+    "releaseNotes":  "Maintenance update. Build tools updated; the app works the same.",
     "minVersionCode":  1
 }
 
