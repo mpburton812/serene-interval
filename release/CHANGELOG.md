@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.1.0 - 2026-10-19
+
+### Navigation
+
+- Removed the Visuals tab
+- Living Flower and Thermometers can be chosen as Quick Start shortcuts
+
 ## 2.0.10 - 2026-10-19
 
 ### Updates

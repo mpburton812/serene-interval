@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Handyman
+import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -82,7 +84,9 @@ fun QuickStartSelectionSection(
         val coreAvailable = available.filter {
             it is QuickStartTarget.Timer ||
                 it is QuickStartTarget.Affirmations ||
-                it is QuickStartTarget.KatiesLoveList
+                it is QuickStartTarget.KatiesLoveList ||
+                it is QuickStartTarget.LivingTree ||
+                it is QuickStartTarget.Thermometers
         }
         val toolkitAvailable = available.filterIsInstance<QuickStartTarget.Toolkit>()
         val coreProactive = toolkitTargets(toolkitAvailable, ToolkitLane.Core, ToolkitCategory.Proactive)
@@ -233,7 +237,8 @@ private fun quickStartMeta(target: QuickStartTarget): Pair<String, ImageVector> 
     QuickStartTarget.Timer -> "Meditation" to Icons.Default.SelfImprovement
     QuickStartTarget.Affirmations -> "Affirmations" to Icons.Default.AutoAwesome
     QuickStartTarget.KatiesLoveList -> "Katie's Love List" to Icons.Default.Favorite
-    QuickStartTarget.Visuals -> "Visualizations" to Icons.Default.Handyman
+    QuickStartTarget.LivingTree -> "Living Flower" to Icons.Default.LocalFlorist
+    QuickStartTarget.Thermometers -> "Thermometers" to Icons.Default.DeviceThermostat
     is QuickStartTarget.Toolkit -> {
         val title = ToolkitCatalog.byId(target.toolId)?.title ?: "Toolkit"
         title to Icons.Default.Handyman

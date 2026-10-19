@@ -22,6 +22,8 @@ object QuickStartLayout {
             if (settings.enableTimer) add(QuickStartTarget.Timer)
             if (settings.enableAffirmations) add(QuickStartTarget.Affirmations)
             if (settings.enableKatiesLoveList) add(QuickStartTarget.KatiesLoveList)
+            if (settings.enableLivingTree) add(QuickStartTarget.LivingTree)
+            if (settings.enableThermometers) add(QuickStartTarget.Thermometers)
         }
         val toolkit = if (settings.enableToolkit) {
             ToolkitCatalog.all
@@ -43,7 +45,8 @@ object QuickStartLayout {
         QuickStartTarget.Timer -> settings.enableTimer
         QuickStartTarget.Affirmations -> settings.enableAffirmations
         QuickStartTarget.KatiesLoveList -> settings.enableKatiesLoveList
-        QuickStartTarget.Visuals -> false
+        QuickStartTarget.LivingTree -> settings.enableLivingTree
+        QuickStartTarget.Thermometers -> settings.enableThermometers
         is QuickStartTarget.Toolkit -> settings.enableToolkit && target.toolId in enabledToolkitTools
     }
 

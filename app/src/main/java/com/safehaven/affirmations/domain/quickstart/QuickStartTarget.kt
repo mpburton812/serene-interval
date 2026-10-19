@@ -7,7 +7,8 @@ sealed class QuickStartTarget {
     data object Timer : QuickStartTarget()
     data object Affirmations : QuickStartTarget()
     data object KatiesLoveList : QuickStartTarget()
-    data object Visuals : QuickStartTarget()
+    data object LivingTree : QuickStartTarget()
+    data object Thermometers : QuickStartTarget()
     data class Breathing(val patternId: String) : QuickStartTarget()
     data class Toolkit(val toolId: ToolkitToolId) : QuickStartTarget()
 
@@ -15,7 +16,8 @@ sealed class QuickStartTarget {
         Timer -> KEY_TIMER
         Affirmations -> KEY_AFFIRMATIONS
         KatiesLoveList -> KEY_KATIES_LOVE_LIST
-        Visuals -> KEY_VISUALS
+        LivingTree -> KEY_LIVING_TREE
+        Thermometers -> KEY_THERMOMETERS
         is Breathing -> "$KEY_BREATHING_PREFIX$patternId"
         is Toolkit -> "$KEY_TOOLKIT_PREFIX${toolId.name}"
     }
@@ -24,7 +26,8 @@ sealed class QuickStartTarget {
         private const val KEY_TIMER = "timer"
         private const val KEY_AFFIRMATIONS = "affirmations"
         private const val KEY_KATIES_LOVE_LIST = "katies_love_list"
-        private const val KEY_VISUALS = "visuals"
+        private const val KEY_LIVING_TREE = "living_tree"
+        private const val KEY_THERMOMETERS = "thermometers"
         private const val KEY_BREATHING_PREFIX = "breathing:"
         private const val KEY_TOOLKIT_PREFIX = "toolkit:"
 
@@ -35,7 +38,8 @@ sealed class QuickStartTarget {
                 key.equals(KEY_TIMER, ignoreCase = true) -> Timer
                 key.equals(KEY_AFFIRMATIONS, ignoreCase = true) -> Affirmations
                 key.equals(KEY_KATIES_LOVE_LIST, ignoreCase = true) -> KatiesLoveList
-                key.equals(KEY_VISUALS, ignoreCase = true) -> Visuals
+                key.equals(KEY_LIVING_TREE, ignoreCase = true) -> LivingTree
+                key.equals(KEY_THERMOMETERS, ignoreCase = true) -> Thermometers
                 key.startsWith(KEY_BREATHING_PREFIX, ignoreCase = true) -> {
                     val patternId = key.substringAfter(':')
                     if (BreathingPattern.All.any { it.id == patternId }) {
@@ -56,7 +60,8 @@ sealed class QuickStartTarget {
             "TIMER" -> Timer
             "AFFIRMATIONS" -> Affirmations
             "KATIES_LOVE_LIST", "LOVE_LIST" -> KatiesLoveList
-            "VISUALS" -> Visuals
+            "LIVING_TREE", "FLOWER" -> LivingTree
+            "THERMOMETERS", "STRESS" -> Thermometers
             "BREATHING" -> Breathing(BreathingPattern.BoxBreathing.id)
             "TOOLKIT" -> Toolkit(ToolkitToolId.ThoughtDump)
             else -> null

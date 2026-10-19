@@ -102,6 +102,21 @@ class QuickStartLayoutTest {
     }
 
     @Test
+    fun availableTargets_includesLivingFlowerAndThermometersWhenEnabled() {
+        val available = QuickStartLayout.availableTargets(allEnabled, allToolkitTools)
+        assertTrue(QuickStartTarget.LivingTree in available)
+        assertTrue(QuickStartTarget.Thermometers in available)
+    }
+
+    @Test
+    fun availableTargets_hidesLivingFlowerAndThermometersWhenDisabled() {
+        val settings = allEnabled.copy(enableLivingTree = false, enableThermometers = false)
+        val available = QuickStartLayout.availableTargets(settings, allToolkitTools)
+        assertFalse(QuickStartTarget.LivingTree in available)
+        assertFalse(QuickStartTarget.Thermometers in available)
+    }
+
+    @Test
     fun quickStartTarget_decode_supportsLegacyTabKeys() {
         assertEquals(
             QuickStartTarget.Breathing(BreathingPattern.BoxBreathing.id),
@@ -111,6 +126,9 @@ class QuickStartLayoutTest {
             QuickStartTarget.Toolkit(ToolkitToolId.ThoughtDump),
             QuickStartTarget.decode("TOOLKIT"),
         )
+        assertEquals(QuickStartTarget.LivingTree, QuickStartTarget.decode("living_tree"))
+        assertEquals(QuickStartTarget.Thermometers, QuickStartTarget.decode("thermometers"))
+        assertEquals(null, QuickStartTarget.decode("visuals"))
         assertEquals(
             QuickStartTarget.Breathing(BreathingPattern.Resonant.id),
             QuickStartTarget.decode("breathing:resonant"),
