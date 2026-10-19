@@ -26,7 +26,7 @@ import androidx.room.RoomDatabase
         ThermometerEntity::class,
         ThermometerEventEntity::class,
     ],
-    version = 26,
+    version = 27,
     exportSchema = true,
 )
 abstract class SereneDatabase : RoomDatabase() {

@@ -614,6 +614,22 @@ private class Migration25To26 : Migration(25, 26) {
     }
 }
 
+/**
+ * The hearts personId index has existed since 21→22, but it was not declared on the entity
+ * until schema 26. Room stores an identity hash, so existing version-26 databases must move
+ * to 27 before they will open.
+ */
+private class Migration26To27 : Migration(26, 27) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_hearts_entries_personId
+            ON hearts_entries (personId)
+            """.trimIndent(),
+        )
+    }
+}
+
 internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration1To2(),
     Migration2To3(),
@@ -640,4 +656,5 @@ internal val SERENE_DATABASE_MIGRATIONS = arrayOf(
     Migration23To24(),
     Migration24To25(),
     Migration25To26(),
+    Migration26To27(),
 )
